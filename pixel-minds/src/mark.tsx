@@ -1,0 +1,1 @@
+export const PixelMark=({s=9}:{s?:number})=><span className="inline-grid grid-cols-2 gap-[2px]">{[1,.45,.45,1].map((o,i)=><i key={i} style={{width:s,height:s,opacity:o}} className="bg-current"/>)}</span>;

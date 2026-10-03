@@ -1,0 +1,109 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    function isAdmin() {
+      return isAuthenticated() && 
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    // Users Collection
+    match /users/{userId} {
+      // Anyone authenticated can read user profiles
+      allow read: if isAuthenticated();
+      
+      // User can create their profile on first sign up as 'user' role with 0 pixels
+      allow create: if isOwner(userId) 
+                    && request.resource.data.role == 'user'
+                    && request.resource.data.pixels == 0;
+                    
+      // Normal user can only update safe profile fields, never role, pixels, or status
+      allow update: if (isOwner(userId)
+                    && !request.resource.data.diff(resource.data).affectedKeys()
+                        .hasAny(['role', 'pixels', 'status', 'referralId']))
+                    || isAdmin();
+                        
+      // Admin can manage users
+      allow write: if isAdmin();
+    }
+    
+    // Pixel Transactions Collection
+    match /pixelTransactions/{transactionId} {
+      // Users can see their own transactions; Admins can see all
+      allow read: if isAuthenticated() && (resource.data.userId == request.auth.uid || isAdmin());
+      // Only admins can record pixel adjustments
+      allow create: if isAdmin();
+      allow update, delete: if false;
+    }
+    
+    // Opportunities Collection
+    match /opportunities/{opportunityId} {
+      // Anyone can read published opportunities, or admins can read everything, or creator can view their own
+      allow read: if (resource == null) || resource.data.status == 'published' || isAdmin() || (isAuthenticated() && resource.data.createdBy == request.auth.uid);
+      
+      // Users can submit pending opportunities; Admins can create directly with any status (draft, published, etc.)
+      allow create: if (isAuthenticated() 
+                    && request.resource.data.status == 'pending'
+                    && request.resource.data.createdBy == request.auth.uid)
+                    || isAdmin();
+                    
+      // Only admins can update or delete opportunities.
+      // Anyone can increment views or applyClicks if it's published.
+      allow update: if isAdmin() || 
+                    (resource.data.status == 'published' && 
+                     request.resource.data.diff(resource.data).affectedKeys().hasOnly(['views', 'applyClicks']));
+                    
+      allow delete: if isAdmin();
+    }
+
+    // Community Posts Collection
+    match /communityPosts/{postId} {
+      // Anyone can read published posts; admins can read all
+      allow read: if (resource == null) || resource.data.status == 'published' || isAdmin();
+      
+      // Authenticated users can create posts; admins can create with source='admin'
+      allow create: if isAuthenticated();
+      
+      // Admins or owner can update/delete
+      allow update, delete: if isAdmin() || (isAuthenticated() && resource.data.userId == request.auth.uid);
+    }
+
+    // Announcements Collection
+    match /announcements/{announcementId} {
+      // Anyone can read published announcements
+      allow read: if (resource == null) || resource.data.status == 'published' || isAdmin();
+      
+      // Only admins can create, update, delete
+      allow write: if isAdmin();
+    }
+
+    // Reward Configurations
+    match /configs/{configId} {
+      // Public / users can read configs like rewards
+      allow read: if isAuthenticated();
+      // Only admins can modify
+      allow write: if isAdmin();
+    }
+
+    // Audit Logs Collection
+    match /auditLogs/{logId} {
+      // Strictly accessible ONLY to admins
+      allow read, write: if isAdmin();
+    }
+    
+    // Default fallback: deny everything else
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

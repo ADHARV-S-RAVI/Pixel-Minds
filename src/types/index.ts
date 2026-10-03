@@ -1,0 +1,144 @@
+export type Role = 'user' | 'admin';
+export type OpportunityStatus = 'draft' | 'pending' | 'published' | 'rejected' | 'expired' | 'archived';
+
+export interface User {
+  id: string;
+  email: string;
+  displayName: string;
+  photoURL?: string;
+  role: Role;
+  pixels: number;
+  status: 'active' | 'suspended';
+  bio?: string;
+  opportunitiesShared: number;
+  approvedSubmissions: number;
+  referrals: number;
+  contributions: number;
+  badges: string[];
+  referralId: string;
+  college?: string;
+  course?: string;
+  yearOfStudy?: string;
+  branch?: string;
+  createdAt: number;
+}
+
+export interface Opportunity {
+  id: string;
+  title: string;
+  description: string;
+  category: string;
+  organizer: string;
+  deadline: number;
+  startDate: number;
+  endDate: number;
+  location: string;
+  mode: 'online' | 'offline' | 'hybrid';
+  prize?: string;
+  stipend?: string;
+  eligibility: string;
+  teamSize?: string;
+  skills: string[];
+  imageUrl?: string;
+  officialUrl: string;
+  status: OpportunityStatus;
+  views: number;
+  applyClicks: number;
+  shares: number;
+  source?: 'admin' | 'user';
+  featured?: boolean;
+  additionalInfo?: string;
+  createdBy: string;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface PixelTransaction {
+  id: string;
+  userId: string;
+  amount: number;
+  reason: string;
+  type: 'earn' | 'spend' | 'adjustment';
+  createdAt: number;
+}
+
+export interface Referral {
+  id: string;
+  referrerId: string;
+  referredUserId: string;
+  referralCode?: string;
+  pixelsRewarded?: number;
+  opportunityId?: string | null;
+  status?: 'pending' | 'completed' | 'rejected';
+  referredUserName?: string;
+  referredUserEmail?: string;
+  referredUserAvatar?: string;
+  opportunityTitle?: string;
+  createdAt: number;
+}
+
+export interface Report {
+  id: string;
+  opportunityId: string;
+  reporterId: string;
+  reason: string;
+  status: 'pending' | 'resolved' | 'dismissed';
+  createdAt: number;
+}
+
+export interface RewardConfig {
+  shareOpportunity: number;
+  submitOpportunity: number;
+  approvedOpportunity: number;
+  referralSignup: number;
+  validReport: number;
+  dailyActivity: number;
+  profileCompletion?: number;
+}
+
+export interface AuditLog {
+  id: string;
+  adminId: string;
+  adminEmail: string;
+  action: string;
+  targetType: 'opportunity' | 'user' | 'reward_config' | 'announcement' | 'post' | 'pixel';
+  targetId: string;
+  reason?: string;
+  previousValue?: any;
+  newValue?: any;
+  createdAt: number;
+}
+
+export interface Announcement {
+  id: string;
+  title: string;
+  message: string;
+  ctaText?: string;
+  ctaLink?: string;
+  startDate: number;
+  endDate: number;
+  status: 'published' | 'draft' | 'archived';
+  createdBy: string;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface CommunityPost {
+  id: string;
+  user: string;
+  userId: string;
+  role: string;
+  time: string;
+  text: string;
+  category?: string;
+  likes: number;
+  comments: number;
+  opp?: string | number;
+  link?: string;
+  imageUrl?: string;
+  source: 'admin' | 'user';
+  status: 'published' | 'draft' | 'archived';
+  featured?: boolean;
+  createdAt: number;
+}
+
