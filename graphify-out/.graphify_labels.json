@@ -27,5 +27,7 @@
   "25": "Pixel Minds Backend Integration Audit",
   "26": "Phase 3: Community Posts & Feed Supabase Migration Report",
   "27": "Pixel Minds - Auth & Profile Completion Update Report",
-  "28": "devDependencies"
+  "28": "devDependencies",
+  "29": "audit-test.mjs",
+  "30": "test-playwright.mjs"
 }

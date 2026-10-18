@@ -30,8 +30,15 @@ import {
   Lock,
   GraduationCap,
   Building2,
-  X
+  X,
+  XCircle,
+  AlertCircle,
+  Bell,
+  Send,
+  Inbox,
+  Trash2
 } from 'lucide-react';
+import { SubmissionDetailModal } from './components/SubmissionDetailModal';
 import { grad, getCategoryMeta } from './utils/meta';
 import { useApp } from './store';
 import {
@@ -55,7 +62,9 @@ import type {
   Announcement, 
   CommunityPost,
   OpportunityStatus,
-  PixelTransaction
+  Opportunity,
+  PixelTransaction,
+  AdminSentNotification
 } from './types';
 import { useAuth } from './contexts/AuthContext';
 import {
@@ -89,8 +98,12 @@ import {
   getAnnouncements,
   deleteAnnouncement,
   getAuditLogs,
-  recordAuditLog
+  recordAuditLog,
+  sendAdminNotification,
+  getAdminSentNotifications,
+  deleteAdminNotification
 } from './services/admin';
+import { uploadAnnouncementImage } from './services/announcements';
 
 const W: FC<{ children: any; className?: string }> = ({ children, className = '' }) => (
   <main className={`mx-auto max-w-6xl px-4 ${className}`}>{children}</main>
@@ -837,12 +850,27 @@ import { ReferralPanel as RP } from './pixels';
 
 export function Profile() {
   const { userProfile, user, refreshProfile, updatePassword } = useAuth();
+  const [searchParams] = useSearchParams();
   const [tab, setTab] = useState('Posts');
   const [userSubs, setUserSubs] = useState<Opp[]>([]);
+  const [rawSubmissions, setRawSubmissions] = useState<Opportunity[]>([]);
+  const [selectedSubForModal, setSelectedSubForModal] = useState<Opportunity | null>(null);
   const [editing, setEditing] = useState(false);
   const [bioInput, setBioInput] = useState(userProfile?.bio || 'Tech builder & hackathon enthusiast on Pixel Minds.');
   const [savingBio, setSavingBio] = useState(false);
   const { say } = useApp();
+
+  // URL query parameter tab syncing (e.g. from notification links)
+  useEffect(() => {
+    const tabParam = searchParams.get('tab');
+    if (tabParam) {
+      if (tabParam.toLowerCase() === 'submissions' || tabParam.toLowerCase() === 'mysubmissions' || tabParam.toLowerCase() === 'my submissions') {
+        setTab('My Submissions');
+      } else {
+        setTab(tabParam);
+      }
+    }
+  }, [searchParams]);
 
   // Academic / Profile settings edit state
   const [nameInput, setNameInput] = useState(userProfile?.displayName || '');
@@ -880,6 +908,12 @@ export function Profile() {
   useEffect(() => {
     if (user?.uid) {
       getUserSubmissions(user.uid).then((subs) => {
+        setRawSubmissions(subs);
+        const subIdParam = searchParams.get('id') || searchParams.get('sub');
+        if (subIdParam) {
+          const matched = subs.find(s => s.id === subIdParam);
+          if (matched) setSelectedSubForModal(matched);
+        }
         const mapped: Opp[] = subs.map((s) => ({
           id: s.id,
           title: s.title,
@@ -904,7 +938,7 @@ export function Profile() {
         setUserTransactions(txs);
       }).catch(() => {});
     }
-  }, [user]);
+  }, [user, searchParams]);
 
   const handleSaveBio = async () => {
     if (!user?.uid) return;
@@ -1049,7 +1083,7 @@ export function Profile() {
             {[
               ['Pixels', userPixels],
               ['Rank', '#1'],
-              ['Contributions', userSubs.length || 0],
+              ['Contributions', rawSubmissions.length || userSubs.length || 0],
               ['Level', rankOf(userPixels)]
             ].map(([l, v]) => (
               <div key={l as string} className="rounded-2xl bg-slate-50 p-3.5 border border-slate-100">
@@ -1063,15 +1097,20 @@ export function Profile() {
 
       {/* Tabs */}
       <div className="flex gap-2 border-b border-slate-200 pb-1 overflow-x-auto">
-        {['Posts', 'Shared Opportunities', 'Pixel History', 'Referrals', 'Achievements', 'Settings'].map((t) => (
+        {['Posts', 'My Submissions', 'Shared Opportunities', 'Pixel History', 'Referrals', 'Achievements', 'Settings'].map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
-            className={`border-b-2 px-4 py-2.5 text-xs font-bold whitespace-nowrap transition ${
+            className={`border-b-2 px-4 py-2.5 text-xs font-bold whitespace-nowrap transition flex items-center gap-1.5 ${
               tab === t ? 'border-sky-500 text-sky-600' : 'border-transparent text-slate-500 hover:text-slate-800'
             }`}
           >
-            {t}
+            <span>{t}</span>
+            {t === 'My Submissions' && rawSubmissions.length > 0 && (
+              <span className="rounded-full bg-slate-100 px-1.5 py-0.5 text-[10px] font-bold text-slate-600">
+                {rawSubmissions.length}
+              </span>
+            )}
           </button>
         ))}
       </div>
@@ -1090,6 +1129,135 @@ export function Profile() {
             ) : (
               <div className="text-center py-10 text-slate-400 text-sm">
                 No posts shared yet. Share an update on the Community Feed!
+              </div>
+            )}
+          </div>
+        )}
+
+        {tab === 'My Submissions' && (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+              <div>
+                <h3 className="text-base font-bold text-slate-900">My Opportunity Submissions</h3>
+                <p className="text-xs text-slate-500">
+                  Track verification status and reviewer feedback for your submissions.
+                </p>
+              </div>
+              <BtnLink to="/submit" className="!py-1.5 !px-3.5 !text-xs !min-h-9 shadow-xs">
+                Submit New
+              </BtnLink>
+            </div>
+
+            {rawSubmissions.length === 0 ? (
+              <div className="text-center py-16 bg-white rounded-2xl border border-slate-200 p-8">
+                <div className="w-14 h-14 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-3 text-slate-400">
+                  <FileText size={24} />
+                </div>
+                <h4 className="text-base font-bold text-slate-900 mb-1">
+                  You haven't submitted any opportunities yet.
+                </h4>
+                <p className="text-xs text-slate-500 mb-5 max-w-sm mx-auto">
+                  Know about a hackathon, internship, workshop, or tech event? Submit it for review to earn Pixels!
+                </p>
+                <BtnLink to="/submit" className="!py-2 !px-4 !text-xs">
+                  Submit an Opportunity
+                </BtnLink>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {rawSubmissions.map((sub) => {
+                  const isPending = sub.status === 'pending';
+                  const isApproved = sub.status === 'approved' || sub.status === 'published';
+                  const isRejected = sub.status === 'rejected';
+
+                  return (
+                    <Card
+                      key={sub.id}
+                      onClick={() => setSelectedSubForModal(sub)}
+                      className="p-5 transition hover:border-sky-300 hover:shadow-md cursor-pointer space-y-3"
+                    >
+                      <div className="flex flex-wrap items-start justify-between gap-3">
+                        <div className="space-y-1 min-w-0 flex-1">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="inline-flex items-center rounded-lg bg-sky-50 px-2.5 py-0.5 text-xs font-bold text-sky-700 border border-sky-100">
+                              {sub.category}
+                            </span>
+                            {isPending && (
+                              <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2.5 py-0.5 text-xs font-bold text-amber-700 border border-amber-200">
+                                <Clock size={11} /> Pending Review
+                              </span>
+                            )}
+                            {isApproved && (
+                              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-bold text-emerald-700 border border-emerald-200">
+                                <CheckCircle2 size={11} /> Approved
+                              </span>
+                            )}
+                            {isRejected && (
+                              <span className="inline-flex items-center gap-1 rounded-full bg-rose-50 px-2.5 py-0.5 text-xs font-bold text-rose-700 border border-rose-200">
+                                <XCircle size={11} /> Rejected
+                              </span>
+                            )}
+                          </div>
+                          <h4 className="text-base font-bold text-slate-900 truncate hover:text-sky-600 transition">
+                            {sub.title}
+                          </h4>
+                          <p className="text-xs text-slate-500">
+                            Organizer:{' '}
+                            <span className="font-semibold text-slate-700">
+                              {sub.organizer || 'Not specified'}
+                            </span>
+                          </p>
+                        </div>
+
+                        <div className="text-right shrink-0">
+                          <p className="text-xs text-slate-500 font-medium">
+                            Submitted:{' '}
+                            {new Date(sub.createdAt).toLocaleDateString('en-US', {
+                              month: 'short',
+                              day: 'numeric',
+                              year: 'numeric'
+                            })}
+                          </p>
+                          {sub.updatedAt && sub.updatedAt !== sub.createdAt && (
+                            <p className="text-[11px] text-slate-400 mt-0.5">
+                              Updated:{' '}
+                              {new Date(sub.updatedAt).toLocaleDateString('en-US', {
+                                month: 'short',
+                                day: 'numeric'
+                              })}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Reviewer Feedback / Rejection Reason Callout */}
+                      {sub.adminNotes && (
+                        <div className="p-3 rounded-xl bg-rose-50 border border-rose-200/80 text-rose-900 text-xs space-y-0.5">
+                          <div className="flex items-center gap-1 font-bold text-[11px] text-rose-800">
+                            <AlertCircle size={12} />
+                            <span>Reviewer Feedback / Rejection Reason:</span>
+                          </div>
+                          <p className="leading-relaxed pl-4 font-medium">{sub.adminNotes}</p>
+                        </div>
+                      )}
+
+                      <div className="flex items-center justify-between pt-2 border-t border-slate-100 text-xs text-slate-500">
+                        <span className="flex items-center gap-1">
+                          <Calendar size={12} className="text-sky-500" />
+                          Deadline:{' '}
+                          {new Date(sub.deadline).toLocaleDateString('en-US', {
+                            month: 'short',
+                            day: 'numeric',
+                            year: 'numeric'
+                          })}
+                        </span>
+                        <span className="font-semibold text-sky-600 hover:text-sky-700 inline-flex items-center gap-1">
+                          View Details &rarr;
+                        </span>
+                      </div>
+                    </Card>
+                  );
+                })}
               </div>
             )}
           </div>
@@ -1327,6 +1495,13 @@ export function Profile() {
           </div>
         )}
       </div>
+
+      {/* Submission Detail Modal */}
+      <SubmissionDetailModal
+        submission={selectedSubForModal}
+        isOpen={!!selectedSubForModal}
+        onClose={() => setSelectedSubForModal(null)}
+      />
     </W>
   );
 }
@@ -1625,6 +1800,7 @@ const adminTabs: [string, any][] = [
   ['Opportunities', FileText],
   ['Community Posts', MessageSquare],
   ['Announcements', Megaphone],
+  ['Notifications', Bell],
   ['Users & Pixels', U],
   ['Reward Config', Sliders],
   ['Audit Logs', History]
@@ -2163,17 +2339,31 @@ export function Admin() {
   const [annMessage, setAnnMessage] = useState('');
   const [annCtaText, setAnnCtaText] = useState('Learn More');
   const [annCtaLink, setAnnCtaLink] = useState('');
+  const [annImageUrl, setAnnImageUrl] = useState('');
+  const [uploadingAnnImage, setUploadingAnnImage] = useState(false);
+
+  // Dedicated Admin Notifications State
+  const [adminNotifications, setAdminNotifications] = useState<AdminSentNotification[]>([]);
+  const [showCreateNotif, setShowCreateNotif] = useState(false);
+  const [notifTitle, setNotifTitle] = useState('');
+  const [notifMessage, setNotifMessage] = useState('');
+  const [notifTarget, setNotifTarget] = useState<'everyone' | 'user'>('everyone');
+  const [notifTargetUserId, setNotifTargetUserId] = useState<string>('');
+  const [notifLink, setNotifLink] = useState('');
+  const [notifType, setNotifType] = useState<'system' | 'announcement' | 'opportunity' | 'offer' | 'reminder'>('system');
+  const [sendingNotif, setSendingNotif] = useState(false);
 
   const loadData = async () => {
     try {
-      const [pending, all, uList, posts, anns, logs, config] = await Promise.all([
+      const [pending, all, uList, posts, anns, logs, config, notifs] = await Promise.all([
         getPendingSubmissions().catch((err) => { console.warn('Pending submissions load error:', err); return []; }),
         getAllOpportunities().catch((err) => { console.warn('All opps load error:', err); return []; }),
         getAllUsersAdmin().catch((err) => { console.warn('Users load error:', err); return []; }),
         getCommunityPosts(true).catch((err) => { console.warn('Community posts load error:', err); return []; }),
         getAnnouncements(false).catch((err) => { console.warn('Announcements load error:', err); return []; }),
         getAuditLogs(50).catch((err) => { console.warn('Audit logs load error:', err); return []; }),
-        getRewardConfig().catch((err) => { console.warn('Reward config load error:', err); return DEFAULT_REWARD_CONFIG; })
+        getRewardConfig().catch((err) => { console.warn('Reward config load error:', err); return DEFAULT_REWARD_CONFIG; }),
+        getAdminSentNotifications().catch((err) => { console.warn('Admin notifications load error:', err); return []; })
       ]);
       setPendingOpps(pending);
       setAllOppsList(all);
@@ -2182,29 +2372,35 @@ export function Admin() {
       setAnnouncements(anns);
       setAuditLogs(logs);
       setRewardConfig(config);
+      setAdminNotifications(notifs);
     } catch (err) {
       console.error('Failed to load admin data:', err);
     }
   };
 
+  // Verification Inspection & Rejection Dialog States
+  const [selectedSubmissionForDetails, setSelectedSubmissionForDetails] = useState<any | null>(null);
+  const [rejectingSubmissionId, setRejectingSubmissionId] = useState<string | null>(null);
+  const [rejectionModalReason, setRejectionModalReason] = useState<string>('');
+
   useEffect(() => {
     loadData();
   }, []);
 
-  const handleUpdateStatus = async (id: string, status: 'published' | 'rejected') => {
+  const handleUpdateStatus = async (id: string, status: 'published' | 'rejected', reason?: string) => {
     const opp = pendingOpps.find(o => o.id === id);
-    if (!confirm(`Are you sure you want to mark this submission as ${status}?`)) return;
+    if (!reason && status === 'published' && !confirm(`Are you sure you want to approve and publish this submission?`)) return;
     try {
-      await updateOpportunityAdmin(id, { status });
+      await updateOpportunityAdmin(id, { status, rejectionReason: reason, adminNotes: reason });
       await recordAuditLog({
         adminId: user?.uid || 'admin',
         adminEmail: user?.email || 'admin@pixelminds.org',
         action: `${status === 'published' ? 'Approved' : 'Rejected'} submission`,
         targetType: 'opportunity',
         targetId: id,
-        reason: opp?.title || 'User submission'
+        reason: reason || opp?.title || 'User submission'
       });
-      say(`Submission marked as ${status} successfully`);
+      say(`Submission marked as ${status === 'published' ? 'approved & published' : 'rejected'} successfully`);
       loadData();
     } catch {
       say('Failed to update submission status');
@@ -2312,6 +2508,22 @@ export function Admin() {
     }
   };
 
+  const handleAnnImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingAnnImage(true);
+    try {
+      const url = await uploadAnnouncementImage(file);
+      setAnnImageUrl(url);
+      say('Announcement banner uploaded successfully');
+    } catch (err: any) {
+      console.error('Banner upload error:', err);
+      say(err?.message || 'Failed to upload banner. You can also paste an image URL.');
+    } finally {
+      setUploadingAnnImage(false);
+    }
+  };
+
   const handleCreateAnnouncement = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!annTitle.trim() || !annMessage.trim()) return;
@@ -2323,6 +2535,7 @@ export function Admin() {
           message: annMessage.trim(),
           ctaText: annCtaText.trim() || undefined,
           ctaLink: annCtaLink.trim() || undefined,
+          imageUrl: annImageUrl.trim() || undefined,
           startDate: Date.now(),
           endDate: Date.now() + 86400000 * 7,
           status: 'published'
@@ -2331,11 +2544,81 @@ export function Admin() {
       say('Announcement published on website');
       setAnnTitle('');
       setAnnMessage('');
+      setAnnCtaText('Learn More');
       setAnnCtaLink('');
+      setAnnImageUrl('');
       setShowCreateAnnouncement(false);
       loadData();
     } catch {
       say('Failed to create announcement');
+    }
+  };
+
+  const handleSendAdminNotification = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!notifTitle.trim() || !notifMessage.trim()) {
+      say('Title and message are required.');
+      return;
+    }
+    if (notifTarget === 'user' && !notifTargetUserId) {
+      say('Please select a specific recipient user.');
+      return;
+    }
+
+    setSendingNotif(true);
+    try {
+      const res = await sendAdminNotification({
+        adminId: user?.uid,
+        title: notifTitle.trim(),
+        message: notifMessage.trim(),
+        target: notifTarget,
+        targetUserId: notifTarget === 'user' ? notifTargetUserId : undefined,
+        link: notifLink.trim() || undefined,
+        type: notifType
+      });
+      say(`Notification sent successfully to ${res.count} recipient${res.count === 1 ? '' : 's'}!`);
+      setNotifTitle('');
+      setNotifMessage('');
+      setNotifLink('');
+      setNotifTarget('everyone');
+      setNotifTargetUserId('');
+      setShowCreateNotif(false);
+      const updatedList = await getAdminSentNotifications();
+      setAdminNotifications(updatedList);
+    } catch (err: any) {
+      console.error('Failed to send notification:', err);
+      say(err?.message || 'Failed to send notification');
+    } finally {
+      setSendingNotif(false);
+    }
+  };
+
+  const [deletingNotifId, setDeletingNotifId] = useState<string | null>(null);
+
+  const handleDeleteNotification = async (notifId: string, title: string) => {
+    if (!confirm(`Are you sure you want to delete notification "${title}"? This will also remove it from all recipients' notification inboxes.`)) {
+      return;
+    }
+
+    setDeletingNotifId(notifId);
+    try {
+      await deleteAdminNotification(notifId);
+      await recordAuditLog({
+        adminId: user?.uid || 'admin',
+        adminEmail: user?.email || 'admin@pixelminds.org',
+        action: 'Deleted notification',
+        targetType: 'system' as any,
+        targetId: notifId,
+        reason: title
+      });
+      say('Notification deleted successfully');
+      const updatedList = await getAdminSentNotifications();
+      setAdminNotifications(updatedList);
+    } catch (err: any) {
+      console.error('Failed to delete notification:', err);
+      say(err?.message || 'Failed to delete notification');
+    } finally {
+      setDeletingNotifId(null);
     }
   };
 
@@ -2442,9 +2725,16 @@ export function Admin() {
                             <Clock size={11} /> Pending
                           </span>
                         </td>
-                        <td className="px-4 py-3.5 text-right space-x-2">
-                          <Btn onClick={() => handleUpdateStatus(o.id, 'published')} className="!py-1 !px-2.5 !text-[11px] !min-h-7 bg-emerald-600 hover:bg-emerald-700">Approve</Btn>
-                          <Btn v="danger" onClick={() => handleUpdateStatus(o.id, 'rejected')} className="!py-1 !px-2.5 !text-[11px] !min-h-7">Reject</Btn>
+                        <td className="px-4 py-3.5 text-right space-x-1.5 whitespace-nowrap">
+                          <Btn v="outline" onClick={() => setSelectedSubmissionForDetails(o)} className="!py-1 !px-2.5 !text-[11px] !min-h-7">
+                            View Details
+                          </Btn>
+                          <Btn onClick={() => handleUpdateStatus(o.id, 'published')} className="!py-1 !px-2.5 !text-[11px] !min-h-7 bg-emerald-600 hover:bg-emerald-700">
+                            Approve
+                          </Btn>
+                          <Btn v="danger" onClick={() => { setRejectingSubmissionId(o.id); setRejectionModalReason(''); }} className="!py-1 !px-2.5 !text-[11px] !min-h-7">
+                            Reject
+                          </Btn>
                         </td>
                       </tr>
                     ))}
@@ -2468,7 +2758,7 @@ export function Admin() {
               <span className="text-xs font-semibold text-slate-500">{pendingOpps.length} pending</span>
             </div>
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[600px] text-left text-xs">
+              <table className="w-full min-w-[650px] text-left text-xs">
                 <thead className="bg-slate-50 text-slate-500 font-bold uppercase tracking-wider border-b border-slate-100">
                   <tr>
                     <th className="px-4 py-3">Title &amp; Link</th>
@@ -2488,11 +2778,23 @@ export function Admin() {
                         </a>
                       </td>
                       <td className="px-4 py-3.5">{o.category}</td>
-                      <td className="px-4 py-3.5 text-slate-500 font-mono text-[11px]">{o.createdBy}</td>
+                      <td className="px-4 py-3.5">
+                        <div className="font-semibold text-slate-800">{o.submitterName || 'User'}</div>
+                        <div className="text-[11px] text-slate-400 font-mono truncate max-w-[150px]">
+                          {o.submitterEmail || o.createdBy}
+                        </div>
+                      </td>
                       <td className="px-4 py-3.5 capitalize">{o.mode}</td>
-                      <td className="px-4 py-3.5 text-right space-x-2">
-                        <Btn onClick={() => handleUpdateStatus(o.id, 'published')} className="!py-1 !px-2.5 !text-[11px] !min-h-7 bg-emerald-600 hover:bg-emerald-700">Approve</Btn>
-                        <Btn v="danger" onClick={() => handleUpdateStatus(o.id, 'rejected')} className="!py-1 !px-2.5 !text-[11px] !min-h-7">Reject</Btn>
+                      <td className="px-4 py-3.5 text-right space-x-1.5 whitespace-nowrap">
+                        <Btn v="outline" onClick={() => setSelectedSubmissionForDetails(o)} className="!py-1 !px-2.5 !text-[11px] !min-h-7">
+                          View Details
+                        </Btn>
+                        <Btn onClick={() => handleUpdateStatus(o.id, 'published')} className="!py-1 !px-2.5 !text-[11px] !min-h-7 bg-emerald-600 hover:bg-emerald-700">
+                          Approve
+                        </Btn>
+                        <Btn v="danger" onClick={() => { setRejectingSubmissionId(o.id); setRejectionModalReason(''); }} className="!py-1 !px-2.5 !text-[11px] !min-h-7">
+                          Reject
+                        </Btn>
                       </td>
                     </tr>
                   ))}
@@ -2615,7 +2917,7 @@ export function Admin() {
             <div className="flex justify-between items-center bg-slate-50/70 p-4 rounded-2xl border border-slate-200/80">
               <div>
                 <h3 className="text-sm font-bold text-slate-900">Website Announcements</h3>
-                <p className="text-xs text-slate-500">Highlighted banner announcements displayed at the top of the public website</p>
+                <p className="text-xs text-slate-500">Highlighted banner announcements displayed prominently at the top of the public website</p>
               </div>
               <Btn onClick={() => setShowCreateAnnouncement(!showCreateAnnouncement)} className="!text-xs !min-h-9 shadow-xs">
                 <Megaphone size={14} className="mr-1.5" />
@@ -2625,8 +2927,12 @@ export function Admin() {
 
             {showCreateAnnouncement && (
               <Card className="p-5 border-sky-200 bg-sky-50/20">
-                <form onSubmit={handleCreateAnnouncement} className="space-y-3">
-                  <h4 className="font-bold text-xs uppercase tracking-wider text-slate-700">New Website Announcement</h4>
+                <form onSubmit={handleCreateAnnouncement} className="space-y-4">
+                  <div className="flex items-center justify-between border-b border-sky-100 pb-2">
+                    <h4 className="font-bold text-xs uppercase tracking-wider text-slate-700">New Website Announcement</h4>
+                    <span className="text-[11px] text-slate-500">Visible to all visitors in the announcement banner modal</span>
+                  </div>
+
                   <div>
                     <label className="text-xs font-semibold text-slate-600 block mb-1">Headline</label>
                     <input
@@ -2637,6 +2943,7 @@ export function Admin() {
                       required
                     />
                   </div>
+
                   <div>
                     <label className="text-xs font-semibold text-slate-600 block mb-1">Announcement Message</label>
                     <textarea
@@ -2644,34 +2951,88 @@ export function Admin() {
                       value={annMessage}
                       onChange={e=>setAnnMessage(e.target.value)}
                       placeholder="Detailed update or instructions for students..."
-                      className="w-full rounded-xl border border-slate-200 p-2.5 text-xs outline-none focus:border-sky-500"
+                      className="w-full rounded-xl border border-slate-200 p-2.5 text-xs outline-none focus:border-sky-500 bg-white"
                       required
                     />
                   </div>
-                  <div className="grid grid-cols-2 gap-3">
+
+                  {/* Banner Image Upload & Preview */}
+                  <div>
+                    <label className="text-xs font-semibold text-slate-600 block mb-1">Banner Image (Optional)</label>
+                    {annImageUrl ? (
+                      <div className="space-y-2">
+                        <div className="relative rounded-2xl overflow-hidden border border-slate-200 aspect-[16/9] max-h-48 bg-slate-100">
+                          <img src={annImageUrl} alt="Announcement banner preview" className="w-full h-full object-cover" />
+                          <button
+                            type="button"
+                            onClick={() => setAnnImageUrl('')}
+                            className="absolute top-2.5 right-2.5 p-1.5 rounded-xl bg-black/70 text-white hover:bg-black/90 transition shadow-sm"
+                            title="Remove image"
+                          >
+                            <X size={14} />
+                          </button>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-[11px] text-emerald-600 font-medium">✓ Image uploaded to Supabase Storage</span>
+                          <label className="inline-flex items-center gap-1 text-xs font-semibold text-sky-600 hover:text-sky-700 cursor-pointer">
+                            <Upload size={12} />
+                            <span>Replace image</span>
+                            <input
+                              type="file"
+                              accept="image/*"
+                              onChange={handleAnnImageUpload}
+                              className="hidden"
+                              disabled={uploadingAnnImage}
+                            />
+                          </label>
+                        </div>
+                      </div>
+                    ) : (
+                      <label className="flex flex-col items-center justify-center h-28 rounded-2xl border-2 border-dashed border-slate-200 bg-white p-4 text-center cursor-pointer hover:bg-slate-50 transition">
+                        <Upload size={22} className="text-slate-400 mb-1.5" />
+                        <span className="text-xs font-semibold text-slate-700">
+                          {uploadingAnnImage ? 'Uploading image to Supabase...' : 'Click or drop to upload banner image (16:9 ratio)'}
+                        </span>
+                        <span className="text-[10px] text-slate-400 mt-0.5">PNG, JPG, WebP up to 5MB</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={handleAnnImageUpload}
+                          className="hidden"
+                          disabled={uploadingAnnImage}
+                        />
+                      </label>
+                    )}
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-xs font-semibold text-slate-600 block mb-1">Destination Link (Optional)</label>
+                      <input
+                        type="url"
+                        value={annCtaLink}
+                        onChange={e=>setAnnCtaLink(e.target.value)}
+                        placeholder="https://... or /opportunities"
+                        className="w-full rounded-xl border border-slate-200 p-2.5 text-xs outline-none focus:border-sky-500 bg-white"
+                      />
+                      <span className="text-[10px] text-slate-400 mt-0.5 block">Clicking the banner image or CTA button will navigate here</span>
+                    </div>
                     <div>
                       <label className="text-xs font-semibold text-slate-600 block mb-1">CTA Button Text</label>
                       <input
                         value={annCtaText}
                         onChange={e=>setAnnCtaText(e.target.value)}
-                        placeholder="e.g. Apply Now"
-                        className="w-full rounded-xl border border-slate-200 p-2 text-xs outline-none focus:border-sky-500 bg-white"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-xs font-semibold text-slate-600 block mb-1">CTA Destination Link</label>
-                      <input
-                        type="url"
-                        value={annCtaLink}
-                        onChange={e=>setAnnCtaLink(e.target.value)}
-                        placeholder="https://..."
-                        className="w-full rounded-xl border border-slate-200 p-2 text-xs outline-none focus:border-sky-500 bg-white"
+                        placeholder="e.g. Learn More / Apply"
+                        className="w-full rounded-xl border border-slate-200 p-2.5 text-xs outline-none focus:border-sky-500 bg-white"
                       />
                     </div>
                   </div>
-                  <div className="flex justify-end gap-2 pt-2">
+
+                  <div className="flex justify-end gap-2 pt-2 border-t border-sky-100">
                     <Btn v="outline" onClick={() => setShowCreateAnnouncement(false)} className="!text-xs">Cancel</Btn>
-                    <Btn type="submit" className="!text-xs">Publish Announcement</Btn>
+                    <Btn type="submit" disabled={uploadingAnnImage} className="!text-xs">
+                      Publish Announcement
+                    </Btn>
                   </div>
                 </form>
               </Card>
@@ -2679,11 +3040,13 @@ export function Admin() {
 
             <Card className="overflow-hidden">
               <div className="overflow-x-auto">
-                <table className="w-full min-w-[600px] text-left text-xs">
+                <table className="w-full min-w-[650px] text-left text-xs">
                   <thead className="bg-slate-50 text-slate-500 font-bold uppercase tracking-wider border-b border-slate-100">
                     <tr>
+                      <th className="px-4 py-3">Banner</th>
                       <th className="px-4 py-3">Headline</th>
                       <th className="px-4 py-3">Message</th>
+                      <th className="px-4 py-3">Destination Link</th>
                       <th className="px-4 py-3">Status</th>
                       <th className="px-4 py-3 text-right">Actions</th>
                     </tr>
@@ -2691,8 +3054,29 @@ export function Admin() {
                   <tbody className="divide-y divide-slate-100">
                     {announcements.map((a) => (
                       <tr key={a.id} className="hover:bg-slate-50/70 transition">
-                        <td className="px-4 py-3.5 font-bold text-slate-900">{a.title}</td>
-                        <td className="px-4 py-3.5 text-slate-600 max-w-[260px] truncate">{a.message}</td>
+                        <td className="px-4 py-3">
+                          {a.imageUrl ? (
+                            <div className="w-16 h-10 rounded-lg overflow-hidden border border-slate-200 bg-slate-100 shrink-0">
+                              <img src={a.imageUrl} alt={a.title} className="w-full h-full object-cover" />
+                            </div>
+                          ) : (
+                            <span className="inline-block text-[10px] text-slate-400 font-medium px-2 py-1 rounded bg-slate-100">
+                              No image
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3.5 font-bold text-slate-900 max-w-[180px] truncate">{a.title}</td>
+                        <td className="px-4 py-3.5 text-slate-600 max-w-[220px] truncate">{a.message}</td>
+                        <td className="px-4 py-3.5 text-slate-500 max-w-[140px] truncate">
+                          {a.ctaLink ? (
+                            <a href={a.ctaLink} target="_blank" rel="noreferrer" className="text-sky-600 hover:underline inline-flex items-center gap-1">
+                              <span>Link</span>
+                              <ExternalLink size={10} />
+                            </a>
+                          ) : (
+                            '—'
+                          )}
+                        </td>
                         <td className="px-4 py-3.5">
                           <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold border capitalize ${
                             a.status === 'published' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-slate-50 text-slate-600 border-slate-200'
@@ -2707,7 +3091,211 @@ export function Admin() {
                     ))}
                     {announcements.length === 0 && (
                       <tr>
-                        <td colSpan={4} className="px-4 py-8 text-center text-slate-400">No announcements published yet.</td>
+                        <td colSpan={6} className="px-4 py-8 text-center text-slate-400">No announcements published yet.</td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </Card>
+          </div>
+        )}
+
+        {/* NOTIFICATIONS TAB */}
+        {t === 'Notifications' && (
+          <div className="space-y-4">
+            <div className="flex justify-between items-center bg-slate-50/70 p-4 rounded-2xl border border-slate-200/80">
+              <div>
+                <h3 className="text-sm font-bold text-slate-900">Admin Notification Center</h3>
+                <p className="text-xs text-slate-500">Send notifications directly to user Notification Bells (broadcast to Everyone or target specific users)</p>
+              </div>
+              <Btn onClick={() => setShowCreateNotif(!showCreateNotif)} className="!text-xs !min-h-9 shadow-xs">
+                <Bell size={14} className="mr-1.5" />
+                + Compose Notification
+              </Btn>
+            </div>
+
+            {showCreateNotif && (
+              <Card className="p-5 border-sky-200 bg-sky-50/20">
+                <form onSubmit={handleSendAdminNotification} className="space-y-4">
+                  <div className="flex items-center justify-between border-b border-sky-100 pb-2">
+                    <h4 className="font-bold text-xs uppercase tracking-wider text-slate-700">Compose Notification</h4>
+                    <span className="text-[11px] text-slate-500">Delivered directly to user NotificationBell</span>
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-semibold text-slate-600 block mb-1">Notification Title</label>
+                    <input
+                      value={notifTitle}
+                      onChange={e=>setNotifTitle(e.target.value)}
+                      placeholder="e.g. New Hackathon Announced / Submission Review Update"
+                      className="w-full rounded-xl border border-slate-200 p-2.5 text-xs outline-none focus:border-sky-500 bg-white"
+                      required
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-xs font-semibold text-slate-600 block mb-1">Target Audience</label>
+                      <select
+                        value={notifTarget}
+                        onChange={(e: any) => setNotifTarget(e.target.value)}
+                        className="w-full rounded-xl border border-slate-200 p-2.5 text-xs outline-none focus:border-sky-500 bg-white"
+                      >
+                        <option value="everyone">Everyone (All registered users)</option>
+                        <option value="user">Specific User</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="text-xs font-semibold text-slate-600 block mb-1">Notification Category / Type</label>
+                      <select
+                        value={notifType}
+                        onChange={(e: any) => setNotifType(e.target.value)}
+                        className="w-full rounded-xl border border-slate-200 p-2.5 text-xs outline-none focus:border-sky-500 bg-white"
+                      >
+                        <option value="system">System Notice</option>
+                        <option value="opportunity">Opportunity Update</option>
+                        <option value="announcement">Announcement</option>
+                        <option value="offer">Special Offer / Reward</option>
+                        <option value="reminder">Reminder</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {notifTarget === 'user' && (
+                    <div>
+                      <label className="text-xs font-semibold text-slate-600 block mb-1">Select Registered Recipient</label>
+                      <select
+                        value={notifTargetUserId}
+                        onChange={e=>setNotifTargetUserId(e.target.value)}
+                        className="w-full rounded-xl border border-slate-200 p-2.5 text-xs outline-none focus:border-sky-500 bg-white"
+                        required
+                      >
+                        <option value="">-- Choose a user --</option>
+                        {usersList.map((u) => (
+                          <option key={u.id} value={u.id}>
+                            {u.displayName || 'User'} ({u.email})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+
+                  <div>
+                    <label className="text-xs font-semibold text-slate-600 block mb-1">Message Body</label>
+                    <textarea
+                      rows={3}
+                      value={notifMessage}
+                      onChange={e=>setNotifMessage(e.target.value)}
+                      placeholder="Write your notification message here..."
+                      className="w-full rounded-xl border border-slate-200 p-2.5 text-xs outline-none focus:border-sky-500 bg-white"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-semibold text-slate-600 block mb-1">Destination URL (Optional)</label>
+                    <input
+                      value={notifLink}
+                      onChange={e=>setNotifLink(e.target.value)}
+                      placeholder="e.g. /opportunities or /profile?tab=My+Submissions or https://example.com"
+                      className="w-full rounded-xl border border-slate-200 p-2.5 text-xs outline-none focus:border-sky-500 bg-white"
+                    />
+                    <span className="text-[10px] text-slate-400 mt-0.5 block">When the user clicks the notification in their bell, they will be navigated here</span>
+                  </div>
+
+                  <div className="flex justify-end gap-2 pt-2 border-t border-sky-100">
+                    <Btn v="outline" onClick={() => setShowCreateNotif(false)} className="!text-xs">Cancel</Btn>
+                    <Btn type="submit" disabled={sendingNotif} className="!text-xs inline-flex items-center gap-1.5">
+                      <Send size={13} />
+                      <span>{sendingNotif ? 'Dispatching...' : 'Send Notification'}</span>
+                    </Btn>
+                  </div>
+                </form>
+              </Card>
+            )}
+
+            <Card className="overflow-hidden">
+              <div className="border-b border-slate-100 p-4 font-bold text-sm text-slate-900 flex justify-between items-center">
+                <span>Sent Notifications History</span>
+                <span className="text-xs font-semibold text-slate-500">{adminNotifications.length} logged</span>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[700px] text-left text-xs">
+                  <thead className="bg-slate-50 text-slate-500 font-bold uppercase tracking-wider border-b border-slate-100">
+                    <tr>
+                      <th className="px-4 py-3">Title &amp; Message</th>
+                      <th className="px-4 py-3">Recipients</th>
+                      <th className="px-4 py-3">Type</th>
+                      <th className="px-4 py-3">Destination Link</th>
+                      <th className="px-4 py-3 text-right">Date Sent</th>
+                      <th className="px-4 py-3 text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {adminNotifications.map((n) => (
+                      <tr key={n.id} className="hover:bg-slate-50/70 transition">
+                        <td className="px-4 py-3.5 max-w-[280px]">
+                          <div className="font-bold text-slate-900 truncate">{n.title}</div>
+                          <div className="text-[11px] text-slate-500 line-clamp-1 mt-0.5">{n.message}</div>
+                        </td>
+                        <td className="px-4 py-3.5">
+                          <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${
+                            n.recipientsCount > 1 
+                              ? 'bg-purple-50 text-purple-700 border-purple-200' 
+                              : 'bg-sky-50 text-sky-700 border-sky-200'
+                          }`}>
+                            {n.targetDescription}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3.5">
+                          <span className="capitalize px-2 py-0.5 rounded-md text-[10px] font-bold bg-slate-100 text-slate-700 border border-slate-200">
+                            {n.type}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3.5 text-slate-500 max-w-[160px] truncate">
+                          {n.link ? (
+                            <span className="font-mono text-[11px] text-slate-600 bg-slate-100 px-1.5 py-0.5 rounded">
+                              {n.link}
+                            </span>
+                          ) : (
+                            '—'
+                          )}
+                        </td>
+                        <td className="px-4 py-3.5 text-right text-slate-400 whitespace-nowrap">
+                          {new Date(n.createdAt).toLocaleDateString('en-US', {
+                            month: 'short',
+                            day: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })}
+                        </td>
+                        <td className="px-4 py-3.5 text-right whitespace-nowrap">
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteNotification(n.id, n.title)}
+                            disabled={deletingNotifId === n.id}
+                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold text-rose-600 hover:text-rose-700 hover:bg-rose-50 border border-rose-200/60 transition disabled:opacity-50"
+                            title="Delete notification"
+                          >
+                            <Trash2 size={13} className={deletingNotifId === n.id ? 'animate-spin' : ''} />
+                            <span>{deletingNotifId === n.id ? 'Deleting...' : 'Delete'}</span>
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                    {adminNotifications.length === 0 && (
+                      <tr>
+                        <td colSpan={6} className="px-4 py-10 text-center text-slate-400">
+                          <div className="flex flex-col items-center justify-center">
+                            <div className="grid h-10 w-10 place-items-center rounded-full bg-slate-100 text-slate-400 mb-2">
+                              <Inbox size={20} className="opacity-60" />
+                            </div>
+                            <p className="text-xs font-bold text-slate-700">No notifications sent yet</p>
+                            <p className="text-[11px] text-slate-400 mt-0.5">Click '+ Compose Notification' above to broadcast a notification.</p>
+                          </div>
+                        </td>
                       </tr>
                     )}
                   </tbody>
@@ -2944,6 +3532,67 @@ export function Admin() {
           </div>
         )}
       </section>
+
+      {/* Submission Detail Inspection Modal */}
+      <SubmissionDetailModal
+        submission={selectedSubmissionForDetails}
+        isOpen={!!selectedSubmissionForDetails}
+        onClose={() => setSelectedSubmissionForDetails(null)}
+        isAdmin
+        onApprove={(id) => handleUpdateStatus(id, 'published')}
+        onReject={(id, reason) => handleUpdateStatus(id, 'rejected', reason)}
+      />
+
+      {/* Admin Rejection Reason Modal */}
+      {rejectingSubmissionId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-150">
+          <div className="w-full max-w-md bg-white rounded-3xl shadow-2xl border border-slate-200 p-6 space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <h3 className="font-bold text-sm text-slate-900">Reject Opportunity Submission</h3>
+              <button
+                onClick={() => setRejectingSubmissionId(null)}
+                className="text-slate-400 hover:text-slate-600 p-1 rounded-md"
+              >
+                <X size={16} />
+              </button>
+            </div>
+            <p className="text-xs text-slate-600 leading-relaxed">
+              You can optionally provide a reason or reviewer feedback for the submitter. This will be visible on their profile and sent via notification.
+            </p>
+            <div>
+              <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wider block mb-1">
+                Rejection Reason (Optional)
+              </label>
+              <textarea
+                value={rejectionModalReason}
+                onChange={(e) => setRejectionModalReason(e.target.value)}
+                placeholder="e.g. Official application URL is unreachable or opportunity is outside our tech scope..."
+                rows={3}
+                className="w-full rounded-xl border border-slate-200 p-3 text-xs outline-none focus:border-rose-400 focus:ring-1 focus:ring-rose-400"
+              />
+            </div>
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+              <button
+                onClick={() => setRejectingSubmissionId(null)}
+                className="px-4 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-xs font-semibold text-slate-700 transition"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={async () => {
+                  const id = rejectingSubmissionId;
+                  const reason = rejectionModalReason.trim();
+                  setRejectingSubmissionId(null);
+                  await handleUpdateStatus(id, 'rejected', reason);
+                }}
+                className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold transition shadow-xs"
+              >
+                Confirm Rejection
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </W>
   );
 }

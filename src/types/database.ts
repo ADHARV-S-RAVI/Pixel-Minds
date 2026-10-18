@@ -675,6 +675,21 @@ export type Database = {
         Args: { opp_id: string };
         Returns: undefined;
       };
+      send_notification_rpc: {
+        Args: {
+          p_title: string;
+          p_message: string;
+          p_type?: string;
+          p_link?: string | null;
+          p_target_user_id?: string | null;
+          p_admin_id?: string | null;
+        };
+        Returns: {
+          success: boolean;
+          notification_id: string;
+          recipients_count: number;
+        };
+      };
     };
     Enums: Record<string, never>;
   };

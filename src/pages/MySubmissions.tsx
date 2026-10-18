@@ -3,18 +3,20 @@ import { useAuth } from '../contexts/AuthContext';
 import { getUserSubmissions } from '../services/opportunities';
 import type { Opportunity } from '../types';
 import { Link } from 'react-router-dom';
-import { FileText, Plus, ExternalLink } from 'lucide-react';
+import { FileText, Plus, ExternalLink, Clock, CheckCircle2, XCircle, AlertCircle } from 'lucide-react';
+import { SubmissionDetailModal } from '../components/SubmissionDetailModal';
 
 export function MySubmissions() {
-  const { currentUser } = useAuth();
+  const { user } = useAuth();
   const [submissions, setSubmissions] = useState<Opportunity[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedSub, setSelectedSub] = useState<Opportunity | null>(null);
 
   useEffect(() => {
     const fetchSubmissions = async () => {
-      if (currentUser) {
+      if (user?.uid) {
         try {
-          const data = await getUserSubmissions(currentUser.uid);
+          const data = await getUserSubmissions(user.uid);
           setSubmissions(data);
         } catch (err) {
           console.error('Failed to fetch submissions', err);
@@ -24,22 +26,30 @@ export function MySubmissions() {
       }
     };
     fetchSubmissions();
-  }, [currentUser]);
+  }, [user]);
 
   const getStatusBadge = (status: string) => {
-    const styles: Record<string, string> = {
-      published: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-      pending: 'bg-amber-50 text-amber-700 border-amber-200',
-      rejected: 'bg-red-50 text-red-700 border-red-200',
-      archived: 'bg-slate-100 text-slate-600 border-slate-200',
-      expired: 'bg-slate-100 text-slate-500 border-slate-200',
-      draft: 'bg-sky-50 text-sky-700 border-sky-200',
-    };
-    return (
-      <span className={`inline-flex px-2.5 py-0.5 text-xs font-semibold rounded-full border ${styles[status] || styles.draft}`}>
-        {status.charAt(0).toUpperCase() + status.slice(1)}
-      </span>
-    );
+    switch (status) {
+      case 'published':
+      case 'approved':
+        return (
+          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 text-xs font-semibold rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+            <CheckCircle2 size={12} /> Approved
+          </span>
+        );
+      case 'rejected':
+        return (
+          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 text-xs font-semibold rounded-full bg-rose-50 text-rose-700 border border-rose-200">
+            <XCircle size={12} /> Rejected
+          </span>
+        );
+      default:
+        return (
+          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 text-xs font-semibold rounded-full bg-amber-50 text-amber-700 border border-amber-200">
+            <Clock size={12} /> Pending Review
+          </span>
+        );
+    }
   };
 
   if (loading) {
@@ -64,7 +74,10 @@ export function MySubmissions() {
               <h1 className="text-2xl font-bold text-slate-900">My Submissions</h1>
               <p className="mt-1 text-slate-500 text-sm">Track the status of your submitted opportunities.</p>
             </div>
-            <Link to="/submit" className="inline-flex items-center space-x-1.5 px-4 py-2 bg-sky-500 hover:bg-sky-600 text-white rounded-xl text-sm font-semibold transition-colors shadow-sm">
+            <Link
+              to="/submit"
+              className="inline-flex items-center space-x-1.5 px-4 py-2 bg-sky-500 hover:bg-sky-600 text-white rounded-xl text-sm font-semibold transition-colors shadow-sm"
+            >
               <Plus size={16} />
               <span>Submit New</span>
             </Link>
@@ -79,38 +92,74 @@ export function MySubmissions() {
               <FileText className="w-7 h-7 text-slate-400" />
             </div>
             <h3 className="text-lg font-semibold text-slate-900 mb-2">No submissions yet</h3>
-            <p className="text-slate-500 text-sm mb-6 max-w-sm mx-auto">You haven't submitted any opportunities yet. Share something with the community!</p>
-            <Link to="/submit" className="inline-flex items-center px-5 py-2.5 bg-sky-500 hover:bg-sky-600 text-white rounded-xl text-sm font-semibold transition-colors shadow-sm">
+            <p className="text-slate-500 text-sm mb-6 max-w-sm mx-auto">
+              You haven't submitted any opportunities yet. Share something with the community!
+            </p>
+            <Link
+              to="/submit"
+              className="inline-flex items-center px-5 py-2.5 bg-sky-500 hover:bg-sky-600 text-white rounded-xl text-sm font-semibold transition-colors shadow-sm"
+            >
               Submit your first opportunity
             </Link>
           </div>
         ) : (
           <div className="space-y-3">
             {submissions.map((sub) => (
-              <div key={sub.id} className="bg-white rounded-xl border border-slate-200 p-5 hover:border-sky-200 transition-colors">
+              <div
+                key={sub.id}
+                onClick={() => setSelectedSub(sub)}
+                className="bg-white rounded-xl border border-slate-200 p-5 hover:border-sky-300 hover:shadow-xs transition-all cursor-pointer space-y-3"
+              >
                 <div className="flex items-start justify-between gap-4">
-                  <div className="min-w-0">
+                  <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2 mb-1">
                       {getStatusBadge(sub.status)}
                       <span className="text-xs text-slate-400">{sub.category}</span>
                     </div>
-                    <h4 className="text-base font-semibold text-slate-900 truncate">{sub.title}</h4>
+                    <h4 className="text-base font-semibold text-slate-900 truncate hover:text-sky-600 transition">
+                      {sub.title}
+                    </h4>
                     <p className="text-sm text-slate-500 mt-0.5">
-                      Submitted on {new Date(sub.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
+                      Submitted on{' '}
+                      {new Date(sub.createdAt).toLocaleDateString('en-US', {
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric'
+                      })}
                     </p>
                   </div>
                   {sub.status === 'published' && (
-                    <Link to={`/opportunities/${sub.id}`} className="inline-flex items-center space-x-1 text-sky-600 hover:text-sky-700 text-sm font-medium flex-shrink-0">
-                      <span>View</span>
+                    <Link
+                      to={`/opportunities/${sub.opportunityId || sub.id}`}
+                      onClick={(e) => e.stopPropagation()}
+                      className="inline-flex items-center space-x-1 text-sky-600 hover:text-sky-700 text-sm font-medium flex-shrink-0"
+                    >
+                      <span>View Live</span>
                       <ExternalLink size={14} />
                     </Link>
                   )}
                 </div>
+
+                {sub.adminNotes && (
+                  <div className="p-3 rounded-lg bg-rose-50 border border-rose-200/80 text-rose-900 text-xs space-y-0.5">
+                    <div className="flex items-center gap-1 font-bold text-[11px] text-rose-800">
+                      <AlertCircle size={12} />
+                      <span>Reviewer Feedback:</span>
+                    </div>
+                    <p className="leading-relaxed pl-4">{sub.adminNotes}</p>
+                  </div>
+                )}
               </div>
             ))}
           </div>
         )}
       </div>
+
+      <SubmissionDetailModal
+        submission={selectedSub}
+        isOpen={!!selectedSub}
+        onClose={() => setSelectedSub(null)}
+      />
     </div>
   );
 }

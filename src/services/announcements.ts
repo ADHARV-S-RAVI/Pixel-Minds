@@ -79,6 +79,24 @@ export const getAnnouncements = async (onlyPublished = true): Promise<Announceme
 };
 
 /**
+ * Upload an announcement banner image to Supabase Storage.
+ * Tries 'announcement-images' bucket first, then fallbacks to 'opportunity-banners' / 'opportunities'.
+ */
+export const uploadAnnouncementImage = async (file: File): Promise<string> => {
+  const { uploadImage } = await import('./storage');
+  try {
+    return await uploadImage(file, 'announcement-images', 'banners');
+  } catch (err: any) {
+    console.warn('announcement-images bucket fallback:', err?.message);
+    try {
+      return await uploadImage(file, 'opportunity-banners', 'announcements');
+    } catch {
+      return await uploadImage(file, 'opportunities', 'announcements');
+    }
+  }
+};
+
+/**
  * Create a new website announcement in Supabase
  */
 export const createAnnouncement = async (
@@ -93,6 +111,7 @@ export const createAnnouncement = async (
     message: data.message,
     cta_text: data.ctaText || null,
     cta_link: data.ctaLink || null,
+    image_url: data.imageUrl || null,
     status: data.status || 'published',
     start_date: startDateIso,
     end_date: endDateIso,
@@ -140,6 +159,7 @@ export const updateAnnouncement = async (
   if (updates.message !== undefined) updatePayload.message = updates.message;
   if (updates.ctaText !== undefined) updatePayload.cta_text = updates.ctaText || null;
   if (updates.ctaLink !== undefined) updatePayload.cta_link = updates.ctaLink || null;
+  if (updates.imageUrl !== undefined) updatePayload.image_url = updates.imageUrl || null;
   if (updates.status !== undefined) updatePayload.status = updates.status;
   if (updates.startDate !== undefined) updatePayload.start_date = new Date(updates.startDate).toISOString();
   if (updates.endDate !== undefined) updatePayload.end_date = new Date(updates.endDate).toISOString();
@@ -211,6 +231,7 @@ function formatAnnouncementRow(row: any): Announcement {
     message: row.message,
     ctaText: row.cta_text || undefined,
     ctaLink: row.cta_link || undefined,
+    imageUrl: row.image_url || undefined,
     startDate: new Date(row.start_date || row.created_at).getTime(),
     endDate: new Date(row.end_date || Date.now() + 86400000 * 7).getTime(),
     status: row.status as 'published' | 'draft' | 'archived',

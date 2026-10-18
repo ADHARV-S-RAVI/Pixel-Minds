@@ -32,6 +32,7 @@ import { AnnouncementModal } from './components/AnnouncementModal';
 import { grad, getCategoryMeta } from './utils/meta';
 import { useApp } from './store';
 import { PixelMark } from './components/PixelMark';
+import { NotificationBell } from './components/NotificationBell';
 import { useAuth } from './contexts/AuthContext';
 import { createCommunityPost, deleteCommunityPost } from './services/community';
 
@@ -615,6 +616,9 @@ export const Layout: FC = () => {
               </Link>
             )}
 
+            {/* Notification Bell */}
+            <NotificationBell className="ml-1" />
+
             {/* Auth User Menu or Sign In */}
             {user ? (
               <div className="relative ml-2">
@@ -701,6 +705,7 @@ export const Layout: FC = () => {
             <Link to="/opportunities" aria-label="Search" className="grid h-9 w-9 place-items-center text-slate-600">
               <Search size={19} />
             </Link>
+            <NotificationBell />
             <Link to={user ? '/profile' : '/login'}>
               <Avatar
                 name={userProfile?.displayName || user?.displayName || 'User'}

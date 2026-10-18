@@ -8,11 +8,13 @@ import { ResetPassword } from './pages/ResetPassword';
 import { AdminLogin } from './pages/AdminLogin';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { AdminRoute } from './components/AdminRoute';
+import { ErrorBoundary } from './components/ErrorBoundary';
 
 export default function App() {
   return (
-    <Routes>
-      <Route element={<Layout />}>
+    <ErrorBoundary>
+      <Routes>
+        <Route element={<Layout />}>
         {/* Public Routes */}
         <Route path="/" element={<Landing />} />
         <Route path="/opportunities" element={<Opportunities />} />
@@ -62,5 +64,6 @@ export default function App() {
         />
       </Route>
     </Routes>
+  </ErrorBoundary>
   );
 }

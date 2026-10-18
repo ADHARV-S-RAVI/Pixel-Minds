@@ -1,0 +1,324 @@
+{
+  "communities": {
+    "0": [
+      "oxlintrc_plugins",
+      "ref_oxc",
+      "ref_react",
+      "src_app",
+      "src_app_app",
+      "src_components_adminroute",
+      "src_components_adminroute_adminroute",
+      "src_components_protectedroute",
+      "src_components_protectedroute_protectedroute",
+      "src_contexts_authcontext_useauth",
+      "src_main",
+      "src_pages_admin",
+      "src_pages_admin_admin",
+      "src_pages_home",
+      "src_pages_home_home",
+      "src_pages_leaderboard",
+      "src_pages_leaderboard_leaderboard",
+      "src_pages_login",
+      "src_pages_login_login",
+      "src_pages_opportunities",
+      "src_pages_opportunities_opportunities",
+      "src_pages_profile",
+      "src_pages_profile_profile",
+      "src_pages_signup",
+      "src_pages_signup_signup",
+      "src_pages_submitopportunity",
+      "src_pages_submitopportunity_submitopportunity"
+    ],
+    "1": [
+      "ref_dom",
+      "ref_src",
+      "ref_vite_client",
+      "tsconfig_app",
+      "tsconfig_app_compileroptions",
+      "tsconfig_app_compileroptions_allowarbitraryextensions",
+      "tsconfig_app_compileroptions_allowimportingtsextensions",
+      "tsconfig_app_compileroptions_erasablesyntaxonly",
+      "tsconfig_app_compileroptions_jsx",
+      "tsconfig_app_compileroptions_lib",
+      "tsconfig_app_compileroptions_module",
+      "tsconfig_app_compileroptions_moduledetection",
+      "tsconfig_app_compileroptions_moduleresolution",
+      "tsconfig_app_compileroptions_noemit",
+      "tsconfig_app_compileroptions_nofallthroughcasesinswitch",
+      "tsconfig_app_compileroptions_nounusedlocals",
+      "tsconfig_app_compileroptions_nounusedparameters",
+      "tsconfig_app_compileroptions_skiplibcheck",
+      "tsconfig_app_compileroptions_target",
+      "tsconfig_app_compileroptions_tsbuildinfofile",
+      "tsconfig_app_compileroptions_types",
+      "tsconfig_app_compileroptions_verbatimmodulesyntax",
+      "tsconfig_app_include",
+      "tsconfig_app_json_ref_es2023"
+    ],
+    "2": [
+      "src_contexts_authcontext",
+      "src_contexts_authcontext_authcontext",
+      "src_contexts_authcontext_authcontexttype",
+      "src_contexts_authcontext_authprovider",
+      "src_lib_firebase",
+      "src_lib_firebase_app",
+      "src_lib_firebase_auth",
+      "src_lib_firebase_db",
+      "src_lib_firebase_firebaseconfig",
+      "src_lib_firebase_googleprovider",
+      "src_lib_firebase_storage",
+      "src_services_users",
+      "src_services_users_createuserprofile",
+      "src_services_users_getuserprofile",
+      "src_services_users_updateuserprofile",
+      "src_types_index",
+      "src_types_index_opportunity",
+      "src_types_index_opportunitystatus",
+      "src_types_index_pixeltransaction",
+      "src_types_index_referral",
+      "src_types_index_report",
+      "src_types_index_rewardconfig",
+      "src_types_index_role",
+      "src_types_index_user"
+    ],
+    "3": [
+      "autoprefixer",
+      "oxlint",
+      "package_devdependencies",
+      "package_devdependencies_autoprefixer",
+      "package_devdependencies_oxlint",
+      "package_devdependencies_postcss",
+      "package_devdependencies_tailwindcss",
+      "package_devdependencies_types_node",
+      "package_devdependencies_types_react",
+      "package_devdependencies_types_react_dom",
+      "package_devdependencies_typescript",
+      "package_devdependencies_vite",
+      "package_devdependencies_vitejs_plugin_react",
+      "package_json_tailwindcss",
+      "postcss",
+      "types_node",
+      "types_react",
+      "types_react_dom",
+      "typescript",
+      "vite",
+      "vitejs_plugin_react"
+    ],
+    "4": [
+      "ref_node",
+      "ref_vite_config_ts",
+      "tsconfig_node",
+      "tsconfig_node_compileroptions",
+      "tsconfig_node_compileroptions_allowimportingtsextensions",
+      "tsconfig_node_compileroptions_erasablesyntaxonly",
+      "tsconfig_node_compileroptions_lib",
+      "tsconfig_node_compileroptions_module",
+      "tsconfig_node_compileroptions_moduledetection",
+      "tsconfig_node_compileroptions_noemit",
+      "tsconfig_node_compileroptions_nofallthroughcasesinswitch",
+      "tsconfig_node_compileroptions_nounusedlocals",
+      "tsconfig_node_compileroptions_nounusedparameters",
+      "tsconfig_node_compileroptions_skiplibcheck",
+      "tsconfig_node_compileroptions_target",
+      "tsconfig_node_compileroptions_tsbuildinfofile",
+      "tsconfig_node_compileroptions_types",
+      "tsconfig_node_compileroptions_verbatimmodulesyntax",
+      "tsconfig_node_include",
+      "tsconfig_node_json_ref_es2023"
+    ],
+    "5": [
+      "firebase",
+      "lucide_react",
+      "package_dependencies",
+      "package_dependencies_firebase",
+      "package_dependencies_lucide_react",
+      "package_dependencies_react",
+      "package_dependencies_react_dom",
+      "package_dependencies_react_router_dom",
+      "package_dependencies_tailwindcss_postcss",
+      "react",
+      "react_dom",
+      "react_router_dom",
+      "tailwindcss_postcss"
+    ],
+    "6": [
+      "package",
+      "package_name",
+      "package_private",
+      "package_scripts",
+      "package_scripts_build",
+      "package_scripts_dev",
+      "package_scripts_lint",
+      "package_scripts_preview",
+      "package_type",
+      "package_version"
+    ],
+    "7": [
+      "oxlintrc",
+      "oxlintrc_rules",
+      "oxlintrc_rules_react_only_export_components",
+      "oxlintrc_rules_react_rules_of_hooks",
+      "oxlintrc_schema",
+      "ref_warn"
+    ],
+    "8": [
+      "src_components_footer",
+      "src_components_footer_footer",
+      "src_components_layout",
+      "src_components_layout_layout",
+      "src_components_navbar",
+      "src_components_navbar_navbar"
+    ],
+    "9": [
+      "tsconfig",
+      "tsconfig_files",
+      "tsconfig_references"
+    ],
+    "10": [
+      "src_pages_opportunitydetails",
+      "src_pages_opportunitydetails_opportunitydetails"
+    ],
+    "11": [
+      "postcss_config"
+    ],
+    "12": [
+      "tailwind_config"
+    ],
+    "13": [
+      "tailwindcss_tailwindcss"
+    ],
+    "14": [
+      "vite_config"
+    ]
+  },
+  "cohesion": {
+    "0": 0.13675213675213677,
+    "1": 0.08333333333333333,
+    "2": 0.13405797101449277,
+    "3": 0.09523809523809523,
+    "4": 0.1,
+    "5": 0.15384615384615385,
+    "6": 0.2,
+    "7": 0.3333333333333333,
+    "8": 0.4666666666666667,
+    "9": 0.6666666666666666,
+    "10": 1.0,
+    "11": 1.0,
+    "12": 1.0,
+    "13": 1.0,
+    "14": 1.0
+  },
+  "gods": [
+    {
+      "id": "tsconfig_app_compileroptions",
+      "label": "compilerOptions",
+      "degree": 18
+    },
+    {
+      "id": "tsconfig_node_compileroptions",
+      "label": "compilerOptions",
+      "degree": 15
+    },
+    {
+      "id": "src_contexts_authcontext_useauth",
+      "label": "useAuth()",
+      "degree": 11
+    },
+    {
+      "id": "ref_react",
+      "label": "react",
+      "degree": 8
+    },
+    {
+      "id": "package_scripts",
+      "label": "scripts",
+      "degree": 5
+    },
+    {
+      "id": "src_contexts_authcontext_authprovider",
+      "label": "AuthProvider()",
+      "degree": 5
+    },
+    {
+      "id": "oxlintrc_plugins",
+      "label": "plugins",
+      "degree": 4
+    },
+    {
+      "id": "src_components_navbar_navbar",
+      "label": "Navbar()",
+      "degree": 4
+    },
+    {
+      "id": "src_types_index_user",
+      "label": "User",
+      "degree": 4
+    },
+    {
+      "id": "oxlintrc_rules",
+      "label": "rules",
+      "degree": 3
+    }
+  ],
+  "surprises": [
+    {
+      "source": "plugins",
+      "target": "typescript",
+      "source_files": [
+        ".oxlintrc.json",
+        "package.json"
+      ],
+      "confidence": "EXTRACTED",
+      "relation": "extends",
+      "why": "connects across different repos/directories; bridges separate communities"
+    },
+    {
+      "source": "Navbar()",
+      "target": "useAuth()",
+      "source_files": [
+        "src/components/Navbar.tsx",
+        "src/contexts/AuthContext.tsx"
+      ],
+      "confidence": "EXTRACTED",
+      "relation": "calls",
+      "why": "bridges separate communities"
+    },
+    {
+      "source": "AdminRoute()",
+      "target": "useAuth()",
+      "source_files": [
+        "src/components/AdminRoute.tsx",
+        "src/contexts/AuthContext.tsx"
+      ],
+      "confidence": "EXTRACTED",
+      "relation": "calls",
+      "why": "cross-file semantic connection"
+    },
+    {
+      "source": "ProtectedRoute()",
+      "target": "useAuth()",
+      "source_files": [
+        "src/components/ProtectedRoute.tsx",
+        "src/contexts/AuthContext.tsx"
+      ],
+      "confidence": "EXTRACTED",
+      "relation": "calls",
+      "why": "cross-file semantic connection"
+    },
+    {
+      "source": "AuthContextType",
+      "target": "User",
+      "source_files": [
+        "src/contexts/AuthContext.tsx",
+        "src/types/index.ts"
+      ],
+      "confidence": "EXTRACTED",
+      "relation": "references",
+      "why": "cross-file semantic connection"
+    }
+  ],
+  "tokens": {
+    "input": 0,
+    "output": 0
+  }
+}

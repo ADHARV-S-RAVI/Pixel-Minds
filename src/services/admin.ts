@@ -161,6 +161,15 @@ export {
 } from './announcements';
 
 // ==========================================
+// ADMIN NOTIFICATIONS (Supabase)
+// ==========================================
+export {
+  sendAdminNotification,
+  getAdminSentNotifications,
+  deleteAdminNotification
+} from './notifications';
+
+// ==========================================
 // DASHBOARD METRICS SERVICE
 // ==========================================
 export interface AdminMetrics {

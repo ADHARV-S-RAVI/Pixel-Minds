@@ -351,6 +351,129 @@ AS $$
   );
 $$;
 
+REVOKE ALL ON FUNCTION public.is_admin() FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.is_admin() TO authenticated, anon;
+
+-- Secure RPC to dispatch a notification to Everyone or a specific user.
+-- Strictly validates administrator privileges and inserts records atomically.
+CREATE OR REPLACE FUNCTION public.send_notification_rpc(
+  p_title TEXT,
+  p_message TEXT,
+  p_type TEXT DEFAULT 'system',
+  p_link TEXT DEFAULT NULL,
+  p_target_user_id UUID DEFAULT NULL, -- NULL means broadcast to Everyone
+  p_admin_id UUID DEFAULT NULL
+)
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_notif_id UUID;
+  v_inserted_count INTEGER := 0;
+  v_caller_id UUID;
+BEGIN
+  -- 1. Strictly enforce Admin role on the caller
+  IF NOT public.is_admin() THEN
+    RAISE EXCEPTION 'Access denied: Only administrators can dispatch notifications.';
+  END IF;
+
+  v_caller_id := auth.uid();
+
+  -- 2. Validate parameters
+  IF p_title IS NULL OR TRIM(p_title) = '' THEN
+    RAISE EXCEPTION 'Notification title is required.';
+  END IF;
+  IF p_message IS NULL OR TRIM(p_message) = '' THEN
+    RAISE EXCEPTION 'Notification message is required.';
+  END IF;
+
+  -- 3. Insert master notification
+  INSERT INTO public.notifications (
+    title,
+    message,
+    type,
+    link,
+    created_by
+  )
+  VALUES (
+    TRIM(p_title),
+    TRIM(p_message),
+    COALESCE(p_type, 'system'),
+    p_link,
+    COALESCE(p_admin_id, v_caller_id)
+  )
+  RETURNING id INTO v_notif_id;
+
+  -- 4. Insert user_notifications recipient records
+  IF p_target_user_id IS NOT NULL THEN
+    -- Specific user delivery
+    INSERT INTO public.user_notifications (user_id, notification_id, is_read)
+    VALUES (p_target_user_id, v_notif_id, FALSE)
+    ON CONFLICT (user_id, notification_id) DO NOTHING;
+    v_inserted_count := 1;
+  ELSE
+    -- Broadcast to Everyone: insert for all registered profiles
+    INSERT INTO public.user_notifications (user_id, notification_id, is_read)
+    SELECT id, v_notif_id, FALSE
+    FROM public.profiles
+    ON CONFLICT (user_id, notification_id) DO NOTHING;
+    GET DIAGNOSTICS v_inserted_count = ROW_COUNT;
+  END IF;
+
+  RETURN json_build_object(
+    'success', true,
+    'notification_id', v_notif_id,
+    'recipients_count', v_inserted_count
+  );
+END;
+$$;
+
+-- Restrict execution permissions
+REVOKE ALL ON FUNCTION public.send_notification_rpc(TEXT, TEXT, TEXT, TEXT, UUID, UUID) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.send_notification_rpc(TEXT, TEXT, TEXT, TEXT, UUID, UUID) TO authenticated;
+
+-- Secure RPC to delete a notification and all of its recipient records.
+-- Strictly validates administrator privileges and cascades cleanly.
+CREATE OR REPLACE FUNCTION public.delete_notification_rpc(
+  p_notification_id UUID
+)
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  -- 1. Strictly enforce Admin role on caller
+  IF NOT public.is_admin() THEN
+    RAISE EXCEPTION 'Access denied: Only administrators can delete notifications.';
+  END IF;
+
+  IF p_notification_id IS NULL THEN
+    RAISE EXCEPTION 'Notification ID is required.';
+  END IF;
+
+  -- 2. Explicitly remove recipient records from user_notifications
+  DELETE FROM public.user_notifications
+  WHERE notification_id = p_notification_id;
+
+  -- 3. Delete master notification record
+  DELETE FROM public.notifications
+  WHERE id = p_notification_id;
+
+  RETURN json_build_object(
+    'success', true,
+    'deleted_id', p_notification_id
+  );
+END;
+$$;
+
+-- Restrict execution permissions
+REVOKE ALL ON FUNCTION public.delete_notification_rpc(UUID) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.delete_notification_rpc(UUID) TO authenticated;
+
+
 -- Trigger: Update updated_at column
 CREATE OR REPLACE FUNCTION public.set_updated_at()
 RETURNS TRIGGER
@@ -639,18 +762,71 @@ ON public.announcements FOR ALL
 USING (public.is_admin());
 
 -- 11. NOTIFICATIONS POLICIES
+-- Helper function to check if the current user has a recipient record for this notification.
+-- Guarantees ordinary users can ONLY read notifications addressed to them,
+-- without unrestricted table access or recursion issues.
+CREATE OR REPLACE FUNCTION public.user_has_notification(p_notification_id UUID)
+RETURNS BOOLEAN
+LANGUAGE sql
+SECURITY DEFINER
+SET search_path = public
+STABLE
+AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM public.user_notifications
+    WHERE notification_id = p_notification_id
+    AND user_id = auth.uid()
+  );
+$$;
+
+REVOKE ALL ON FUNCTION public.user_has_notification(UUID) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.user_has_notification(UUID) TO authenticated;
+
+DROP POLICY IF EXISTS "Users can view their notifications" ON public.user_notifications;
 CREATE POLICY "Users can view their notifications"
 ON public.user_notifications FOR SELECT
 USING (auth.uid() = user_id OR public.is_admin());
 
+DROP POLICY IF EXISTS "Users can mark their notifications as read" ON public.user_notifications;
 CREATE POLICY "Users can mark their notifications as read"
 ON public.user_notifications FOR UPDATE
 USING (auth.uid() = user_id)
 WITH CHECK (auth.uid() = user_id);
 
-CREATE POLICY "Admins can create notifications"
-ON public.notifications FOR ALL
+DROP POLICY IF EXISTS "Admins can create user notifications" ON public.user_notifications;
+CREATE POLICY "Admins can create user notifications"
+ON public.user_notifications FOR INSERT
+WITH CHECK (public.is_admin());
+
+DROP POLICY IF EXISTS "Admins can delete user notifications" ON public.user_notifications;
+CREATE POLICY "Admins can delete user notifications"
+ON public.user_notifications FOR DELETE
 USING (public.is_admin());
+
+DROP POLICY IF EXISTS "Admins can manage notifications" ON public.notifications;
+CREATE POLICY "Admins can manage notifications"
+ON public.notifications FOR ALL
+USING (public.is_admin())
+WITH CHECK (public.is_admin());
+
+DROP POLICY IF EXISTS "Users can view notifications sent to them" ON public.notifications;
+CREATE POLICY "Users can view notifications sent to them"
+ON public.notifications FOR SELECT
+USING (public.is_admin() OR public.user_has_notification(id));
+
+-- Set full replica identity for row-level Realtime filters
+ALTER TABLE public.user_notifications REPLICA IDENTITY FULL;
+
+-- Enable Realtime publication on user_notifications if publication exists
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM pg_publication WHERE pubname = 'supabase_realtime') THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.user_notifications;
+  END IF;
+EXCEPTION WHEN OTHERS THEN
+  NULL;
+END;
+$$;
 
 -- 12. AUDIT LOGS POLICIES
 -- Strictly viewable and writable ONLY by Admins

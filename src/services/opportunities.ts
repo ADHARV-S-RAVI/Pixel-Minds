@@ -1,6 +1,7 @@
 import { supabase } from '../lib/supabase';
 import type { Opportunity, OpportunityStatus } from '../types';
 import type { Database } from '../types/database';
+import { createReviewNotification } from './notifications';
 
 type OpportunityRow = Database['public']['Tables']['opportunities']['Row'];
 type OpportunityInsert = Database['public']['Tables']['opportunities']['Insert'];
@@ -55,6 +56,7 @@ const mapSubmissionRow = (row: SubmissionRow): Opportunity => ({
   location: row.location || '',
   mode: (row.mode as 'online' | 'offline' | 'hybrid') || 'online',
   prize: row.prize || '',
+  stipend: row.stipend || '',
   eligibility: row.eligibility || '',
   teamSize: row.team_size || '',
   skills: row.skills || [],
@@ -67,7 +69,11 @@ const mapSubmissionRow = (row: SubmissionRow): Opportunity => ({
   source: 'user',
   createdBy: row.user_id,
   createdAt: new Date(row.created_at).getTime(),
-  updatedAt: new Date(row.updated_at).getTime()
+  updatedAt: new Date(row.updated_at).getTime(),
+  adminNotes: row.admin_notes || '',
+  reviewedBy: row.reviewed_by || '',
+  opportunityId: row.opportunity_id || '',
+  additionalInfo: row.additional_info || ''
 });
 
 /** Build a typed Supabase update payload from frontend Opportunity fields */
@@ -89,7 +95,7 @@ const toUpdatePayload = (data: Partial<Opportunity>): OpportunityUpdate => {
   if (data.skills !== undefined) row.skills = data.skills;
   if (data.imageUrl !== undefined) row.image_url = data.imageUrl;
   if (data.officialUrl !== undefined) row.apply_url = data.officialUrl;
-  if (data.status !== undefined) row.status = data.status;
+  if (data.status !== undefined) row.status = data.status === 'approved' ? 'published' : data.status;
   if (data.source !== undefined) row.source = data.source;
   if (data.featured !== undefined) row.featured = data.featured;
   if (data.additionalInfo !== undefined) row.additional_info = data.additionalInfo;
@@ -283,6 +289,7 @@ export const getUserSubmissions = async (userId: string) => {
 
 /**
  * Admin: Fetch all pending submissions for the review queue.
+ * Also populates submitterName and submitterEmail from public.profiles.
  */
 export const getPendingSubmissions = async () => {
   const { data, error } = await supabase
@@ -296,7 +303,26 @@ export const getPendingSubmissions = async () => {
     return [];
   }
 
-  return (data || []).map(mapSubmissionRow);
+  const submissions = (data || []).map(mapSubmissionRow);
+  const userIds = Array.from(new Set(submissions.map((s) => s.createdBy).filter(Boolean)));
+
+  if (userIds.length > 0) {
+    const { data: profiles } = await supabase
+      .from('profiles')
+      .select('id, full_name, email')
+      .in('id', userIds);
+
+    const profileMap = new Map((profiles || []).map((p) => [p.id, p]));
+    for (const sub of submissions) {
+      const p = profileMap.get(sub.createdBy);
+      if (p) {
+        sub.submitterName = p.full_name || 'Anonymous User';
+        sub.submitterEmail = p.email || '';
+      }
+    }
+  }
+
+  return submissions;
 };
 
 /**
@@ -319,7 +345,13 @@ export const getAllOpportunities = async () => {
 /**
  * Admin: Update an existing opportunity or approve/reject a pending submission.
  */
-export const updateOpportunityAdmin = async (id: string, updates: Partial<Opportunity>) => {
+export const updateOpportunityAdmin = async (
+  id: string,
+  updates: Partial<Opportunity> & { rejectionReason?: string; adminNotes?: string }
+) => {
+  const { data: authData } = await supabase.auth.getUser();
+  const reviewerId = authData?.user?.id || null;
+
   // 1. Check if this ID is a submission in the submissions table
   const { data: submission } = await supabase
     .from('submissions')
@@ -357,15 +389,29 @@ export const updateOpportunityAdmin = async (id: string, updates: Partial<Opport
         shares: 0
       };
 
-      const { data: createdOpp, error: oppErr } = await supabase
-        .from('opportunities')
-        .insert(oppPayload)
-        .select()
-        .single();
+      let oppId = submission.opportunity_id;
+      if (submission.status === 'approved' && oppId) {
+        // Submission already approved: update existing opportunity record instead of duplicating
+        const { error: updateOppErr } = await supabase
+          .from('opportunities')
+          .update(oppPayload)
+          .eq('id', oppId);
 
-      if (oppErr) {
-        console.error('Failed to create opportunity from submission:', oppErr.message);
-        throw new Error('Failed to approve submission: ' + oppErr.message);
+        if (updateOppErr) {
+          console.error('[updateOpportunityAdmin] Failed to update existing approved opportunity:', updateOppErr.message);
+        }
+      } else {
+        const { data: createdOpp, error: oppErr } = await supabase
+          .from('opportunities')
+          .insert(oppPayload)
+          .select()
+          .single();
+
+        if (oppErr) {
+          console.error('Failed to create opportunity from submission:', oppErr.message);
+          throw new Error('Failed to approve submission: ' + oppErr.message);
+        }
+        oppId = createdOpp.id;
       }
 
       // Mark submission as approved and link opportunity_id
@@ -373,21 +419,58 @@ export const updateOpportunityAdmin = async (id: string, updates: Partial<Opport
         .from('submissions')
         .update({
           status: 'approved',
-          opportunity_id: createdOpp.id
+          opportunity_id: oppId,
+          reviewed_by: reviewerId
         })
         .eq('id', id);
 
+      // Create notification for original submitter (logged and handled gracefully)
+      try {
+        await createReviewNotification({
+          targetUserId: submission.user_id,
+          adminId: reviewerId || undefined,
+          submissionId: submission.id,
+          opportunityTitle: updates.title || submission.title,
+          action: 'approved',
+          opportunityId: oppId
+        });
+      } catch (notifErr: any) {
+        console.error('[updateOpportunityAdmin] Note: Failed to send approval notification:', notifErr);
+        // Do not throw: Approval must not be reported as failed simply because notification request failed.
+      }
+
       return;
     } else if (updates.status === 'rejected') {
+      const reason = updates.adminNotes || updates.rejectionReason || null;
       const { error: rejectErr } = await supabase
         .from('submissions')
-        .update({ status: 'rejected' })
+        .update({
+          status: 'rejected',
+          admin_notes: reason,
+          reviewed_by: reviewerId
+        })
         .eq('id', id);
 
       if (rejectErr) {
         console.error('Failed to reject submission:', rejectErr.message);
         throw new Error('Failed to reject submission: ' + rejectErr.message);
       }
+
+      // Create notification for original submitter (logged and handled gracefully)
+      try {
+        await createReviewNotification({
+          targetUserId: submission.user_id,
+          adminId: reviewerId || undefined,
+          submissionId: submission.id,
+          opportunityTitle: updates.title || submission.title,
+          action: 'rejected',
+          rejectionReason: reason || undefined
+        });
+      } catch (notifErr: any) {
+        console.error('[updateOpportunityAdmin] Note: Failed to send rejection notification:', notifErr);
+        // Do not throw: Rejection must not be reported as failed simply because notification request failed.
+      }
+
       return;
     }
   }
@@ -427,7 +510,7 @@ export const submitOpportunityAdmin = async (userId: string, data: Partial<Oppor
     skills: data.skills || [],
     image_url: data.imageUrl || '',
     apply_url: data.officialUrl || '',
-    status: data.status || 'published',
+    status: data.status === 'approved' ? 'published' : (data.status || 'published'),
     source: 'admin',
     featured: data.featured || false,
     additional_info: data.additionalInfo || '',

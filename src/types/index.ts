@@ -1,5 +1,5 @@
 export type Role = 'user' | 'admin';
-export type OpportunityStatus = 'draft' | 'pending' | 'published' | 'rejected' | 'expired' | 'archived';
+export type OpportunityStatus = 'draft' | 'pending' | 'published' | 'approved' | 'rejected' | 'expired' | 'archived';
 
 export interface User {
   id: string;
@@ -51,6 +51,23 @@ export interface Opportunity {
   createdBy: string;
   createdAt: number;
   updatedAt: number;
+  adminNotes?: string;
+  reviewedBy?: string;
+  opportunityId?: string;
+  submitterName?: string;
+  submitterEmail?: string;
+}
+
+export interface AppNotification {
+  id: string; // user_notification id
+  notificationId: string;
+  title: string;
+  message: string;
+  type: 'offer' | 'opportunity' | 'announcement' | 'reminder' | 'community' | 'referral' | 'pixel' | 'system';
+  link?: string | null;
+  isRead: boolean;
+  readAt?: number | null;
+  createdAt: number;
 }
 
 export interface PixelTransaction {
@@ -115,12 +132,25 @@ export interface Announcement {
   message: string;
   ctaText?: string;
   ctaLink?: string;
+  imageUrl?: string;
   startDate: number;
   endDate: number;
   status: 'published' | 'draft' | 'archived';
   createdBy: string;
   createdAt: number;
   updatedAt: number;
+}
+
+export interface AdminSentNotification {
+  id: string;
+  title: string;
+  message: string;
+  type: string;
+  link: string | null;
+  createdBy: string | null;
+  createdAt: number;
+  recipientsCount: number;
+  targetDescription: string;
 }
 
 export interface CommunityPost {

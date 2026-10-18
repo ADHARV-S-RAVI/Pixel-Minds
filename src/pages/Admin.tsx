@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { getAllOpportunities, getPendingSubmissions, updateOpportunityAdmin, deleteOpportunityAdmin } from '../services/opportunities';
 import type { Opportunity } from '../types';
 import { LayoutDashboard, FileText, Inbox, Users, BarChart3, Settings, Search, Trash2, Check, X, Eye } from 'lucide-react';
+import { SubmissionDetailModal } from '../components/SubmissionDetailModal';
 
 type AdminTab = 'overview' | 'opportunities' | 'submissions' | 'users' | 'reports' | 'settings';
 
@@ -11,6 +12,7 @@ export function Admin() {
   const [activeTab, setActiveTab] = useState<AdminTab>('submissions');
   const [opportunities, setOpportunities] = useState<Opportunity[]>([]);
   const [submissions, setSubmissions] = useState<Opportunity[]>([]);
+  const [selectedSubmissionForDetails, setSelectedSubmissionForDetails] = useState<Opportunity | null>(null);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -46,11 +48,11 @@ export function Admin() {
     }
   };
 
-  const handleReject = async (id: string) => {
-    const reason = window.prompt('Rejection reason (optional):');
-    if (reason === null) return;
+  const handleReject = async (id: string, reason?: string) => {
+    const finalReason = reason !== undefined ? reason : window.prompt('Rejection reason (optional):');
+    if (finalReason === null) return;
     try {
-      await updateOpportunityAdmin(id, { status: 'rejected' });
+      await updateOpportunityAdmin(id, { status: 'rejected', rejectionReason: finalReason || undefined, adminNotes: finalReason || undefined });
       fetchData();
     } catch (err) {
       console.error('Failed to reject', err);
@@ -168,6 +170,10 @@ export function Admin() {
                                   <p className="text-xs text-slate-400 mt-1">Creator: {sub.createdBy}</p>
                                 </div>
                                 <div className="flex items-center space-x-2 flex-shrink-0">
+                                  <button onClick={() => setSelectedSubmissionForDetails(sub)} className="inline-flex items-center space-x-1 px-3 py-1.5 border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-lg text-xs font-medium transition-colors" title="View Details">
+                                    <Eye size={13} />
+                                    <span>View Details</span>
+                                  </button>
                                   <button onClick={() => handleApprove(sub.id)} className="inline-flex items-center space-x-1 px-3 py-1.5 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 rounded-lg text-xs font-medium transition-colors" title="Approve">
                                     <Check size={14} />
                                     <span>Approve</span>
@@ -284,6 +290,16 @@ export function Admin() {
           </div>
         </div>
       </div>
+
+      {/* Submission Detail Modal */}
+      <SubmissionDetailModal
+        submission={selectedSubmissionForDetails}
+        isOpen={!!selectedSubmissionForDetails}
+        onClose={() => setSelectedSubmissionForDetails(null)}
+        isAdmin
+        onApprove={handleApprove}
+        onReject={handleReject}
+      />
     </div>
   );
 }
