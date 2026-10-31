@@ -5,15 +5,13 @@ import {
   Calendar,
   MapPin,
   Trophy,
-  Users,
   CheckCircle2,
   XCircle,
   Clock,
   Briefcase,
   AlertCircle,
   User,
-  Mail,
-  FileText
+  Mail
 } from 'lucide-react';
 import type { Opportunity } from '../types';
 
@@ -65,21 +63,21 @@ export const SubmissionDetailModal: React.FC<SubmissionDetailModalProps> = ({
       case 'published':
       case 'approved':
         return (
-          <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-bold text-emerald-700 border border-emerald-200">
+          <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-3 py-1 text-xs font-bold text-emerald-300 border border-emerald-500/30">
             <CheckCircle2 size={13} />
             Approved
           </span>
         );
       case 'rejected':
         return (
-          <span className="inline-flex items-center gap-1 rounded-full bg-rose-50 px-2.5 py-1 text-xs font-bold text-rose-700 border border-rose-200">
+          <span className="inline-flex items-center gap-1 rounded-full bg-rose-500/15 px-3 py-1 text-xs font-bold text-rose-300 border border-rose-500/30">
             <XCircle size={13} />
             Rejected
           </span>
         );
       default:
         return (
-          <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2.5 py-1 text-xs font-bold text-amber-700 border border-amber-200">
+          <span className="inline-flex items-center gap-1 rounded-full bg-[#DFB76C]/15 px-3 py-1 text-xs font-bold text-[#DFB76C] border border-[#DFB76C]/30">
             <Clock size={13} />
             Pending Review
           </span>
@@ -116,24 +114,24 @@ export const SubmissionDetailModal: React.FC<SubmissionDetailModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs overflow-y-auto animate-in fade-in duration-150">
-      <div className="relative w-full max-w-2xl my-8 bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[90vh]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-md overflow-y-auto animate-in fade-in duration-150">
+      <div className="relative w-full max-w-2xl my-8 bg-[#141418]/95 backdrop-blur-2xl text-white rounded-3xl shadow-2xl border border-white/15 overflow-hidden flex flex-col max-h-[90vh]">
         {/* Header */}
-        <div className="flex items-start justify-between p-6 border-b border-slate-100 bg-slate-50/50">
+        <div className="flex items-start justify-between p-6 border-b border-white/10 bg-white/5">
           <div className="space-y-1.5 pr-6 min-w-0">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="inline-flex items-center rounded-lg bg-sky-50 px-2.5 py-0.5 text-xs font-bold text-sky-700 border border-sky-100">
+              <span className="inline-flex items-center rounded-full bg-[#DFB76C]/15 border border-[#DFB76C]/30 px-3 py-0.5 text-xs font-bold text-[#DFB76C]">
                 {submission.category}
               </span>
               {getStatusBadge(submission.status)}
             </div>
-            <h2 className="text-xl font-extrabold text-slate-900 leading-tight break-words">
+            <h2 className="text-xl font-extrabold text-white leading-tight break-words">
               {submission.title}
             </h2>
-            <p className="text-xs text-slate-500 font-medium">
+            <p className="text-xs text-zinc-400 font-medium">
               Submitted on {formatDateTime(submission.createdAt)}
               {submission.updatedAt && submission.updatedAt !== submission.createdAt && (
-                <span className="ml-2 text-slate-400">
+                <span className="ml-2 text-zinc-500">
                   (Updated {formatDateTime(submission.updatedAt)})
                 </span>
               )}
@@ -141,192 +139,158 @@ export const SubmissionDetailModal: React.FC<SubmissionDetailModalProps> = ({
           </div>
           <button
             onClick={onClose}
-            className="grid h-8 w-8 shrink-0 place-items-center rounded-full text-slate-400 hover:text-slate-600 hover:bg-slate-200/60 transition"
+            className="grid h-8 w-8 shrink-0 place-items-center rounded-full text-zinc-400 hover:text-white hover:bg-white/10 transition cursor-pointer"
           >
             <X size={18} />
           </button>
         </div>
 
         {/* Modal Scrollable Body */}
-        <div className="p-6 overflow-y-auto space-y-6 flex-1 text-sm text-slate-700">
+        <div className="p-6 overflow-y-auto space-y-6 flex-1 text-sm text-zinc-300">
           {/* Submitter Info (Visible to Admins) */}
           {isAdmin && (
-            <div className="p-4 rounded-2xl bg-sky-50/60 border border-sky-100 flex flex-wrap items-center justify-between gap-3 text-xs">
+            <div className="p-4 rounded-2xl bg-white/5 border border-white/10 flex flex-wrap items-center justify-between gap-3 text-xs">
               <div className="flex items-center gap-2">
-                <div className="grid h-8 w-8 place-items-center rounded-xl bg-sky-100 text-sky-700 font-bold">
+                <div className="grid h-8 w-8 place-items-center rounded-xl bg-[#DFB76C]/20 text-[#DFB76C] font-bold">
                   <User size={15} />
                 </div>
                 <div>
-                  <p className="font-bold text-slate-900">
+                  <p className="font-bold text-white">
                     {submission.submitterName || 'Registered User'}
                   </p>
-                  <p className="text-slate-500 font-mono text-[11px] flex items-center gap-1">
-                    <Mail size={11} className="inline text-slate-400" />
+                  <p className="text-zinc-400 font-mono text-[11px] flex items-center gap-1">
+                    <Mail size={11} className="inline text-zinc-500" />
                     {submission.submitterEmail || submission.createdBy || 'No email available'}
                   </p>
                 </div>
               </div>
-              <span className="text-[11px] font-semibold text-sky-700 bg-white px-2.5 py-1 rounded-lg border border-sky-200">
+              <span className="text-[11px] font-semibold text-[#DFB76C] bg-white/10 px-2.5 py-1 rounded-lg border border-white/10">
                 Submitter ID: {submission.createdBy.substring(0, 8)}...
               </span>
             </div>
           )}
 
           {/* Banner Image if uploaded */}
-          {submission.imageUrl ? (
-            <div className="relative rounded-2xl overflow-hidden border border-slate-200 max-h-56 bg-slate-100">
+          {submission.imageUrl && (
+            <div className="rounded-2xl overflow-hidden border border-white/10 max-h-64 bg-zinc-900">
               <img
                 src={submission.imageUrl}
                 alt={submission.title}
                 className="w-full h-full object-cover"
-                onError={(e) => {
-                  (e.target as HTMLElement).style.display = 'none';
-                }}
               />
-            </div>
-          ) : null}
-
-          {/* Rejection / Reviewer Notes Callout if rejected */}
-          {submission.adminNotes && (
-            <div className="p-4 rounded-2xl bg-rose-50 border border-rose-200/80 text-rose-900 space-y-1">
-              <div className="flex items-center gap-1.5 font-bold text-xs text-rose-800">
-                <AlertCircle size={15} />
-                <span>Reviewer Feedback / Rejection Reason:</span>
-              </div>
-              <p className="text-xs leading-relaxed pl-5 font-medium">
-                {submission.adminNotes}
-              </p>
             </div>
           )}
 
-          {/* Core Info Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-            <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-100 space-y-1">
-              <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-                <Briefcase size={12} className="text-sky-500" /> Organizer / Company
+          {/* Key Facts Grid */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+            <div className="p-3 rounded-2xl bg-white/5 border border-white/10">
+              <span className="text-zinc-400 flex items-center gap-1 text-[11px]">
+                <Calendar size={12} className="text-[#DFB76C]" /> Deadline
               </span>
-              <p className="font-bold text-slate-900">{submission.organizer || 'Not provided'}</p>
-            </div>
-
-            <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-100 space-y-1">
-              <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-                <Calendar size={12} className="text-sky-500" /> Application Deadline
-              </span>
-              <p className="font-bold text-slate-900">{formatDate(submission.deadline)}</p>
-            </div>
-
-            <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-100 space-y-1">
-              <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-                <MapPin size={12} className="text-sky-500" /> Mode &amp; Location
-              </span>
-              <p className="font-bold text-slate-900 capitalize">
-                {submission.mode} {submission.location ? `(${submission.location})` : ''}
+              <p className="font-bold text-white mt-1">
+                {formatDate(submission.deadline)}
               </p>
             </div>
-
-            <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-100 space-y-1">
-              <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-                <Trophy size={12} className="text-amber-500" /> Prize / Reward / Stipend
+            <div className="p-3 rounded-2xl bg-white/5 border border-white/10">
+              <span className="text-zinc-400 flex items-center gap-1 text-[11px]">
+                <MapPin size={12} className="text-[#DFB76C]" /> Mode
               </span>
-              <p className="font-bold text-slate-900">
-                {submission.prize || submission.stipend || 'Not provided'}
+              <p className="font-bold text-white capitalize mt-1">
+                {submission.mode || 'Online'}
               </p>
             </div>
-
-            {submission.eligibility && (
-              <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-100 space-y-1">
-                <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
-                  Eligibility
-                </span>
-                <p className="font-medium text-slate-800">{submission.eligibility}</p>
-              </div>
-            )}
-
-            {submission.teamSize && (
-              <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-100 space-y-1">
-                <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-                  <Users size={12} className="text-indigo-500" /> Team Size
-                </span>
-                <p className="font-medium text-slate-800">{submission.teamSize}</p>
-              </div>
-            )}
+            <div className="p-3 rounded-2xl bg-white/5 border border-white/10">
+              <span className="text-zinc-400 flex items-center gap-1 text-[11px]">
+                <Briefcase size={12} className="text-[#DFB76C]" /> Organizer
+              </span>
+              <p className="font-bold text-white truncate mt-1">
+                {submission.organizer || 'Not specified'}
+              </p>
+            </div>
+            <div className="p-3 rounded-2xl bg-white/5 border border-white/10">
+              <span className="text-zinc-400 flex items-center gap-1 text-[11px]">
+                <Trophy size={12} className="text-[#DFB76C]" /> Prize / Reward
+              </span>
+              <p className="font-bold text-white truncate mt-1">
+                {submission.prize || 'Certificate'}
+              </p>
+            </div>
           </div>
 
+          {/* Official Link */}
+          {submission.officialUrl && (
+            <div className="p-4 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-between gap-3 text-xs">
+              <div className="min-w-0 flex-1">
+                <p className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider">
+                  Official Application Link
+                </p>
+                <p className="text-xs text-white truncate font-mono mt-0.5">
+                  {submission.officialUrl}
+                </p>
+              </div>
+              <a
+                href={submission.officialUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white font-semibold transition shrink-0"
+              >
+                <span>Visit Link</span>
+                <ExternalLink size={12} />
+              </a>
+            </div>
+          )}
+
           {/* Description */}
-          <div className="space-y-1.5">
-            <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
-              <FileText size={13} /> Description
+          <div>
+            <h4 className="text-xs font-bold text-zinc-300 uppercase tracking-wider mb-2">
+              Description
             </h4>
-            <div className="p-4 rounded-2xl bg-slate-50/60 border border-slate-100 text-xs text-slate-700 leading-relaxed whitespace-pre-line">
+            <div className="p-4 rounded-2xl bg-white/5 border border-white/10 text-xs sm:text-sm text-zinc-300 leading-relaxed whitespace-pre-line">
               {submission.description || 'No description provided.'}
             </div>
           </div>
 
-          {/* Skills / Tags */}
+          {/* Skills Required */}
           {submission.skills && submission.skills.length > 0 && (
-            <div className="space-y-1.5">
-              <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400">
-                Skills &amp; Tags
+            <div>
+              <h4 className="text-xs font-bold text-zinc-300 uppercase tracking-wider mb-2">
+                Target Tech Skills
               </h4>
               <div className="flex flex-wrap gap-1.5">
-                {submission.skills.map((skill, index) => (
+                {submission.skills.map((s, idx) => (
                   <span
-                    key={index}
-                    className="inline-flex items-center rounded-lg bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-700 border border-slate-200"
+                    key={idx}
+                    className="px-2.5 py-1 rounded-lg bg-white/8 border border-white/10 text-xs font-medium text-zinc-200"
                   >
-                    {skill}
+                    {s}
                   </span>
                 ))}
               </div>
             </div>
           )}
 
-          {/* Additional Info */}
-          {submission.additionalInfo && (
-            <div className="space-y-1.5">
-              <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400">
-                Additional Information
-              </h4>
-              <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-100 text-xs text-slate-600 leading-relaxed whitespace-pre-line">
-                {submission.additionalInfo}
-              </div>
+          {/* Rejection Feedback (if previously rejected) */}
+          {submission.status === 'rejected' && (submission.adminNotes || (submission as any).rejectionReason) && (
+            <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-xs text-rose-300">
+              <p className="font-bold flex items-center gap-1.5 mb-1 text-rose-300">
+                <AlertCircle size={14} />
+                Rejection Reviewer Feedback
+              </p>
+              <p className="leading-relaxed">{submission.adminNotes || (submission as any).rejectionReason}</p>
             </div>
           )}
-
-          {/* Official URL */}
-          <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100 flex flex-wrap items-center justify-between gap-3">
-            <div className="min-w-0 flex-1">
-              <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
-                Official Submission URL
-              </p>
-              <p className="text-xs text-slate-800 font-mono truncate mt-0.5">
-                {submission.officialUrl || 'Not provided'}
-              </p>
-            </div>
-            {submission.officialUrl && (
-              <a
-                href={submission.officialUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-sky-500 hover:bg-sky-600 text-white text-xs font-bold transition shadow-xs"
-              >
-                <span>Open URL</span>
-                <ExternalLink size={13} />
-              </a>
-            )}
-          </div>
         </div>
 
         {/* Rejection Reason Form (when Reject is clicked in Admin view) */}
         {rejecting && (
-          <div className="p-5 border-t border-rose-100 bg-rose-50/50 space-y-3 animate-in slide-in-from-bottom-2 duration-150">
+          <div className="p-5 border-t border-rose-500/20 bg-rose-500/10 space-y-3 animate-in slide-in-from-bottom-2 duration-150">
             <div className="flex items-center justify-between">
-              <h4 className="text-xs font-bold text-rose-900">
+              <h4 className="text-xs font-bold text-rose-300">
                 Rejection Reason (Optional Feedback for Submitter)
               </h4>
               <button
                 onClick={() => setRejecting(false)}
-                className="text-xs text-slate-500 hover:text-slate-800"
+                className="text-xs text-zinc-400 hover:text-white cursor-pointer"
               >
                 Cancel
               </button>
@@ -335,20 +299,20 @@ export const SubmissionDetailModal: React.FC<SubmissionDetailModalProps> = ({
               value={rejectionReason}
               onChange={(e) => setRejectionReason(e.target.value)}
               placeholder="e.g. Official URL is unreachable, or eligibility criteria does not match tech opportunities..."
-              className="w-full rounded-xl border border-rose-200 bg-white p-3 text-xs outline-none focus:border-rose-400 focus:ring-1 focus:ring-rose-400"
+              className="w-full rounded-xl border border-rose-500/30 bg-black/40 p-3 text-xs outline-none text-white focus:border-rose-400 focus:ring-1 focus:ring-rose-400"
               rows={2}
             />
             <div className="flex justify-end gap-2">
               <button
                 onClick={() => setRejecting(false)}
-                className="px-3 py-1.5 rounded-xl border border-slate-200 bg-white text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                className="px-3 py-1.5 rounded-xl border border-white/15 bg-white/5 text-xs font-semibold text-zinc-300 hover:bg-white/10 cursor-pointer"
               >
                 Back
               </button>
               <button
                 onClick={handleConfirmReject}
                 disabled={isSubmitting}
-                className="px-4 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold transition shadow-xs disabled:opacity-50"
+                className="px-4 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold transition shadow-xs disabled:opacity-50 cursor-pointer"
               >
                 {isSubmitting ? 'Rejecting...' : 'Confirm Rejection'}
               </button>
@@ -358,12 +322,12 @@ export const SubmissionDetailModal: React.FC<SubmissionDetailModalProps> = ({
 
         {/* Footer Actions */}
         {!rejecting && (
-          <div className="flex flex-wrap items-center justify-between gap-3 p-4 border-t border-slate-100 bg-slate-50/70">
+          <div className="flex flex-wrap items-center justify-between gap-3 p-4 border-t border-white/10 bg-white/5">
             <div className="flex items-center gap-2">
               {submission.status === 'published' || (submission.status as string) === 'approved' ? (
                 <a
                   href={`/opportunities/${submission.opportunityId || submission.id}`}
-                  className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 text-xs font-bold transition"
+                  className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-500/15 text-emerald-300 hover:bg-emerald-500/25 border border-emerald-500/30 text-xs font-bold transition"
                 >
                   <CheckCircle2 size={13} />
                   <span>View Live Opportunity</span>
@@ -375,7 +339,7 @@ export const SubmissionDetailModal: React.FC<SubmissionDetailModalProps> = ({
             <div className="flex items-center gap-2 ml-auto">
               <button
                 onClick={onClose}
-                className="px-4 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-xs font-semibold text-slate-700 transition"
+                className="px-4 py-2 rounded-full border border-white/15 bg-white/10 hover:bg-white/15 text-xs font-semibold text-zinc-200 transition cursor-pointer"
               >
                 Close
               </button>
@@ -385,14 +349,14 @@ export const SubmissionDetailModal: React.FC<SubmissionDetailModalProps> = ({
                   <button
                     onClick={() => setRejecting(true)}
                     disabled={isSubmitting}
-                    className="px-3.5 py-2 rounded-xl border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold transition disabled:opacity-50"
+                    className="px-4 py-2 rounded-full border border-rose-500/30 bg-rose-500/15 hover:bg-rose-500/25 text-rose-300 text-xs font-bold transition disabled:opacity-50 cursor-pointer"
                   >
                     Reject
                   </button>
                   <button
                     onClick={handleApproveClick}
                     disabled={isSubmitting}
-                    className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition shadow-xs disabled:opacity-50"
+                    className="px-5 py-2 rounded-full bg-gradient-to-r from-[#C5A059] to-[#DFB76C] hover:brightness-105 text-zinc-950 text-xs font-bold transition shadow-xs disabled:opacity-50 cursor-pointer"
                   >
                     {isSubmitting ? 'Approving...' : 'Approve & Publish'}
                   </button>

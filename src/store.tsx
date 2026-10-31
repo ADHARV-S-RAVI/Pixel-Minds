@@ -172,98 +172,118 @@ export const AppProvider: FC<{ children: ReactNode }> = ({ children }) => {
       {children}
 
       {/* Referral Share Modal */}
+      {/* Refer & Earn Modal */}
       {sh && (
         <div
-          className="fixed inset-0 z-50 flex items-end bg-slate-900/60 backdrop-blur-xs sm:items-center sm:justify-center p-0 sm:p-4"
+          className="fixed inset-0 z-50 flex items-end bg-black/60 backdrop-blur-md sm:items-center sm:justify-center p-0 sm:p-4"
           onClick={() => setSh(null)}
         >
           <div
             onClick={(e) => e.stopPropagation()}
-            className="pm-in w-full overflow-hidden rounded-t-2xl bg-white shadow-2xl sm:max-w-md sm:rounded-2xl border border-slate-200"
+            className="pm-in w-full overflow-hidden rounded-t-3xl bg-[#FAF7F2] shadow-2xl sm:max-w-md sm:rounded-3xl border border-black/10"
           >
-            <div className="relative bg-gradient-to-br from-sky-500 to-sky-600 p-6 text-white">
+            <div className="relative bg-[#121317] p-6 text-white overflow-hidden border-b border-white/10">
+              {/* Celestial glow & orbital arcs */}
+              <div className="pointer-events-none absolute -right-16 -top-16 h-48 w-48 rounded-full bg-[#DFB76C]/15 blur-2xl" />
+              <svg
+                aria-hidden="true"
+                className="pointer-events-none absolute -right-6 -bottom-6 h-36 w-36 text-[#DFB76C]/20"
+                viewBox="0 0 100 100"
+                fill="none"
+              >
+                <circle cx="50" cy="50" r="45" stroke="currentColor" strokeWidth="0.8" strokeDasharray="2 2" />
+                <circle cx="50" cy="50" r="30" stroke="currentColor" strokeWidth="1" />
+                <path d="M5 50 Q 50 10 95 50" stroke="currentColor" strokeWidth="0.8" />
+              </svg>
+
               <button
                 aria-label="Close"
                 onClick={() => setSh(null)}
-                className="absolute right-3.5 top-3.5 grid h-8 w-8 place-items-center rounded-full bg-white/10 hover:bg-white/20 transition"
+                className="absolute right-3.5 top-3.5 grid h-8 w-8 place-items-center rounded-full bg-white/10 hover:bg-white/20 transition cursor-pointer"
               >
-                <X size={18} />
+                <X size={17} />
               </button>
-              <span className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-sky-100">
+              <span className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-[#DFB76C]">
                 <PixelMark s={6} />
                 Refer &amp; Earn
               </span>
-              <h3 className="mt-1.5 pr-6 text-xl font-bold leading-snug">{sh.title}</h3>
-              <p className="mt-1 text-sm text-sky-100">Share this opportunity with your network and earn Pixels.</p>
+              <h3 className="font-['Outfit',sans-serif] mt-1.5 pr-6 text-xl font-bold leading-snug text-white">{sh.title}</h3>
+              <p className="mt-1 text-xs text-white/70">Share this opportunity with your peers and earn Pixels.</p>
 
-              <div className="relative mt-4 inline-flex items-center gap-2 rounded-xl bg-white px-3.5 py-2 text-sky-700 shadow-md">
+              <div className="relative mt-4 inline-flex items-center gap-2 rounded-full bg-white/10 border border-white/15 px-4 py-2 text-[#DFB76C] shadow-md backdrop-blur-md">
                 <PixelMark s={9} />
-                <span className="text-lg font-extrabold">+25 Pixels</span>
-                <span className="text-xs font-medium text-slate-500">per friend who joins</span>
-                {ok && <span className="pm-rise absolute -top-1 right-2 text-sm font-extrabold text-sky-600">+25</span>}
+                <span className="text-base font-extrabold text-white">+25 Pixels</span>
+                <span className="text-xs font-medium text-white/60">per friend who joins</span>
+                {ok && <span className="pm-rise absolute -top-1 right-2 text-sm font-extrabold text-[#DFB76C]">+25</span>}
               </div>
             </div>
 
-            <div className="p-6">
-              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Your unique referral link</p>
-              <div className="mt-2 flex gap-2">
-                <input
-                  readOnly
-                  value={url}
-                  onFocus={(e) => e.target.select()}
-                  className="min-w-0 flex-1 rounded-lg border border-slate-200 bg-slate-50 px-3.5 py-2 text-xs font-mono text-slate-700 outline-none focus:border-sky-500"
-                />
-                <button
-                  onClick={() => copy(url)}
-                  className={`inline-flex min-h-10 shrink-0 items-center gap-1.5 rounded-lg px-4 text-xs font-semibold text-white transition ${
-                    ok ? 'bg-emerald-600' : 'bg-sky-500 hover:bg-sky-600'
-                  }`}
-                >
-                  {ok ? <Check size={15} className="pm-pop" /> : <Copy size={15} />}
-                  {ok ? 'Copied' : 'Copy'}
-                </button>
-              </div>
-              <p className="mt-2.5 text-xs text-slate-500">
-                Code <b className="font-semibold text-slate-800">{code}</b> is embedded into this link. Pixels are credited automatically when friends join.
-              </p>
-
-              <div className="mt-6 grid grid-cols-4 gap-2 text-center">
-                {ch.map(([n, I, c, h]) => (
-                  <a
-                    key={n}
-                    href={h}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="flex flex-col items-center gap-1.5 text-xs font-semibold text-slate-600 hover:text-slate-900 group"
+            <div className="p-6 space-y-4">
+              <div>
+                <p className="text-xs font-bold text-[#8C827A] uppercase tracking-wider">Your unique referral link</p>
+                <div className="mt-2 flex gap-2">
+                  <input
+                    readOnly
+                    value={url}
+                    onFocus={(e) => e.target.select()}
+                    className="min-w-0 flex-1 rounded-xl border border-black/10 bg-white/80 px-3.5 py-2 text-xs font-mono text-[#16171D] outline-none focus:border-[#C5A059]"
+                  />
+                  <button
+                    onClick={() => copy(url)}
+                    className={`inline-flex min-h-10 shrink-0 items-center gap-1.5 rounded-xl px-4 text-xs font-semibold text-white transition cursor-pointer ${
+                      ok ? 'bg-emerald-600' : 'bg-[#16171D] hover:bg-black text-[#DFB76C] border border-white/10'
+                    }`}
                   >
-                    <span
-                      style={{ backgroundColor: c }}
-                      className="grid h-11 w-11 place-items-center rounded-xl text-white shadow-sm transition group-hover:scale-105"
+                    {ok ? <Check size={15} className="pm-pop text-white" /> : <Copy size={15} />}
+                    {ok ? 'Copied' : 'Copy'}
+                  </button>
+                </div>
+                <p className="mt-2 text-[11px] text-[#7D756C]">
+                  Code <b className="font-bold text-[#16171D]">{code}</b> is embedded into this link. Pixels are credited automatically when peers register.
+                </p>
+              </div>
+
+              <div className="pt-2 border-t border-black/6">
+                <p className="text-[11px] font-bold text-[#8C827A] uppercase tracking-wider mb-2.5">Share via social</p>
+                <div className="grid grid-cols-4 gap-2 text-center">
+                  {ch.map(([n, I, c, h]) => (
+                    <a
+                      key={n}
+                      href={h}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="flex flex-col items-center gap-1 text-[11px] font-semibold text-[#5D574F] hover:text-[#16171D] group"
                     >
-                      <I size={20} />
+                      <span
+                        style={{ backgroundColor: c }}
+                        className="grid h-10 w-10 place-items-center rounded-xl text-white shadow-sm transition group-hover:scale-105"
+                      >
+                        <I size={18} />
+                      </span>
+                      {n}
+                    </a>
+                  ))}
+                  <button
+                    onClick={other}
+                    className="flex flex-col items-center gap-1 text-[11px] font-semibold text-[#5D574F] hover:text-[#16171D] group cursor-pointer"
+                  >
+                    <span className="grid h-10 w-10 place-items-center rounded-xl bg-black/5 text-[#2D2A26] border border-black/8 shadow-sm transition group-hover:scale-105">
+                      <MoreHorizontal size={18} />
                     </span>
-                    {n}
-                  </a>
-                ))}
-                <button
-                  onClick={other}
-                  className="flex flex-col items-center gap-1.5 text-xs font-semibold text-slate-600 hover:text-slate-900 group"
-                >
-                  <span className="grid h-11 w-11 place-items-center rounded-xl bg-slate-100 text-slate-700 shadow-sm transition group-hover:scale-105">
-                    <MoreHorizontal size={20} />
-                  </span>
-                  More
-                </button>
+                    More
+                  </button>
+                </div>
               </div>
             </div>
           </div>
         </div>
       )}
 
-      {/* Floating Toast */}
+      {/* Floating Toast Notification */}
       {toast && (
-        <div className="pm-pop fixed bottom-20 left-1/2 z-[60] -translate-x-1/2 rounded-full bg-slate-900 px-5 py-2.5 text-xs font-semibold text-white shadow-xl md:bottom-6 border border-slate-700/50">
-          {toast}
+        <div className="pm-pop fixed bottom-20 left-1/2 z-[60] -translate-x-1/2 rounded-full bg-[#121317]/95 backdrop-blur-xl px-5 py-2.5 text-xs font-semibold text-white shadow-2xl md:bottom-6 border border-white/15 flex items-center gap-2">
+          <PixelMark s={6} />
+          <span>{toast}</span>
         </div>
       )}
     </Ctx.Provider>

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { PixelMark } from '../components/PixelMark';
 
 export function Signup() {
   const [name, setName] = useState('');
@@ -67,36 +68,41 @@ export function Signup() {
   };
 
   return (
-    <div className="min-h-[85vh] flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8 bg-slate-50">
-      <div className="sm:mx-auto sm:w-full sm:max-w-xl">
-        <div className="flex justify-center mb-6">
-          <div className="w-10 h-10 bg-sky-500 rounded-xl flex items-center justify-center shadow-sm">
-            <span className="text-white font-bold text-xl">P</span>
-          </div>
-        </div>
-        <h2 className="text-center text-2xl font-bold text-slate-900">
-          Create your account
-        </h2>
-        <p className="mt-2 text-center text-sm text-slate-500">
-          Already have an account?{' '}
-          <Link to="/login" className="font-medium text-sky-600 hover:text-sky-500 transition-colors">
-            Sign in
-          </Link>
-        </p>
-      </div>
+    <div className="min-h-[85vh] flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8 relative">
+      {/* Background Champagne Glow Orb */}
+      <div className="pointer-events-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-[600px] w-[600px] rounded-full bg-gradient-to-tr from-[#DFB76C]/10 via-[#C5A059]/5 to-transparent blur-3xl -z-10" />
 
-      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-xl">
-        <div className="bg-white py-8 px-6 shadow-sm rounded-2xl border border-slate-200 sm:px-10">
+      <div className="sm:mx-auto sm:w-full sm:max-w-xl">
+        <div className="rounded-3xl bg-[#141418]/92 backdrop-blur-2xl border border-white/12 p-8 sm:p-10 shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5)] text-white relative overflow-hidden">
+          {/* Decorative Corner Glow */}
+          <div className="pointer-events-none absolute -right-16 -top-16 h-36 w-36 rounded-full bg-[#DFB76C]/15 blur-2xl" />
+
+          {/* Header Brand */}
+          <div className="flex flex-col items-center mb-6 text-center">
+            <div className="p-2.5 rounded-2xl bg-white/10 border border-white/15 mb-3 shadow-xs">
+              <PixelMark s={8} />
+            </div>
+            <h2 className="text-2xl font-extrabold tracking-tight text-white">
+              Create your account
+            </h2>
+            <p className="mt-1.5 text-xs text-zinc-400">
+              Already have an account?{' '}
+              <Link to="/login" className="font-semibold text-[#DFB76C] hover:underline transition-colors">
+                Sign in
+              </Link>
+            </p>
+          </div>
+
           {error && (
-            <div className="mb-5 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm" role="alert">
+            <div className="mb-5 bg-rose-500/10 border border-rose-500/25 text-rose-300 px-4 py-3 rounded-2xl text-xs" role="alert">
               {error}
             </div>
           )}
 
           <form className="space-y-4" onSubmit={handleSubmit}>
             <div>
-              <label htmlFor="name" className="block text-sm font-medium text-slate-700 mb-1.5">
-                Full Name <span className="text-rose-500">*</span>
+              <label htmlFor="name" className="block text-xs font-semibold text-zinc-300 mb-1.5 uppercase tracking-wider">
+                Full Name <span className="text-rose-400">*</span>
               </label>
               <input
                 id="name"
@@ -105,14 +111,14 @@ export function Signup() {
                 required
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                className="block w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent transition-shadow"
+                className="block w-full px-4 py-2.5 bg-white/6 border border-white/12 rounded-xl text-xs sm:text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-[#C5A059] focus:ring-1 focus:ring-[#C5A059] transition-all"
                 placeholder="John Doe"
               />
             </div>
 
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-slate-700 mb-1.5">
-                Email address <span className="text-rose-500">*</span>
+              <label htmlFor="email" className="block text-xs font-semibold text-zinc-300 mb-1.5 uppercase tracking-wider">
+                Email address <span className="text-rose-400">*</span>
               </label>
               <input
                 id="email"
@@ -122,15 +128,15 @@ export function Signup() {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="block w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent transition-shadow"
+                className="block w-full px-4 py-2.5 bg-white/6 border border-white/12 rounded-xl text-xs sm:text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-[#C5A059] focus:ring-1 focus:ring-[#C5A059] transition-all"
                 placeholder="you@example.com"
               />
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label htmlFor="password" className="block text-sm font-medium text-slate-700 mb-1.5">
-                  Password <span className="text-rose-500">*</span>
+                <label htmlFor="password" className="block text-xs font-semibold text-zinc-300 mb-1.5 uppercase tracking-wider">
+                  Password <span className="text-rose-400">*</span>
                 </label>
                 <input
                   id="password"
@@ -140,14 +146,14 @@ export function Signup() {
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="block w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent transition-shadow"
+                  className="block w-full px-4 py-2.5 bg-white/6 border border-white/12 rounded-xl text-xs sm:text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-[#C5A059] focus:ring-1 focus:ring-[#C5A059] transition-all"
                   placeholder="Min. 6 characters"
                 />
               </div>
 
               <div>
-                <label htmlFor="confirmPassword" className="block text-sm font-medium text-slate-700 mb-1.5">
-                  Confirm Password <span className="text-rose-500">*</span>
+                <label htmlFor="confirmPassword" className="block text-xs font-semibold text-zinc-300 mb-1.5 uppercase tracking-wider">
+                  Confirm Password <span className="text-rose-400">*</span>
                 </label>
                 <input
                   id="confirmPassword"
@@ -157,18 +163,20 @@ export function Signup() {
                   required
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="block w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent transition-shadow"
+                  className="block w-full px-4 py-2.5 bg-white/6 border border-white/12 rounded-xl text-xs sm:text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-[#C5A059] focus:ring-1 focus:ring-[#C5A059] transition-all"
                   placeholder="Repeat password"
                 />
               </div>
             </div>
 
-            <div className="pt-2 border-t border-slate-100">
-              <p className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-3">Academic Information</p>
+            <div className="pt-3 border-t border-white/10">
+              <p className="text-[11px] font-bold uppercase tracking-wider text-[#DFB76C] mb-3">
+                Academic Information
+              </p>
               
               <div className="space-y-4">
                 <div>
-                  <label htmlFor="college" className="block text-sm font-medium text-slate-700 mb-1.5">
+                  <label htmlFor="college" className="block text-xs font-semibold text-zinc-300 mb-1.5 uppercase tracking-wider">
                     College / University
                   </label>
                   <input
@@ -177,14 +185,14 @@ export function Signup() {
                     type="text"
                     value={college}
                     onChange={(e) => setCollege(e.target.value)}
-                    className="block w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent transition-shadow"
+                    className="block w-full px-4 py-2.5 bg-white/6 border border-white/12 rounded-xl text-xs sm:text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-[#C5A059] focus:ring-1 focus:ring-[#C5A059] transition-all"
                     placeholder="e.g. Stanford University / IIT Delhi"
                   />
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label htmlFor="course" className="block text-sm font-medium text-slate-700 mb-1.5">
+                    <label htmlFor="course" className="block text-xs font-semibold text-zinc-300 mb-1.5 uppercase tracking-wider">
                       Course / Degree
                     </label>
                     <input
@@ -193,13 +201,13 @@ export function Signup() {
                       type="text"
                       value={course}
                       onChange={(e) => setCourse(e.target.value)}
-                      className="block w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent transition-shadow"
+                      className="block w-full px-4 py-2.5 bg-white/6 border border-white/12 rounded-xl text-xs sm:text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-[#C5A059] focus:ring-1 focus:ring-[#C5A059] transition-all"
                       placeholder="e.g. B.Tech / BCA / B.Sc"
                     />
                   </div>
 
                   <div>
-                    <label htmlFor="yearOfStudy" className="block text-sm font-medium text-slate-700 mb-1.5">
+                    <label htmlFor="yearOfStudy" className="block text-xs font-semibold text-zinc-300 mb-1.5 uppercase tracking-wider">
                       Year of Study
                     </label>
                     <select
@@ -207,21 +215,21 @@ export function Signup() {
                       name="yearOfStudy"
                       value={yearOfStudy}
                       onChange={(e) => setYearOfStudy(e.target.value)}
-                      className="block w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent transition-shadow bg-white"
+                      className="block w-full px-4 py-2.5 bg-zinc-900 border border-white/12 rounded-xl text-xs sm:text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-[#C5A059] focus:ring-1 focus:ring-[#C5A059] transition-all"
                     >
-                      <option value="">Select Year</option>
-                      <option value="1st Year">1st Year</option>
-                      <option value="2nd Year">2nd Year</option>
-                      <option value="3rd Year">3rd Year</option>
-                      <option value="4th Year">4th Year</option>
-                      <option value="Postgraduate">Postgraduate</option>
-                      <option value="Graduate / Alum">Graduate / Alum</option>
+                      <option value="" className="bg-zinc-900 text-zinc-400">Select Year</option>
+                      <option value="1st Year" className="bg-zinc-900 text-white">1st Year</option>
+                      <option value="2nd Year" className="bg-zinc-900 text-white">2nd Year</option>
+                      <option value="3rd Year" className="bg-zinc-900 text-white">3rd Year</option>
+                      <option value="4th Year" className="bg-zinc-900 text-white">4th Year</option>
+                      <option value="Postgraduate" className="bg-zinc-900 text-white">Postgraduate</option>
+                      <option value="Graduate / Alum" className="bg-zinc-900 text-white">Graduate / Alum</option>
                     </select>
                   </div>
                 </div>
 
                 <div>
-                  <label htmlFor="branch" className="block text-sm font-medium text-slate-700 mb-1.5">
+                  <label htmlFor="branch" className="block text-xs font-semibold text-zinc-300 mb-1.5 uppercase tracking-wider">
                     Branch / Department
                   </label>
                   <input
@@ -230,7 +238,7 @@ export function Signup() {
                     type="text"
                     value={branch}
                     onChange={(e) => setBranch(e.target.value)}
-                    className="block w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent transition-shadow"
+                    className="block w-full px-4 py-2.5 bg-white/6 border border-white/12 rounded-xl text-xs sm:text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-[#C5A059] focus:ring-1 focus:ring-[#C5A059] transition-all"
                     placeholder="e.g. Computer Science & Engineering"
                   />
                 </div>
@@ -240,7 +248,7 @@ export function Signup() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full mt-2 flex justify-center py-2.5 px-4 rounded-xl text-sm font-semibold text-white bg-sky-500 hover:bg-sky-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sky-500 disabled:opacity-50 transition-colors shadow-sm"
+              className="w-full mt-3 flex justify-center items-center py-3 px-4 rounded-full text-xs font-bold text-zinc-950 bg-gradient-to-r from-[#C5A059] to-[#DFB76C] hover:brightness-105 active:scale-[0.98] focus:outline-none disabled:opacity-50 transition-all shadow-[0_4px_16px_rgba(212,175,55,0.3)] cursor-pointer"
             >
               {loading ? 'Creating account...' : 'Create account'}
             </button>
@@ -249,10 +257,10 @@ export function Signup() {
           <div className="mt-6">
             <div className="relative">
               <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-slate-200" />
+                <div className="w-full border-t border-white/10" />
               </div>
-              <div className="relative flex justify-center text-sm">
-                <span className="px-3 bg-white text-slate-400">or continue with</span>
+              <div className="relative flex justify-center text-xs">
+                <span className="px-3 bg-[#141418] text-zinc-400">or continue with</span>
               </div>
             </div>
 
@@ -260,7 +268,7 @@ export function Signup() {
               <button
                 onClick={handleGoogleLogin}
                 disabled={loading}
-                className="w-full flex justify-center items-center py-2.5 px-4 border border-slate-200 rounded-xl text-sm font-medium text-slate-700 bg-white hover:bg-slate-50 disabled:opacity-50 transition-colors"
+                className="w-full flex justify-center items-center py-2.5 px-4 border border-white/12 rounded-full text-xs font-semibold text-white bg-white/6 hover:bg-white/12 disabled:opacity-50 transition-all cursor-pointer active:scale-[0.98]"
               >
                 <svg className="w-4 h-4 mr-2" viewBox="0 0 24 24">
                   <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" />

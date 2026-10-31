@@ -36,10 +36,12 @@ import {
   Bell,
   Send,
   Inbox,
-  Trash2
+  Trash2,
+  Compass,
+  PlusSquare
 } from 'lucide-react';
 import { SubmissionDetailModal } from './components/SubmissionDetailModal';
-import { grad, getCategoryMeta } from './utils/meta';
+import { getCategoryMeta } from './utils/meta';
 import { useApp } from './store';
 import {
   ReferBtn,
@@ -110,18 +112,18 @@ const W: FC<{ children: any; className?: string }> = ({ children, className = ''
 );
 
 const Mini: FC<{ title?: string }> = ({ title = 'Top Contributors' }) => (
-  <Card className="p-4">
-    <h3 className="mb-3 text-xs font-bold uppercase tracking-wider text-slate-500">{title}</h3>
+  <div className="rounded-3xl bg-[#141418]/90 backdrop-blur-xl border border-white/12 p-5 shadow-xl text-white">
+    <h3 className="mb-3.5 text-xs font-bold uppercase tracking-wider text-[#DFB76C]">{title}</h3>
     <div className="space-y-3">
       {users.slice(0, 4).map((u) => (
         <div key={u.rank} className="flex items-center gap-3">
           <Avatar name={u.name} size={32} />
-          <div className="flex-1 text-xs font-semibold text-slate-800 truncate">{u.name}</div>
-          <span className="text-xs font-extrabold text-sky-600">{u.pixels}</span>
+          <div className="flex-1 text-xs font-semibold text-zinc-200 truncate">{u.name}</div>
+          <span className="text-xs font-extrabold text-[#DFB76C]">{u.pixels}</span>
         </div>
       ))}
     </div>
-  </Card>
+  </div>
 );
 
 // ==========================================
@@ -183,44 +185,90 @@ export function Landing() {
 
   return (
     <>
-      {/* Hero Section */}
-      <section className="bg-grid bg-gradient-to-b from-sky-50/70 via-white to-white border-b border-slate-100">
-        <W className="grid items-center gap-10 py-14 md:grid-cols-2 md:py-20">
+      {/* Hero Section matching reference image */}
+      <section className="relative overflow-hidden py-12 sm:py-16 lg:py-20">
+        {/* Subtle decorative curved orbital gold lines & ambient blur */}
+        <div className="pointer-events-none absolute inset-0 -z-10">
+          <svg className="absolute -top-16 left-1/4 w-[750px] h-[550px] text-[#DFB76C]/15 opacity-80" viewBox="0 0 750 550" fill="none">
+            <ellipse cx="375" cy="240" rx="340" ry="170" stroke="currentColor" strokeWidth="1" strokeDasharray="3 4" />
+            <circle cx="375" cy="240" r="260" stroke="currentColor" strokeWidth="0.8" />
+            <ellipse cx="395" cy="260" rx="380" ry="190" stroke="currentColor" strokeWidth="0.5" />
+          </svg>
+          <div className="absolute top-1/4 right-1/4 w-80 h-80 bg-[#DFB76C]/10 rounded-full blur-3xl" />
+        </div>
+
+        <W className="grid items-center gap-12 lg:grid-cols-2">
           <div>
-            <div className="inline-flex items-center gap-2 rounded-full border border-sky-200 bg-sky-50/80 px-3.5 py-1 text-xs font-bold text-sky-700 shadow-xs mb-4">
-              <Zap size={14} className="text-sky-500" />
+            {/* Pill badge */}
+            <div className="inline-flex items-center gap-2 rounded-full border border-[#C5A059]/30 bg-amber-500/8 px-4 py-1.5 text-xs font-semibold text-zinc-800 shadow-xs mb-6 backdrop-blur-sm">
+              <Zap size={14} className="text-[#C5A059]" />
               <span>Pixel Minds Tech Ecosystem · 800+ Members</span>
             </div>
-            <h1 className="text-4xl font-extrabold leading-[1.1] tracking-tight text-slate-900 sm:text-5xl lg:text-6xl">
-              Discover. Share. <span className="text-sky-600">Earn Pixels.</span>
+
+            {/* Headline matching image */}
+            <h1 className="text-5xl sm:text-6xl lg:text-7xl font-extrabold leading-[1.08] tracking-tight text-zinc-950 font-display">
+              Discover. Share.<br />
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#B88746] via-[#DFB76C] to-[#997D46]">
+                Earn Pixels.
+              </span>
             </h1>
-            <p className="mt-4 max-w-lg text-sm sm:text-base leading-relaxed text-slate-600">
+
+            {/* Subtitle */}
+            <p className="mt-5 max-w-xl text-base sm:text-lg leading-relaxed text-zinc-600">
               Find hackathons, internships, events, workshops and scholarships curated for the next generation of tech builders.
             </p>
-            <div className="mt-7 flex flex-wrap gap-3">
+
+            {/* CTA Buttons */}
+            <div className="mt-8 flex flex-wrap items-center gap-3.5">
               <Link to="/opportunities">
-                <Btn className="!px-6 !py-3 !text-sm">Explore Opportunities</Btn>
+                <button className="inline-flex items-center gap-2.5 rounded-full bg-[#141418] px-7 py-3.5 text-sm font-bold text-white border border-white/15 shadow-[0_12px_28px_-6px_rgba(0,0,0,0.5),0_0_20px_-3px_rgba(212,175,55,0.3)] hover:bg-[#1E1E24] hover:shadow-[0_16px_32px_-6px_rgba(0,0,0,0.6),0_0_25px_-3px_rgba(212,175,55,0.4)] transition active:scale-[0.98] cursor-pointer">
+                  <Compass size={17} className="text-[#DFB76C]" />
+                  <span>Explore Opportunities</span>
+                </button>
               </Link>
               <Link to="/submit">
-                <Btn v="outline" className="!px-6 !py-3 !text-sm">
-                  Share an Opportunity
-                </Btn>
+                <button className="inline-flex items-center gap-2.5 rounded-full bg-[#F4EFEA] hover:bg-white px-7 py-3.5 text-sm font-bold text-zinc-950 border border-zinc-300/80 shadow-xs hover:shadow transition active:scale-[0.98] cursor-pointer">
+                  <PlusSquare size={17} className="text-zinc-700" />
+                  <span>Share an Opportunity</span>
+                </button>
               </Link>
             </div>
-            <p className="mt-6 text-xs text-slate-500">
-              <b className="font-semibold text-slate-800">2,400+</b> opportunities ·{' '}
-              <b className="font-semibold text-slate-800">18k</b> builders ·{' '}
-              <b className="font-semibold text-slate-800">1.2M</b> Pixels awarded
-            </p>
+
+            {/* Stats row with dividers matching image */}
+            <div className="mt-10 flex items-center gap-6 sm:gap-8 pt-6 border-t border-zinc-300/50">
+              <div>
+                <p className="text-2xl sm:text-3xl font-black text-zinc-950 tracking-tight">2,400+</p>
+                <p className="text-xs text-zinc-500 font-medium mt-0.5">opportunities</p>
+              </div>
+              <div className="h-8 w-px bg-zinc-300/60" />
+              <div>
+                <p className="text-2xl sm:text-3xl font-black text-zinc-950 tracking-tight">18k</p>
+                <p className="text-xs text-zinc-500 font-medium mt-0.5">builders</p>
+              </div>
+              <div className="h-8 w-px bg-zinc-300/60" />
+              <div>
+                <p className="text-2xl sm:text-3xl font-black text-zinc-950 tracking-tight">1.2M</p>
+                <p className="text-xs text-zinc-500 font-medium mt-0.5">Pixels awarded</p>
+              </div>
+            </div>
           </div>
 
-          <div className="relative mx-auto w-full max-w-sm">
+          {/* Right Hero Column: Featured Card + Floating Pill */}
+          <div className="relative mx-auto w-full max-w-md lg:max-w-none">
+            {/* Ambient gold glow behind card */}
+            <div className="pointer-events-none absolute -inset-4 bg-gradient-to-tr from-[#DFB76C]/20 via-[#C5A059]/10 to-transparent rounded-[36px] blur-2xl -z-10" />
+
+            {/* Featured OppCard */}
             <OppCard o={heroOpp} />
-            <div className="absolute -bottom-4 -left-4 flex items-center gap-2 rounded-2xl border border-sky-200 bg-white px-4 py-3 text-xs font-bold text-slate-800 shadow-xl sm:-left-8">
-              <span className="grid h-7 w-7 place-items-center rounded-lg bg-sky-100 text-sky-600">
-                <Zap size={15} />
-              </span>
-              <span>+25 Pixels for every friend referral</span>
+
+            {/* Floating Dark Glass Referral Pill Chip matching image */}
+            <div className="mt-4 flex justify-end">
+              <div className="flex items-center gap-3 rounded-2xl bg-[#141418]/92 backdrop-blur-xl border border-white/12 px-5 py-3 text-xs sm:text-sm font-bold text-zinc-200 shadow-xl">
+                <span className="grid h-8 w-8 place-items-center rounded-xl bg-gradient-to-br from-[#DFB76C] to-[#997D46] text-zinc-950 shadow-[0_0_12px_rgba(212,175,55,0.4)]">
+                  <Zap size={16} />
+                </span>
+                <span>+25 Pixels for every friend referral</span>
+              </div>
             </div>
           </div>
         </W>
@@ -248,16 +296,13 @@ export function Landing() {
               const count = allOpps.filter((o) => o.cat === c).length;
               return (
                 <Link key={c} to={'/opportunities?cat=' + encodeURIComponent(c)} className="group">
-                  <Card className="p-4 transition duration-200 group-hover:-translate-y-1 group-hover:border-sky-300 group-hover:shadow-md">
-                    <div
-                      style={{ background: grad(c) }}
-                      className="mb-3 grid h-11 w-11 place-items-center rounded-xl text-white shadow-xs"
-                    >
+                  <div className="rounded-3xl bg-white/90 border border-zinc-200/80 p-4 shadow-xs backdrop-blur-md transition-all duration-200 group-hover:-translate-y-1 group-hover:border-[#DFB76C]/50 group-hover:shadow-md">
+                    <div className="mb-3 grid h-11 w-11 place-items-center rounded-2xl bg-zinc-900 border border-white/10 text-[#DFB76C] shadow-xs">
                       <I size={20} />
                     </div>
-                    <p className="text-xs font-bold text-slate-900 group-hover:text-sky-600 transition">{c}</p>
-                    <p className="text-[11px] text-slate-400 mt-0.5">{count || 12}+ listed</p>
-                  </Card>
+                    <p className="text-xs font-bold text-zinc-950 group-hover:text-[#C5A059] transition">{c}</p>
+                    <p className="text-[11px] text-zinc-400 mt-0.5">{count || 12}+ listed</p>
+                  </div>
                 </Link>
               );
             })}
@@ -272,31 +317,28 @@ export function Landing() {
               const metaInfo = getCategoryMeta(o.cat);
               const I = metaInfo.Icon;
               return (
-                <Card key={o.id} className="flex items-center gap-4 p-4 hover:border-sky-200 transition">
-                  <div
-                    style={{ background: grad(o.cat) }}
-                    className="grid h-12 w-12 shrink-0 place-items-center rounded-xl text-white shadow-xs"
-                  >
+                <div key={o.id} className="flex items-center gap-4 rounded-3xl bg-white/90 border border-zinc-200/80 p-4 hover:border-zinc-300 transition shadow-xs backdrop-blur-md">
+                  <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-zinc-900 border border-white/10 text-[#DFB76C] shadow-xs">
                     <I size={22} />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="font-bold text-slate-900 text-sm truncate">{o.title}</p>
-                    <p className="text-xs text-slate-500 mt-0.5">
-                      {o.deadline} · {o.mode} · <span className="font-semibold text-slate-700">{o.prize}</span>
+                    <p className="font-bold text-zinc-950 text-sm truncate">{o.title}</p>
+                    <p className="text-xs text-zinc-500 mt-0.5">
+                      {o.deadline} · {o.mode} · <span className="font-semibold text-zinc-800">{o.prize}</span>
                     </p>
                   </div>
                   <BtnLink to={'/opportunities/' + o.id} v="outline" className="!py-1.5 !px-3 !text-xs !min-h-8 shrink-0">
                     View
                   </BtnLink>
-                </Card>
+                </div>
               );
             })}
           </div>
         </section>
 
         {/* Internships & Fellowships */}
-        <section className="rounded-3xl bg-slate-50/70 p-6 sm:p-8 border border-slate-200/80">
-          <SectionTitle t="Internships & Fellowships" to="/opportunities?cat=Internships" subtitle="Fast-track your developer career" />
+        <section className="rounded-3xl bg-[#141418]/92 backdrop-blur-xl border border-white/12 p-6 sm:p-8 text-white shadow-xl">
+          <SectionTitle t="Internships & Fellowships" to="/opportunities?cat=Internships" subtitle="Fast-track your developer career" light={true} />
           <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {internships.slice(0, 3).map((o) => (
               <OppCard key={o.id} o={o} />
@@ -328,19 +370,20 @@ export function Landing() {
           </div>
         </section>
 
-        {/* Share CTA Banner */}
-        <section className="rounded-3xl border border-sky-100 bg-gradient-to-br from-sky-50/60 via-white to-sky-50/30 p-8 sm:p-12 text-center shadow-xs">
-          <h2 className="text-2xl font-extrabold tracking-tight text-slate-900 sm:text-3xl">
+        {/* Share CTA Banner in Dark Glassmorphism */}
+        <section className="rounded-3xl border border-white/12 bg-[#141418]/94 backdrop-blur-2xl p-8 sm:p-12 text-center text-white shadow-2xl relative overflow-hidden">
+          <div className="pointer-events-none absolute -right-20 -top-20 h-48 w-48 rounded-full bg-[#DFB76C]/15 blur-3xl" />
+          <h2 className="text-2xl font-extrabold tracking-tight text-white sm:text-3xl font-display">
             Found an exciting tech opportunity?
           </h2>
-          <p className="mx-auto mt-2 max-w-lg text-sm text-slate-600">
+          <p className="mx-auto mt-2.5 max-w-lg text-sm text-zinc-300">
             Submit hackathons, events, or internships. Once verified, you'll earn +50 Pixels and help hundreds of students apply.
           </p>
           <Link to="/submit">
-            <Btn className="mt-6 !px-8 !py-3 !text-sm shadow-md hover:shadow-lg">
+            <button className="mt-6 inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-[#C5A059] to-[#DFB76C] px-8 py-3 text-sm font-bold text-zinc-950 shadow-[0_4px_20px_rgba(212,175,55,0.35)] hover:brightness-105 active:scale-[0.98] transition cursor-pointer">
               <Sparkles size={16} />
-              Share an Opportunity
-            </Btn>
+              <span>Share an Opportunity</span>
+            </button>
           </Link>
         </section>
       </W>
@@ -414,20 +457,34 @@ export function Opportunities() {
     .sort((a, b) => (s === 'deadline' ? a.days - b.days : Number(b.id) - Number(a.id)));
 
   const sel =
-    'rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-semibold text-slate-700 outline-none focus:border-sky-500 shadow-xs';
+    'rounded-full border border-black/10 bg-white/80 backdrop-blur-md px-4 py-2 text-xs font-semibold text-[#2D2A26] outline-none focus:border-[#C5A059] shadow-xs cursor-pointer hover:border-black/20 transition';
 
   return (
-    <W className="py-8 space-y-6">
-      <div>
-        <h1 className="text-3xl font-extrabold tracking-tight text-slate-900">Explore Opportunities</h1>
-        <p className="text-sm text-slate-500 mt-1">
-          Search hackathons, internships, fellowships, and tech conferences worldwide.
-        </p>
+    <W className="py-8 space-y-7">
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+        <div>
+          <div className="inline-flex items-center gap-2 rounded-full border border-black/8 bg-white/70 px-3 py-1 text-[11px] font-semibold text-[#6E655C] backdrop-blur-md mb-2 shadow-xs">
+            <Sparkles size={12} className="text-[#C5A059]" />
+            Curated Tech Programs & Competitions
+          </div>
+          <h1 className="font-['Outfit',sans-serif] text-3xl font-extrabold tracking-tight text-[#16171D] sm:text-4xl">
+            Explore Opportunities
+          </h1>
+          <p className="text-xs sm:text-sm text-[#7D756C] mt-1 max-w-xl">
+            Search hackathons, internships, fellowships, and tech conferences worldwide curated for modern builders.
+          </p>
+        </div>
+
+        <Link to="/submit" className="shrink-0">
+          <Btn className="!text-xs !py-2.5 !px-4">
+            + Share Opportunity
+          </Btn>
+        </Link>
       </div>
 
       {/* Search Bar */}
       <div className="relative">
-        <Search size={16} className="absolute left-4 top-3.5 text-slate-400" />
+        <Search size={16} className="absolute left-4 top-3.5 text-[#C5A059]" />
         <input
           value={q}
           onChange={(e) => {
@@ -438,33 +495,36 @@ export function Opportunities() {
               return prev;
             });
           }}
-          placeholder="Search by title, organizer, or skills (e.g. AI, React, Cloud)..."
-          className="w-full rounded-2xl border border-slate-200 bg-white py-3 pl-11 pr-4 text-xs sm:text-sm outline-none focus:border-sky-500 shadow-xs"
+          placeholder="Search by title, organizer, or skills (e.g. AI, React, Cloud, Web3)..."
+          className="w-full rounded-2xl border border-black/10 bg-white/80 backdrop-blur-md py-3 pl-11 pr-4 text-xs sm:text-sm text-[#16171D] placeholder-[#9E958C] outline-none focus:border-[#C5A059] focus:ring-1 focus:ring-[#C5A059]/30 shadow-xs transition"
         />
       </div>
 
       {/* Category Filter Chips */}
       <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 scrollbar-hide">
-        {['All', ...cats].map((x) => (
-          <button
-            key={x}
-            onClick={() => {
-              setCat(x);
-              setSp((prev) => {
-                if (x !== 'All') prev.set('cat', x);
-                else prev.delete('cat');
-                return prev;
-              });
-            }}
-            className={`shrink-0 rounded-xl border px-4 py-2 text-xs font-bold transition ${
-              c === x
-                ? 'border-sky-500 bg-sky-500 text-white shadow-xs'
-                : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
-            }`}
-          >
-            {x}
-          </button>
-        ))}
+        {['All', ...cats].map((x) => {
+          const isActive = c === x;
+          return (
+            <button
+              key={x}
+              onClick={() => {
+                setCat(x);
+                setSp((prev) => {
+                  if (x !== 'All') prev.set('cat', x);
+                  else prev.delete('cat');
+                  return prev;
+                });
+              }}
+              className={`shrink-0 rounded-full border px-4 py-2 text-xs font-bold transition duration-200 cursor-pointer ${
+                isActive
+                  ? 'border-[#C5A059]/80 bg-[#16171D] text-[#DFB76C] shadow-md shadow-black/15 ring-1 ring-[#C5A059]/30'
+                  : 'border-black/8 bg-white/70 backdrop-blur-xs text-[#5D574F] hover:bg-white hover:text-[#16171D] hover:border-black/20'
+              }`}
+            >
+              {x}
+            </button>
+          );
+        })}
       </div>
 
       {/* Dropdown Filters & Counter */}
@@ -488,8 +548,8 @@ export function Opportunities() {
           <option value="new">Sort: Newest</option>
         </select>
 
-        <span className="ml-auto self-center text-xs font-semibold text-slate-500">
-          {list.length} opportunities available
+        <span className="ml-auto self-center text-xs font-semibold text-[#8C827A]">
+          <b className="text-[#16171D]">{list.length}</b> opportunities available
         </span>
       </div>
 
@@ -497,7 +557,7 @@ export function Opportunities() {
       {loading ? (
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {[1, 2, 3, 4, 5, 6].map((i) => (
-            <div key={i} className="h-64 rounded-2xl bg-slate-100 animate-pulse" />
+            <div key={i} className="h-64 rounded-3xl bg-stone-200/50 animate-pulse border border-black/5" />
           ))}
         </div>
       ) : (
@@ -509,11 +569,11 @@ export function Opportunities() {
       )}
 
       {!list.length && !loading && (
-        <Card className="py-16 text-center">
-          <p className="text-base font-bold text-slate-800">No opportunities matched your criteria</p>
-          <p className="text-xs text-slate-500 mt-1">Try resetting your filters or submit one you know!</p>
-          <Link to="/submit" className="mt-4 inline-block">
-            <Btn className="!text-xs !py-2">Share an Opportunity</Btn>
+        <Card className="py-16 text-center pm-cream-card">
+          <p className="font-['Outfit',sans-serif] text-base font-bold text-[#16171D]">No opportunities matched your criteria</p>
+          <p className="text-xs text-[#7D756C] mt-1">Try resetting your filters or submit an opportunity you know!</p>
+          <Link to="/submit" className="mt-5 inline-block">
+            <Btn className="!text-xs !py-2.5 !px-5">Share an Opportunity</Btn>
           </Link>
         </Card>
       )}
@@ -591,21 +651,39 @@ export function OppDetail() {
   };
 
   return (
-    <W className="py-6 space-y-6">
-      {/* Banner Header */}
-      <div
-        style={{ background: grad(o.cat) }}
-        className="relative overflow-hidden rounded-3xl p-6 text-white sm:p-10 shadow-sm"
-      >
-        <Ic size={240} strokeWidth={0.8} className="absolute -right-12 -top-12 text-white/20 select-none" />
-        <span className="relative inline-flex items-center gap-1.5 rounded-xl bg-white/90 backdrop-blur px-3 py-1 text-xs font-bold text-slate-900 shadow-xs">
-          <Ic size={14} className="text-sky-600" />
-          {o.cat}
-        </span>
-        <h1 className="relative mt-3 text-3xl font-extrabold tracking-tight sm:text-4xl lg:text-5xl text-white">
+    <W className="py-6 space-y-7">
+      {/* Banner Header - Celestial Dark Glass */}
+      <div className="relative overflow-hidden rounded-3xl bg-[#121317] p-7 text-white sm:p-10 shadow-2xl border border-white/10">
+        {/* Subtle warm celestial glow and orbital arc */}
+        <div className="pointer-events-none absolute -right-20 -top-20 h-80 w-80 rounded-full bg-[#DFB76C]/10 blur-3xl" />
+        <svg
+          aria-hidden="true"
+          className="pointer-events-none absolute -right-10 -bottom-10 h-72 w-72 text-[#DFB76C]/15"
+          viewBox="0 0 200 200"
+          fill="none"
+        >
+          <circle cx="100" cy="100" r="90" stroke="currentColor" strokeWidth="0.8" strokeDasharray="3 3" />
+          <circle cx="100" cy="100" r="60" stroke="currentColor" strokeWidth="1" />
+          <path d="M10 100 Q 100 20 190 100" stroke="currentColor" strokeWidth="0.8" opacity="0.6" />
+        </svg>
+
+        <div className="relative z-10 flex flex-wrap items-center gap-2 mb-3">
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 backdrop-blur-md px-3.5 py-1 text-xs font-bold text-[#DFB76C] border border-white/15 shadow-xs">
+            <Ic size={13} className="text-[#DFB76C]" />
+            {o.cat}
+          </span>
+          <span className="inline-flex items-center gap-1 rounded-full bg-white/5 backdrop-blur-md px-3 py-1 text-xs font-semibold text-white/70 border border-white/10">
+            <MapPin size={11} className="text-[#DFB76C]" />
+            {o.location ? `${o.mode} (${o.location})` : o.mode}
+          </span>
+        </div>
+
+        <h1 className="relative z-10 font-['Outfit',sans-serif] text-3xl font-extrabold tracking-tight sm:text-4xl lg:text-5xl text-white">
           {o.title}
         </h1>
-        <p className="relative mt-2 text-sm sm:text-base font-medium text-sky-100">{o.org}</p>
+        <p className="relative z-10 mt-2 text-sm sm:text-base font-medium text-white/75">
+          Organized by <span className="text-[#DFB76C] font-semibold">{o.org}</span>
+        </p>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[1fr_340px]">
@@ -618,71 +696,77 @@ export function OppDetail() {
               [Trophy, 'Reward / Prize', o.prize || (o.stipend ? `Stipend: ${o.stipend}` : 'Recognition')],
               [Sparkles, 'Category', o.cat]
             ].map(([I, l, v]: any) => (
-              <Card key={l} className="p-3.5">
-                <I size={16} className="text-sky-500" />
-                <p className="mt-2 text-[11px] font-semibold text-slate-400 uppercase tracking-wider">{l}</p>
-                <p className="text-xs font-bold text-slate-900 mt-0.5 truncate">{v}</p>
+              <Card key={l} className="p-4 pm-cream-card">
+                <div className="flex items-center justify-between">
+                  <I size={17} className="text-[#C5A059]" />
+                </div>
+                <p className="mt-3 text-[10px] font-bold text-[#8C827A] uppercase tracking-wider">{l}</p>
+                <p className="text-xs font-extrabold text-[#16171D] mt-0.5 truncate">{v}</p>
               </Card>
             ))}
           </div>
 
           {/* Banner Media if uploaded */}
           {o.imageUrl && (
-            <div className="rounded-2xl overflow-hidden border border-slate-200">
-              <img src={o.imageUrl} alt={o.title} className="w-full max-h-72 object-cover" />
+            <div className="rounded-3xl overflow-hidden border border-black/10 shadow-sm">
+              <img src={o.imageUrl} alt={o.title} className="w-full max-h-80 object-cover" />
             </div>
           )}
 
-          <Card className="p-6">
-            <h2 className="text-base font-bold text-slate-900">About the Opportunity</h2>
-            <p className="mt-3 text-sm leading-relaxed text-slate-600 whitespace-pre-line">
-              {o.description ||
-                `${o.title}, organized by ${o.org}, is a verified ${o.mode.toLowerCase()} program tailored for ambitious developers and students. Applications close on ${o.deadline}. Register early to secure your spot.`}
-            </p>
+          <Card className="p-6 sm:p-7 pm-cream-card space-y-6">
+            <div>
+              <h2 className="font-['Outfit',sans-serif] text-lg font-bold text-[#16171D]">About the Opportunity</h2>
+              <p className="mt-3 text-sm leading-relaxed text-[#4A453F] whitespace-pre-line">
+                {o.description ||
+                  `${o.title}, organized by ${o.org}, is a verified ${o.mode.toLowerCase()} program tailored for ambitious developers and students. Applications close on ${o.deadline}. Register early to secure your spot.`}
+              </p>
+            </div>
 
             {/* Additional specifications */}
-            <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-4 border-t border-slate-100 pt-4 text-xs">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border-t border-black/8 pt-5 text-xs">
               {o.stipend && (
-                <div>
-                  <span className="font-semibold text-slate-500 block">Stipend:</span>
-                  <span className="font-bold text-slate-800">{o.stipend}</span>
+                <div className="p-3 rounded-2xl bg-black/[0.03] border border-black/5">
+                  <span className="font-semibold text-[#8C827A] block">Stipend / Grant:</span>
+                  <span className="font-bold text-[#16171D] text-sm mt-0.5 block">{o.stipend}</span>
                 </div>
               )}
               {o.teamSize && (
-                <div>
-                  <span className="font-semibold text-slate-500 block">Team Size:</span>
-                  <span className="font-bold text-slate-800">{o.teamSize}</span>
+                <div className="p-3 rounded-2xl bg-black/[0.03] border border-black/5">
+                  <span className="font-semibold text-[#8C827A] block">Team Size:</span>
+                  <span className="font-bold text-[#16171D] text-sm mt-0.5 block">{o.teamSize}</span>
                 </div>
               )}
               {o.eligibility && (
-                <div className="sm:col-span-2">
-                  <span className="font-semibold text-slate-500 block">Eligibility:</span>
-                  <span className="font-bold text-slate-800">{o.eligibility}</span>
+                <div className="sm:col-span-2 p-3 rounded-2xl bg-black/[0.03] border border-black/5">
+                  <span className="font-semibold text-[#8C827A] block">Eligibility Criteria:</span>
+                  <span className="font-bold text-[#16171D] mt-0.5 block">{o.eligibility}</span>
                 </div>
               )}
               {o.additionalInfo && (
-                <div className="sm:col-span-2">
-                  <span className="font-semibold text-slate-500 block">Additional Information:</span>
-                  <span className="text-slate-700 whitespace-pre-line">{o.additionalInfo}</span>
+                <div className="sm:col-span-2 p-3 rounded-2xl bg-black/[0.03] border border-black/5">
+                  <span className="font-semibold text-[#8C827A] block">Additional Instructions:</span>
+                  <span className="text-[#4A453F] whitespace-pre-line mt-0.5 block">{o.additionalInfo}</span>
                 </div>
               )}
             </div>
 
-            <h2 className="mt-6 text-base font-bold text-slate-900">Skills &amp; Tech Stack</h2>
-            <div className="mt-3 flex flex-wrap gap-2">
-              {o.skills.map((s) => (
-                <Badge key={s} className="!px-3 !py-1 text-xs">
-                  {s}
-                </Badge>
-              ))}
+            <div className="border-t border-black/8 pt-5">
+              <h2 className="font-['Outfit',sans-serif] text-sm font-bold uppercase tracking-wider text-[#16171D]">Skills &amp; Tech Stack</h2>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {o.skills.map((s) => (
+                  <Badge key={s} className="!px-3.5 !py-1 text-xs font-semibold !rounded-full bg-black/[0.05] text-[#2D2A26] border-black/8 hover:border-[#C5A059]/40">
+                    {s}
+                  </Badge>
+                ))}
+              </div>
             </div>
           </Card>
         </div>
 
         {/* Sidebar Actions */}
         <aside className="space-y-4 lg:sticky lg:top-24 lg:self-start">
-          <Card className="space-y-3 p-5">
-            <Btn onClick={handleApply} className="w-full !py-3">
+          <Card className="space-y-3.5 p-5 pm-cream-card">
+            <Btn onClick={handleApply} className="w-full !py-3 !rounded-full">
               {isDone ? (
                 <>
                   <Check size={16} />
@@ -696,33 +780,33 @@ export function OppDetail() {
               )}
             </Btn>
 
-            <ReferBtn title={o.title} path={'/opportunities/' + o.id} className="w-full !py-3" />
+            <ReferBtn title={o.title} path={'/opportunities/' + o.id} className="w-full !py-3 !rounded-full" />
 
             <div className="flex gap-2">
               <Btn
                 v="outline"
-                className="flex-1 !py-2.5 !text-xs"
+                className="flex-1 !py-2.5 !text-xs !rounded-full"
                 onClick={() => toggle(String(o.id))}
               >
-                <Bookmark size={15} fill={isSaved ? 'currentColor' : 'none'} />
+                <Bookmark size={15} fill={isSaved ? '#DFB76C' : 'none'} className={isSaved ? 'text-[#DFB76C]' : ''} />
                 {isSaved ? 'Saved in Bookmarks' : 'Save Bookmark'}
               </Btn>
             </div>
           </Card>
 
-          <Card className="p-5">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500">Your Referral Link</h3>
-            <p className="mt-1 text-xs text-slate-500">
-              Code <b className="font-semibold text-slate-900">{code}</b>. Earn +25 Pixels when friends register via your link.
+          <Card className="p-5 pm-cream-card space-y-2">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-[#8C827A]">Your Referral Link</h3>
+            <p className="text-xs text-[#5D574F]">
+              Code <b className="font-bold text-[#16171D]">{code}</b>. Earn <span className="font-bold text-[#C5A059]">+25 Pixels</span> when peers register via your link.
             </p>
-            <div className="mt-3 flex gap-2">
+            <div className="mt-2.5 flex gap-2">
               <input
                 readOnly
                 value={ref}
                 onFocus={(e) => e.target.select()}
-                className="min-w-0 flex-1 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-mono text-slate-700 outline-none"
+                className="min-w-0 flex-1 rounded-xl border border-black/10 bg-white/80 px-3 py-2 text-xs font-mono text-[#2D2A26] outline-none"
               />
-              <Btn v="outline" aria-label="Copy link" onClick={() => copy(ref)} className="!min-h-9 !px-3">
+              <Btn v="outline" aria-label="Copy link" onClick={() => copy(ref)} className="!min-h-9 !px-3 !rounded-xl">
                 <Copy size={14} />
               </Btn>
             </div>
@@ -731,7 +815,7 @@ export function OppDetail() {
       </div>
 
       {/* Related Opportunities */}
-      <section className="mt-12 pt-6 border-t border-slate-200">
+      <section className="mt-12 pt-8 border-t border-black/8">
         <SectionTitle t="More Opportunities You Might Like" to="/opportunities" />
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {initialOpps
@@ -771,41 +855,55 @@ export function Feed() {
   const allPosts = posts.length > 0 ? posts : initialPosts;
 
   return (
-    <W className="grid gap-6 py-8 lg:grid-cols-[260px_1fr_300px]">
+    <W className="grid gap-6 py-8 lg:grid-cols-[270px_1fr_310px]">
       {/* Left Sidebar: User Card */}
       <aside className="hidden space-y-4 lg:block">
-        <Card className="overflow-hidden">
-          <div className="h-16 bg-gradient-to-r from-sky-400 to-sky-600" />
+        <Card className="overflow-hidden pm-cream-card">
+          <div className="h-18 bg-[#121317] relative overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-r from-[#C5A059]/20 to-transparent" />
+            <svg
+              aria-hidden="true"
+              className="absolute -right-4 -bottom-4 h-24 w-24 text-[#DFB76C]/20"
+              viewBox="0 0 100 100"
+              fill="none"
+            >
+              <circle cx="50" cy="50" r="40" stroke="currentColor" strokeWidth="1" strokeDasharray="2 2" />
+              <circle cx="50" cy="50" r="25" stroke="currentColor" strokeWidth="1" />
+            </svg>
+          </div>
           <div className="-mt-8 px-4 pb-4">
-            <div className="rounded-full ring-4 ring-white w-fit shadow-xs">
+            <div className="rounded-full ring-3 ring-[#FAF7F2] w-fit shadow-md">
               <Avatar
                 name={userName}
                 photoURL={userProfile?.photoURL || user?.photoURL || undefined}
                 size={56}
               />
             </div>
-            <p className="mt-2.5 font-bold text-slate-900 text-sm">{userName}</p>
-            <p className="text-xs text-slate-500 font-medium">{rankOf(pixels)}</p>
+            <p className="mt-2.5 font-['Outfit',sans-serif] font-bold text-[#16171D] text-sm">{userName}</p>
+            <p className="text-xs text-[#7D756C] font-semibold flex items-center gap-1 mt-0.5">
+              <Sparkles size={11} className="text-[#C5A059]" />
+              {rankOf(pixels)}
+            </p>
 
-            <div className="mt-4 flex justify-between border-t border-slate-100 pt-3 text-xs">
-              <span className="text-slate-500">Pixel Balance</span>
-              <b className="text-sky-600 font-bold">{pixels}</b>
+            <div className="mt-4 flex justify-between border-t border-black/6 pt-3 text-xs">
+              <span className="text-[#7D756C]">Pixel Balance</span>
+              <b className="text-[#C5A059] font-bold">{pixels} Pixels</b>
             </div>
-            <div className="mt-1.5 flex justify-between text-xs">
-              <span className="text-slate-500">Global Rank</span>
-              <b className="text-slate-900 font-bold">#1</b>
+            <div className="mt-2 flex justify-between text-xs">
+              <span className="text-[#7D756C]">Global Rank</span>
+              <b className="text-[#16171D] font-bold">#1</b>
             </div>
           </div>
         </Card>
 
-        <Card className="p-2 text-xs font-semibold text-slate-700">
-          <Link to="/opportunities" className="block rounded-xl px-3.5 py-2 hover:bg-slate-50 transition">
+        <Card className="p-2 text-xs font-semibold text-[#4A453F] pm-cream-card">
+          <Link to="/opportunities" className="block rounded-xl px-3.5 py-2.5 hover:bg-black/[0.04] hover:text-[#16171D] transition">
             Explore Opportunities
           </Link>
-          <Link to="/leaderboard" className="block rounded-xl px-3.5 py-2 hover:bg-slate-50 transition">
+          <Link to="/leaderboard" className="block rounded-xl px-3.5 py-2.5 hover:bg-black/[0.04] hover:text-[#16171D] transition">
             Leaderboard &amp; Badges
           </Link>
-          <Link to="/profile" className="block rounded-xl px-3.5 py-2 hover:bg-slate-50 transition">
+          <Link to="/profile" className="block rounded-xl px-3.5 py-2.5 hover:bg-black/[0.04] hover:text-[#16171D] transition">
             My Submissions &amp; Activity
           </Link>
         </Card>
@@ -825,17 +923,24 @@ export function Feed() {
 
       {/* Right Sidebar: Deadlines & Trending */}
       <aside className="hidden space-y-4 lg:block">
-        <Card className="p-4">
-          <h3 className="mb-3 text-xs font-bold uppercase tracking-wider text-slate-500">Closing Soon</h3>
-          {[...initialOpps]
-            .sort((a, b) => a.days - b.days)
-            .slice(0, 3)
-            .map((o) => (
-              <Link key={o.id} to={'/opportunities/' + o.id} className="mb-2.5 flex justify-between text-xs group">
-                <span className="truncate pr-2 text-slate-700 group-hover:text-sky-600 transition">{o.title}</span>
-                <b className="shrink-0 text-sky-600 font-bold">{o.days}d</b>
-              </Link>
-            ))}
+        <Card className="p-5 pm-cream-card">
+          <h3 className="mb-3.5 text-xs font-bold uppercase tracking-wider text-[#8C827A] flex items-center gap-1.5">
+            <Clock size={13} className="text-[#C5A059]" />
+            Closing Soon
+          </h3>
+          <div className="space-y-2.5">
+            {[...initialOpps]
+              .sort((a, b) => a.days - b.days)
+              .slice(0, 3)
+              .map((o) => (
+                <Link key={o.id} to={'/opportunities/' + o.id} className="flex justify-between items-center text-xs group p-1.5 -mx-1.5 rounded-xl hover:bg-black/[0.03] transition">
+                  <span className="truncate pr-2 font-medium text-[#2D2A26] group-hover:text-[#C5A059] transition">{o.title}</span>
+                  <span className="shrink-0 px-2 py-0.5 rounded-full bg-black/[0.05] text-[#C5A059] font-bold text-[11px] border border-black/5">
+                    {o.days}d
+                  </span>
+                </Link>
+              ))}
+          </div>
         </Card>
         <Mini />
       </aside>
@@ -1007,11 +1112,23 @@ export function Profile() {
   };
 
   return (
-    <W className="max-w-4xl py-8 space-y-6">
-      <Card className="overflow-hidden">
-        <div className="h-32 bg-gradient-to-r from-sky-400 via-sky-500 to-indigo-500" />
+    <W className="max-w-4xl py-8 space-y-7">
+      <Card className="overflow-hidden pm-cream-card">
+        <div className="h-36 bg-[#121317] relative overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-r from-[#C5A059]/20 via-[#DFB76C]/10 to-transparent" />
+          <svg
+            aria-hidden="true"
+            className="absolute -right-8 -top-8 h-48 w-48 text-[#DFB76C]/20"
+            viewBox="0 0 100 100"
+            fill="none"
+          >
+            <circle cx="50" cy="50" r="45" stroke="currentColor" strokeWidth="0.8" strokeDasharray="2 2" />
+            <circle cx="50" cy="50" r="30" stroke="currentColor" strokeWidth="1" />
+            <path d="M5 50 Q 50 10 95 50" stroke="currentColor" strokeWidth="0.8" />
+          </svg>
+        </div>
         <div className="px-6 pb-6">
-          <div className="-mt-12 w-fit rounded-full ring-4 ring-white shadow-sm">
+          <div className="-mt-14 w-fit rounded-full ring-4 ring-[#FAF7F2] shadow-lg">
             <Avatar
               name={userName}
               photoURL={userProfile?.photoURL || user?.photoURL || undefined}
@@ -1021,44 +1138,44 @@ export function Profile() {
 
           <div className="mt-4 flex flex-wrap items-start justify-between gap-4">
             <div>
-              <h1 className="text-2xl font-extrabold text-slate-900">{userName}</h1>
+              <h1 className="font-['Outfit',sans-serif] text-2xl font-extrabold text-[#16171D] sm:text-3xl">{userName}</h1>
               {editing ? (
-                <div className="mt-2 flex gap-2 max-w-md">
+                <div className="mt-2.5 flex gap-2 max-w-md">
                   <input
                     value={bioInput}
                     onChange={(e) => setBioInput(e.target.value)}
-                    className="w-full rounded-xl border border-slate-200 px-3 py-1.5 text-xs outline-none focus:border-sky-500"
+                    className="w-full rounded-xl border border-black/10 bg-white px-3.5 py-2 text-xs text-[#16171D] outline-none focus:border-[#C5A059]"
                   />
-                  <Btn onClick={handleSaveBio} disabled={savingBio} className="!min-h-8 !px-3 !py-1 !text-xs">
+                  <Btn onClick={handleSaveBio} disabled={savingBio} className="!min-h-8 !px-3.5 !py-1 !text-xs !rounded-xl">
                     Save
                   </Btn>
-                  <Btn v="ghost" onClick={() => setEditing(false)} className="!min-h-8 !px-2 !py-1 !text-xs">
+                  <Btn v="ghost" onClick={() => setEditing(false)} className="!min-h-8 !px-2.5 !py-1 !text-xs !rounded-xl">
                     Cancel
                   </Btn>
                 </div>
               ) : (
-                <p className="mt-1 max-w-lg text-xs leading-relaxed text-slate-600">
+                <p className="mt-1.5 max-w-lg text-xs leading-relaxed text-[#5D574F]">
                   {userProfile?.bio || bioInput}
                 </p>
               )}
 
               {/* Academic Tags */}
               {(userProfile?.college || userProfile?.course || userProfile?.branch || userProfile?.yearOfStudy) && (
-                <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-slate-600">
+                <div className="mt-3.5 flex flex-wrap items-center gap-2 text-xs text-[#4A453F]">
                   {userProfile.college && (
-                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-100 text-slate-700 font-medium">
-                      <Building2 size={12} className="text-sky-500" />
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/[0.04] text-[#2D2A26] font-medium border border-black/6">
+                      <Building2 size={12} className="text-[#C5A059]" />
                       {userProfile.college}
                     </span>
                   )}
                   {(userProfile.course || userProfile.branch) && (
-                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-100 text-slate-700 font-medium">
-                      <GraduationCap size={12} className="text-sky-500" />
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/[0.04] text-[#2D2A26] font-medium border border-black/6">
+                      <GraduationCap size={12} className="text-[#C5A059]" />
                       {[userProfile.course, userProfile.branch].filter(Boolean).join(' - ')}
                     </span>
                   )}
                   {userProfile.yearOfStudy && (
-                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-sky-50 text-sky-700 font-semibold">
+                    <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-[#16171D] text-[#DFB76C] font-semibold text-[11px]">
                       {userProfile.yearOfStudy}
                     </span>
                   )}
@@ -1068,12 +1185,12 @@ export function Profile() {
 
             <div className="flex items-center gap-2">
               {!editing && (
-                <Btn v="outline" onClick={() => setEditing(true)} className="!min-h-9 !py-1.5 !text-xs">
+                <Btn v="outline" onClick={() => setEditing(true)} className="!min-h-9 !py-1.5 !px-3.5 !text-xs !rounded-full">
                   <Edit3 size={13} />
                   Edit Bio
                 </Btn>
               )}
-              <Btn v="ghost" onClick={() => setTab('Settings')} className="!min-h-9 !py-1.5 !text-xs text-slate-600">
+              <Btn v="ghost" onClick={() => setTab('Settings')} className="!min-h-9 !py-1.5 !text-xs text-[#5D574F] !rounded-full">
                 Settings
               </Btn>
             </div>
@@ -1081,14 +1198,14 @@ export function Profile() {
 
           <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
             {[
-              ['Pixels', userPixels],
-              ['Rank', '#1'],
+              ['Pixels Balance', `${userPixels} Pixels`],
+              ['Global Rank', '#1'],
               ['Contributions', rawSubmissions.length || userSubs.length || 0],
-              ['Level', rankOf(userPixels)]
+              ['Builder Level', rankOf(userPixels)]
             ].map(([l, v]) => (
-              <div key={l as string} className="rounded-2xl bg-slate-50 p-3.5 border border-slate-100">
-                <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">{l}</p>
-                <p className="font-extrabold text-sky-600 text-lg mt-0.5">{v}</p>
+              <div key={l as string} className="rounded-2xl bg-white/70 p-3.5 border border-black/6 shadow-xs">
+                <p className="text-[10px] font-bold text-[#8C827A] uppercase tracking-wider">{l}</p>
+                <p className="font-['Outfit',sans-serif] font-extrabold text-[#16171D] text-lg mt-0.5">{v}</p>
               </div>
             ))}
           </div>
@@ -1096,23 +1213,30 @@ export function Profile() {
       </Card>
 
       {/* Tabs */}
-      <div className="flex gap-2 border-b border-slate-200 pb-1 overflow-x-auto">
-        {['Posts', 'My Submissions', 'Shared Opportunities', 'Pixel History', 'Referrals', 'Achievements', 'Settings'].map((t) => (
-          <button
-            key={t}
-            onClick={() => setTab(t)}
-            className={`border-b-2 px-4 py-2.5 text-xs font-bold whitespace-nowrap transition flex items-center gap-1.5 ${
-              tab === t ? 'border-sky-500 text-sky-600' : 'border-transparent text-slate-500 hover:text-slate-800'
-            }`}
-          >
-            <span>{t}</span>
-            {t === 'My Submissions' && rawSubmissions.length > 0 && (
-              <span className="rounded-full bg-slate-100 px-1.5 py-0.5 text-[10px] font-bold text-slate-600">
-                {rawSubmissions.length}
-              </span>
-            )}
-          </button>
-        ))}
+      <div className="-mx-4 flex gap-1.5 overflow-x-auto px-4 pb-1 scrollbar-hide">
+        {['Posts', 'My Submissions', 'Shared Opportunities', 'Pixel History', 'Referrals', 'Achievements', 'Settings'].map((t) => {
+          const isActive = tab === t;
+          return (
+            <button
+              key={t}
+              onClick={() => setTab(t)}
+              className={`rounded-full px-4 py-2 text-xs font-bold whitespace-nowrap transition cursor-pointer flex items-center gap-1.5 ${
+                isActive
+                  ? 'bg-[#16171D] text-[#DFB76C] shadow-md shadow-black/15 ring-1 ring-[#C5A059]/30'
+                  : 'bg-white/70 text-[#5D574F] border border-black/6 hover:bg-white hover:text-[#16171D]'
+              }`}
+            >
+              <span>{t}</span>
+              {t === 'My Submissions' && rawSubmissions.length > 0 && (
+                <span className={`rounded-full px-1.5 py-0.2 text-[10px] font-bold ${
+                  isActive ? 'bg-[#DFB76C]/20 text-[#DFB76C]' : 'bg-black/5 text-[#5D574F]'
+                }`}>
+                  {rawSubmissions.length}
+                </span>
+              )}
+            </button>
+          );
+        })}
       </div>
 
       <div>
@@ -1127,42 +1251,42 @@ export function Profile() {
                 />
               ))
             ) : (
-              <div className="text-center py-10 text-slate-400 text-sm">
+              <Card className="text-center py-12 text-[#8C827A] text-xs pm-cream-card">
                 No posts shared yet. Share an update on the Community Feed!
-              </div>
+              </Card>
             )}
           </div>
         )}
 
         {tab === 'My Submissions' && (
           <div className="space-y-4">
-            <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+            <div className="flex items-center justify-between pb-3 border-b border-black/8">
               <div>
-                <h3 className="text-base font-bold text-slate-900">My Opportunity Submissions</h3>
-                <p className="text-xs text-slate-500">
-                  Track verification status and reviewer feedback for your submissions.
+                <h3 className="font-['Outfit',sans-serif] text-base font-bold text-[#16171D]">My Opportunity Submissions</h3>
+                <p className="text-xs text-[#7D756C]">
+                  Track verification status and reviewer feedback for your submitted opportunities.
                 </p>
               </div>
-              <BtnLink to="/submit" className="!py-1.5 !px-3.5 !text-xs !min-h-9 shadow-xs">
-                Submit New
+              <BtnLink to="/submit" className="!py-2 !px-4 !text-xs !min-h-9 !rounded-full shadow-xs">
+                + Submit New
               </BtnLink>
             </div>
 
             {rawSubmissions.length === 0 ? (
-              <div className="text-center py-16 bg-white rounded-2xl border border-slate-200 p-8">
-                <div className="w-14 h-14 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-3 text-slate-400">
+              <Card className="text-center py-16 pm-cream-card p-8">
+                <div className="w-14 h-14 bg-black/5 rounded-2xl flex items-center justify-center mx-auto mb-3 text-[#C5A059]">
                   <FileText size={24} />
                 </div>
-                <h4 className="text-base font-bold text-slate-900 mb-1">
+                <h4 className="font-['Outfit',sans-serif] text-base font-bold text-[#16171D] mb-1">
                   You haven't submitted any opportunities yet.
                 </h4>
-                <p className="text-xs text-slate-500 mb-5 max-w-sm mx-auto">
-                  Know about a hackathon, internship, workshop, or tech event? Submit it for review to earn Pixels!
+                <p className="text-xs text-[#7D756C] mb-5 max-w-sm mx-auto">
+                  Know about a hackathon, internship, workshop, or tech event? Submit it for review to earn +50 Pixels!
                 </p>
-                <BtnLink to="/submit" className="!py-2 !px-4 !text-xs">
+                <BtnLink to="/submit" className="!py-2.5 !px-5 !text-xs !rounded-full">
                   Submit an Opportunity
                 </BtnLink>
-              </div>
+              </Card>
             ) : (
               <div className="space-y-3">
                 {rawSubmissions.map((sub) => {
@@ -1174,43 +1298,43 @@ export function Profile() {
                     <Card
                       key={sub.id}
                       onClick={() => setSelectedSubForModal(sub)}
-                      className="p-5 transition hover:border-sky-300 hover:shadow-md cursor-pointer space-y-3"
+                      className="p-5 transition hover:border-[#C5A059]/40 hover:shadow-md cursor-pointer space-y-3 pm-cream-card"
                     >
                       <div className="flex flex-wrap items-start justify-between gap-3">
                         <div className="space-y-1 min-w-0 flex-1">
                           <div className="flex flex-wrap items-center gap-2">
-                            <span className="inline-flex items-center rounded-lg bg-sky-50 px-2.5 py-0.5 text-xs font-bold text-sky-700 border border-sky-100">
+                            <span className="inline-flex items-center rounded-full bg-black/5 px-2.5 py-0.5 text-xs font-bold text-[#2D2A26] border border-black/8">
                               {sub.category}
                             </span>
                             {isPending && (
-                              <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2.5 py-0.5 text-xs font-bold text-amber-700 border border-amber-200">
+                              <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 px-2.5 py-0.5 text-xs font-bold text-amber-700 border border-amber-500/20">
                                 <Clock size={11} /> Pending Review
                               </span>
                             )}
                             {isApproved && (
-                              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-bold text-emerald-700 border border-emerald-200">
+                              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-xs font-bold text-emerald-700 border border-emerald-500/20">
                                 <CheckCircle2 size={11} /> Approved
                               </span>
                             )}
                             {isRejected && (
-                              <span className="inline-flex items-center gap-1 rounded-full bg-rose-50 px-2.5 py-0.5 text-xs font-bold text-rose-700 border border-rose-200">
+                              <span className="inline-flex items-center gap-1 rounded-full bg-rose-500/10 px-2.5 py-0.5 text-xs font-bold text-rose-700 border border-rose-500/20">
                                 <XCircle size={11} /> Rejected
                               </span>
                             )}
                           </div>
-                          <h4 className="text-base font-bold text-slate-900 truncate hover:text-sky-600 transition">
+                          <h4 className="font-['Outfit',sans-serif] text-base font-bold text-[#16171D] truncate hover:text-[#C5A059] transition">
                             {sub.title}
                           </h4>
-                          <p className="text-xs text-slate-500">
+                          <p className="text-xs text-[#7D756C]">
                             Organizer:{' '}
-                            <span className="font-semibold text-slate-700">
+                            <span className="font-semibold text-[#2D2A26]">
                               {sub.organizer || 'Not specified'}
                             </span>
                           </p>
                         </div>
 
                         <div className="text-right shrink-0">
-                          <p className="text-xs text-slate-500 font-medium">
+                          <p className="text-xs text-[#7D756C] font-medium">
                             Submitted:{' '}
                             {new Date(sub.createdAt).toLocaleDateString('en-US', {
                               month: 'short',
@@ -1219,7 +1343,7 @@ export function Profile() {
                             })}
                           </p>
                           {sub.updatedAt && sub.updatedAt !== sub.createdAt && (
-                            <p className="text-[11px] text-slate-400 mt-0.5">
+                            <p className="text-[11px] text-[#A69E95] mt-0.5">
                               Updated:{' '}
                               {new Date(sub.updatedAt).toLocaleDateString('en-US', {
                                 month: 'short',
@@ -1232,7 +1356,7 @@ export function Profile() {
 
                       {/* Reviewer Feedback / Rejection Reason Callout */}
                       {sub.adminNotes && (
-                        <div className="p-3 rounded-xl bg-rose-50 border border-rose-200/80 text-rose-900 text-xs space-y-0.5">
+                        <div className="p-3 rounded-2xl bg-rose-50 border border-rose-200/80 text-rose-900 text-xs space-y-0.5">
                           <div className="flex items-center gap-1 font-bold text-[11px] text-rose-800">
                             <AlertCircle size={12} />
                             <span>Reviewer Feedback / Rejection Reason:</span>
@@ -1241,9 +1365,9 @@ export function Profile() {
                         </div>
                       )}
 
-                      <div className="flex items-center justify-between pt-2 border-t border-slate-100 text-xs text-slate-500">
+                      <div className="flex items-center justify-between pt-2 border-t border-black/6 text-xs text-[#7D756C]">
                         <span className="flex items-center gap-1">
-                          <Calendar size={12} className="text-sky-500" />
+                          <Calendar size={12} className="text-[#C5A059]" />
                           Deadline:{' '}
                           {new Date(sub.deadline).toLocaleDateString('en-US', {
                             month: 'short',
@@ -1251,7 +1375,7 @@ export function Profile() {
                             year: 'numeric'
                           })}
                         </span>
-                        <span className="font-semibold text-sky-600 hover:text-sky-700 inline-flex items-center gap-1">
+                        <span className="font-semibold text-[#16171D] hover:text-[#C5A059] inline-flex items-center gap-1">
                           View Details &rarr;
                         </span>
                       </div>
@@ -1272,14 +1396,14 @@ export function Profile() {
         )}
 
         {tab === 'Pixel History' && (
-          <Card className="overflow-hidden">
-            <div className="border-b border-slate-100 p-4 font-bold text-sm text-slate-900 flex justify-between items-center">
+          <Card className="overflow-hidden pm-cream-card">
+            <div className="border-b border-black/8 p-4 font-bold text-sm text-[#16171D] flex justify-between items-center">
               <span>Pixel Transaction Ledger</span>
-              <span className="text-xs font-semibold text-sky-600">Current Balance: {userPixels} Pixels</span>
+              <span className="text-xs font-bold text-[#C5A059]">Current Balance: {userPixels} Pixels</span>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full min-w-[500px] text-left text-xs">
-                <thead className="bg-slate-50 text-slate-500 font-bold uppercase tracking-wider border-b border-slate-100">
+                <thead className="bg-black/[0.02] text-[#8C827A] font-bold uppercase tracking-wider border-b border-black/8">
                   <tr>
                     <th className="px-4 py-3">Date</th>
                     <th className="px-4 py-3">Reason / Description</th>
@@ -1287,18 +1411,18 @@ export function Profile() {
                     <th className="px-4 py-3 text-right">Amount</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100">
+                <tbody className="divide-y divide-black/6">
                   {userTransactions.map((tx) => (
-                    <tr key={tx.id} className="hover:bg-slate-50/70 transition">
-                      <td className="px-4 py-3.5 text-slate-500">
+                    <tr key={tx.id} className="hover:bg-black/[0.02] transition">
+                      <td className="px-4 py-3.5 text-[#7D756C]">
                         {new Date(tx.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                       </td>
-                      <td className="px-4 py-3.5 font-medium text-slate-800">{tx.reason}</td>
+                      <td className="px-4 py-3.5 font-medium text-[#16171D]">{tx.reason}</td>
                       <td className="px-4 py-3.5">
-                        <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold border capitalize ${
-                          tx.type === 'earn' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
-                          tx.type === 'spend' ? 'bg-rose-50 text-rose-700 border-rose-200' :
-                          'bg-sky-50 text-sky-700 border-sky-200'
+                        <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border capitalize ${
+                          tx.type === 'earn' ? 'bg-emerald-500/10 text-emerald-700 border-emerald-500/20' :
+                          tx.type === 'spend' ? 'bg-rose-500/10 text-rose-700 border-rose-500/20' :
+                          'bg-sky-500/10 text-sky-700 border-sky-500/20'
                         }`}>
                           {tx.type}
                         </span>
@@ -1310,8 +1434,8 @@ export function Profile() {
                   ))}
                   {userTransactions.length === 0 && (
                     <tr>
-                      <td colSpan={4} className="px-4 py-8 text-center text-slate-400">
-                        No transactions recorded yet in Supabase ledger.
+                      <td colSpan={4} className="px-4 py-8 text-center text-[#8C827A]">
+                        No transactions recorded yet in ledger.
                       </td>
                     </tr>
                   )}
@@ -1324,7 +1448,7 @@ export function Profile() {
         {tab === 'Referrals' && <RP />}
 
         {tab === 'Achievements' && (
-          <div className="grid gap-3 sm:grid-cols-3">
+          <div className="grid gap-3.5 sm:grid-cols-3">
             {[
               'First Opportunity Shared',
               '10 Verified Submissions',
@@ -1333,11 +1457,11 @@ export function Profile() {
               '7-Day Streak Active',
               'Pixel Master Tier'
             ].map((a) => (
-              <Card key={a} className="flex items-center gap-3 p-4">
-                <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-sky-100 text-sky-600">
-                  <Award size={20} />
+              <Card key={a} className="flex items-center gap-3.5 p-4 pm-cream-card">
+                <div className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-[#16171D] text-[#DFB76C] shadow-sm">
+                  <Award size={19} />
                 </div>
-                <span className="text-xs font-bold text-slate-900">{a}</span>
+                <span className="text-xs font-bold text-[#16171D]">{a}</span>
               </Card>
             ))}
           </div>
@@ -1346,65 +1470,65 @@ export function Profile() {
         {tab === 'Settings' && (
           <div className="space-y-6">
             {/* Academic & Profile Details Card */}
-            <Card className="p-6">
-              <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wider mb-4 flex items-center gap-2">
-                <GraduationCap size={16} className="text-sky-500" />
-                Profile & Academic Information
+            <Card className="p-6 pm-cream-card">
+              <h2 className="text-sm font-bold text-[#16171D] uppercase tracking-wider mb-4 flex items-center gap-2">
+                <GraduationCap size={16} className="text-[#C5A059]" />
+                Profile &amp; Academic Information
               </h2>
               <form onSubmit={handleSaveAllSettings} className="space-y-4">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">Full Name</label>
+                    <label className="block text-xs font-bold text-[#2D2A26] mb-1">Full Name</label>
                     <input
                       type="text"
                       value={nameInput}
                       onChange={(e) => setNameInput(e.target.value)}
-                      className="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-xs outline-none focus:border-sky-500 text-slate-800"
+                      className="w-full rounded-xl border border-black/10 bg-white/80 px-3.5 py-2.5 text-xs outline-none focus:border-[#C5A059] text-[#16171D]"
                       placeholder="Your Name"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">College / University</label>
+                    <label className="block text-xs font-bold text-[#2D2A26] mb-1">College / University</label>
                     <input
                       type="text"
                       value={collegeInput}
                       onChange={(e) => setCollegeInput(e.target.value)}
-                      className="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-xs outline-none focus:border-sky-500 text-slate-800"
+                      className="w-full rounded-xl border border-black/10 bg-white/80 px-3.5 py-2.5 text-xs outline-none focus:border-[#C5A059] text-[#16171D]"
                       placeholder="e.g. Stanford / IIT Delhi"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Bio</label>
+                  <label className="block text-xs font-bold text-[#2D2A26] mb-1">Bio</label>
                   <textarea
                     rows={2}
                     value={bioInput}
                     onChange={(e) => setBioInput(e.target.value)}
-                    className="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-xs outline-none focus:border-sky-500 text-slate-800"
+                    className="w-full rounded-xl border border-black/10 bg-white/80 px-3.5 py-2.5 text-xs outline-none focus:border-[#C5A059] text-[#16171D]"
                     placeholder="A short description about yourself..."
                   />
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">Course / Degree</label>
+                    <label className="block text-xs font-bold text-[#2D2A26] mb-1">Course / Degree</label>
                     <input
                       type="text"
                       value={courseInput}
                       onChange={(e) => setCourseInput(e.target.value)}
-                      className="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-xs outline-none focus:border-sky-500 text-slate-800"
+                      className="w-full rounded-xl border border-black/10 bg-white/80 px-3.5 py-2.5 text-xs outline-none focus:border-[#C5A059] text-[#16171D]"
                       placeholder="e.g. B.Tech / BCA"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">Year of Study</label>
+                    <label className="block text-xs font-bold text-[#2D2A26] mb-1">Year of Study</label>
                     <select
                       value={yearInput}
                       onChange={(e) => setYearInput(e.target.value)}
-                      className="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-xs outline-none focus:border-sky-500 text-slate-800 bg-white"
+                      className="w-full rounded-xl border border-black/10 bg-white/80 px-3.5 py-2.5 text-xs outline-none focus:border-[#C5A059] text-[#16171D]"
                     >
                       <option value="">Select Year</option>
                       <option value="1st Year">1st Year</option>
@@ -1417,19 +1541,19 @@ export function Profile() {
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">Branch / Department</label>
+                    <label className="block text-xs font-bold text-[#2D2A26] mb-1">Branch / Department</label>
                     <input
                       type="text"
                       value={branchInput}
                       onChange={(e) => setBranchInput(e.target.value)}
-                      className="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-xs outline-none focus:border-sky-500 text-slate-800"
+                      className="w-full rounded-xl border border-black/10 bg-white/80 px-3.5 py-2.5 text-xs outline-none focus:border-[#C5A059] text-[#16171D]"
                       placeholder="e.g. Computer Science"
                     />
                   </div>
                 </div>
 
                 <div className="pt-2 flex justify-end">
-                  <Btn type="submit" disabled={savingSettings} className="!text-xs">
+                  <Btn type="submit" disabled={savingSettings} className="!text-xs !rounded-full !px-5">
                     {savingSettings ? 'Saving...' : 'Save Profile Changes'}
                   </Btn>
                 </div>
@@ -1437,9 +1561,9 @@ export function Profile() {
             </Card>
 
             {/* Change Password Card */}
-            <Card className="p-6">
-              <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wider mb-2 flex items-center gap-2">
-                <Lock size={16} className="text-sky-500" />
+            <Card className="p-6 pm-cream-card">
+              <h2 className="text-sm font-bold text-[#16171D] uppercase tracking-wider mb-2 flex items-center gap-2">
+                <Lock size={16} className="text-[#C5A059]" />
                 Change Password
               </h2>
               <p className="text-xs text-slate-500 mb-4">
@@ -1460,33 +1584,33 @@ export function Profile() {
 
               <form onSubmit={handleChangePassword} className="space-y-4 max-w-md">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">New Password</label>
+                  <label className="block text-xs font-bold text-[#2D2A26] mb-1">New Password</label>
                   <input
                     type="password"
                     required
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
-                    className="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-xs outline-none focus:border-sky-500 text-slate-800"
+                    className="w-full rounded-xl border border-black/10 bg-white/80 px-3.5 py-2.5 text-xs outline-none focus:border-[#C5A059] text-[#16171D]"
                     placeholder="Min. 6 characters"
                     autoComplete="new-password"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Confirm New Password</label>
+                  <label className="block text-xs font-bold text-[#2D2A26] mb-1">Confirm New Password</label>
                   <input
                     type="password"
                     required
                     value={confirmNewPassword}
                     onChange={(e) => setConfirmNewPassword(e.target.value)}
-                    className="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-xs outline-none focus:border-sky-500 text-slate-800"
+                    className="w-full rounded-xl border border-black/10 bg-white/80 px-3.5 py-2.5 text-xs outline-none focus:border-[#C5A059] text-[#16171D]"
                     placeholder="Repeat new password"
                     autoComplete="new-password"
                   />
                 </div>
 
                 <div className="pt-2">
-                  <Btn type="submit" disabled={changingPwd} className="!text-xs">
+                  <Btn type="submit" disabled={changingPwd} className="!text-xs !rounded-full !px-5">
                     {changingPwd ? 'Updating Password...' : 'Update Password'}
                   </Btn>
                 </div>
@@ -1510,21 +1634,21 @@ export function Profile() {
 // SUBMIT OPPORTUNITY PAGE
 // ==========================================
 const FormField = ({ label, children, required = false }: any) => (
-  <label className="block text-xs font-bold text-slate-700">
-    {label} {required && <span className="text-rose-500">*</span>}
+  <label className="block text-xs font-bold text-[#2D2A26]">
+    {label} {required && <span className="text-[#C5A059]">*</span>}
     <div className="mt-1.5 font-normal">{children}</div>
   </label>
 );
 
 const SectionCard = ({ title: cardTitle, children }: any) => (
-  <Card className="p-5 sm:p-6">
-    <h2 className="mb-4 text-sm font-bold text-slate-900 uppercase tracking-wider">{cardTitle}</h2>
+  <Card className="p-5 sm:p-6 pm-cream-card space-y-4">
+    <h2 className="font-['Outfit',sans-serif] text-sm font-bold text-[#16171D] uppercase tracking-wider">{cardTitle}</h2>
     <div className="grid gap-4 sm:grid-cols-2">{children}</div>
   </Card>
 );
 
 const inpStyle =
-  'w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-xs outline-none focus:border-sky-500 text-slate-800 placeholder:text-slate-400 shadow-xs';
+  'w-full rounded-xl border border-black/10 bg-white/80 px-3.5 py-2.5 text-xs outline-none focus:border-[#C5A059] focus:ring-1 focus:ring-[#C5A059]/30 text-[#16171D] placeholder:text-[#9E958C] shadow-xs transition';
 
 export function Submit() {
   const { user } = useAuth();
@@ -1612,19 +1736,19 @@ export function Submit() {
   if (done) {
     return (
       <W className="max-w-xl py-20 text-center">
-        <div className="mx-auto grid h-16 w-16 place-items-center rounded-2xl bg-emerald-50 text-emerald-600 border border-emerald-200">
+        <div className="mx-auto grid h-16 w-16 place-items-center rounded-2xl bg-[#16171D] text-[#DFB76C] shadow-lg border border-white/10">
           <CheckCircle2 size={32} />
         </div>
-        <h1 className="mt-4 text-2xl font-extrabold text-slate-900">Submitted for Verification</h1>
-        <p className="mt-2 text-xs text-slate-600 leading-relaxed max-w-sm mx-auto">
+        <h1 className="mt-5 font-['Outfit',sans-serif] text-2xl font-extrabold text-[#16171D]">Submitted for Verification</h1>
+        <p className="mt-2 text-xs text-[#5D574F] leading-relaxed max-w-sm mx-auto">
           Thanks for contributing to the community! Our moderators will verify the opportunity shortly, and you will receive{' '}
-          <b className="text-sky-600">+50 Pixels</b> once approved.
+          <b className="text-[#C5A059]">+50 Pixels</b> once approved.
         </p>
         <div className="mt-6 flex justify-center gap-3">
-          <BtnLink to="/opportunities" v="outline" className="!text-xs">
+          <BtnLink to="/opportunities" v="outline" className="!text-xs !rounded-full !px-5">
             Browse Opportunities
           </BtnLink>
-          <Btn onClick={() => setDone(false)} className="!text-xs">
+          <Btn onClick={() => setDone(false)} className="!text-xs !rounded-full !px-5">
             Submit Another
           </Btn>
         </div>
@@ -1633,16 +1757,22 @@ export function Submit() {
   }
 
   return (
-    <W className="max-w-3xl space-y-6 py-8">
+    <W className="max-w-3xl space-y-7 py-8">
       <div>
-        <h1 className="text-3xl font-extrabold tracking-tight text-slate-900">Share an Opportunity</h1>
-        <p className="text-xs text-slate-500 mt-1">
-          Help 800+ tech community members discover your event, hackathon, or program.
+        <div className="inline-flex items-center gap-2 rounded-full border border-black/8 bg-white/70 px-3 py-1 text-[11px] font-semibold text-[#6E655C] backdrop-blur-md mb-2 shadow-xs">
+          <Sparkles size={12} className="text-[#C5A059]" />
+          Earn +50 Pixels Upon Approval
+        </div>
+        <h1 className="font-['Outfit',sans-serif] text-3xl font-extrabold tracking-tight text-[#16171D] sm:text-4xl">
+          Share an Opportunity
+        </h1>
+        <p className="text-xs sm:text-sm text-[#7D756C] mt-1">
+          Help 800+ tech community members discover your event, hackathon, workshop, or program.
         </p>
       </div>
 
       {error && (
-        <div className="rounded-xl border border-rose-200 bg-rose-50 p-3.5 text-xs font-semibold text-rose-700">
+        <div className="rounded-2xl border border-rose-300 bg-rose-50/80 p-4 text-xs font-semibold text-rose-800">
           {error}
         </div>
       )}
@@ -1756,20 +1886,20 @@ export function Submit() {
 
       <SectionCard title="Banner Media">
         <div className="sm:col-span-2">
-          <label className="flex flex-col items-center justify-center h-32 rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50/60 p-4 text-center cursor-pointer hover:bg-slate-100/60 transition">
-            <Upload size={24} className="text-slate-400 mb-2" />
-            <span className="text-xs font-semibold text-slate-700">
+          <label className="flex flex-col items-center justify-center h-32 rounded-2xl border-2 border-dashed border-black/15 bg-white/50 p-4 text-center cursor-pointer hover:bg-white hover:border-[#C5A059]/50 transition">
+            <Upload size={22} className="text-[#C5A059] mb-2" />
+            <span className="text-xs font-semibold text-[#2D2A26]">
               {uploadingImage ? 'Uploading image...' : imageUrl ? 'Image uploaded (Click to replace)' : 'Upload banner image (16:9 ratio recommended)'}
             </span>
             <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" disabled={uploadingImage} />
           </label>
           {imageUrl && (
-            <div className="relative mt-3 rounded-xl overflow-hidden border border-slate-200 aspect-video max-h-48 bg-slate-100">
+            <div className="relative mt-3 rounded-2xl overflow-hidden border border-black/10 aspect-video max-h-48 bg-stone-100 shadow-sm">
               <img src={imageUrl} alt="Banner Preview" className="w-full h-full object-cover" />
               <button
                 type="button"
                 onClick={() => setImageUrl('')}
-                className="absolute top-2 right-2 p-1.5 rounded-lg bg-black/60 text-white hover:bg-black/80 transition"
+                className="absolute top-2 right-2 p-1.5 rounded-full bg-black/70 text-white hover:bg-black/90 transition cursor-pointer"
                 title="Remove banner image"
               >
                 <X size={14} />
@@ -1780,10 +1910,10 @@ export function Submit() {
       </SectionCard>
 
       <div className="flex justify-end gap-3 pt-2">
-        <Btn v="outline" onClick={() => navigate(-1)} className="!text-xs">
+        <Btn v="outline" onClick={() => navigate(-1)} className="!text-xs !rounded-full !px-5">
           Cancel
         </Btn>
-        <Btn onClick={handleSubmit} disabled={submitting || uploadingImage} className="!text-xs">
+        <Btn onClick={handleSubmit} disabled={submitting || uploadingImage} className="!text-xs !rounded-full !px-6">
           {submitting ? 'Submitting...' : 'Submit Opportunity (+50 Pixels)'}
         </Btn>
       </div>
@@ -2186,22 +2316,22 @@ const AdminCMS = ({ allOppsList, loadData }: any) => {
       <div className="bg-slate-50/70 p-4 rounded-2xl border border-slate-200/80 space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="relative flex-1 min-w-[200px] max-w-md">
-            <Search size={15} className="absolute left-3 top-2.5 text-slate-400" />
+            <Search size={15} className="absolute left-3 top-2.5 text-[#C5A059]" />
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search by title or organizer..."
-              className="w-full pl-9 pr-3 py-1.5 rounded-xl border border-slate-200 text-xs bg-white outline-none focus:border-sky-500 shadow-xs"
+              className="w-full pl-9 pr-3 py-2 rounded-full border border-black/10 text-xs bg-white/80 text-[#16171D] placeholder-[#9E958C] outline-none focus:border-[#C5A059] shadow-xs"
             />
           </div>
-          <Btn onClick={() => { setEditingOpp(null); setView('create'); }} className="!text-xs !min-h-9 shadow-md">
-            <Sparkles size={14} className="mr-1.5" />
+          <Btn onClick={() => { setEditingOpp(null); setView('create'); }} className="!text-xs !min-h-9 !rounded-full !px-4 shadow-md">
+            <Sparkles size={14} className="mr-1.5 text-[#DFB76C]" />
             + Create Opportunity
           </Btn>
         </div>
 
         <div className="flex flex-wrap items-center gap-2 pt-1 text-xs">
-          <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} className="rounded-xl border border-slate-200 px-3 py-1.5 text-xs font-semibold outline-none focus:border-sky-500 bg-white">
+          <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} className="rounded-full border border-black/10 px-3.5 py-1.5 text-xs font-semibold outline-none focus:border-[#C5A059] bg-white/80 text-[#2D2A26] cursor-pointer">
             <option value="All">All Statuses</option>
             <option value="published">Published</option>
             <option value="draft">Draft</option>
@@ -2211,28 +2341,28 @@ const AdminCMS = ({ allOppsList, loadData }: any) => {
             <option value="rejected">Rejected</option>
           </select>
 
-          <select value={categoryFilter} onChange={e => setCategoryFilter(e.target.value)} className="rounded-xl border border-slate-200 px-3 py-1.5 text-xs font-semibold outline-none focus:border-sky-500 bg-white">
+          <select value={categoryFilter} onChange={e => setCategoryFilter(e.target.value)} className="rounded-full border border-black/10 px-3.5 py-1.5 text-xs font-semibold outline-none focus:border-[#C5A059] bg-white/80 text-[#2D2A26] cursor-pointer">
             <option value="All">All Categories</option>
             {cats.map(c => <option key={c} value={c}>{c}</option>)}
           </select>
 
-          <select value={sourceFilter} onChange={e => setSourceFilter(e.target.value)} className="rounded-xl border border-slate-200 px-3 py-1.5 text-xs font-semibold outline-none focus:border-sky-500 bg-white">
+          <select value={sourceFilter} onChange={e => setSourceFilter(e.target.value)} className="rounded-full border border-black/10 px-3.5 py-1.5 text-xs font-semibold outline-none focus:border-[#C5A059] bg-white/80 text-[#2D2A26] cursor-pointer">
             <option value="All">All Sources</option>
             <option value="admin">Source: Admin</option>
             <option value="user">Source: User</option>
           </select>
 
-          <select value={sortBy} onChange={(e: any) => setSortBy(e.target.value)} className="rounded-xl border border-slate-200 px-3 py-1.5 text-xs font-semibold outline-none focus:border-sky-500 bg-white ml-auto">
+          <select value={sortBy} onChange={(e: any) => setSortBy(e.target.value)} className="rounded-full border border-black/10 px-3.5 py-1.5 text-xs font-semibold outline-none focus:border-[#C5A059] bg-white/80 text-[#2D2A26] cursor-pointer ml-auto">
             <option value="newest">Sort: Newest</option>
             <option value="deadline">Sort: Deadline</option>
             <option value="views">Sort: Most Viewed</option>
           </select>
 
-          <span className="text-slate-500 font-medium">{filteredList.length} matching</span>
+          <span className="text-[#8C827A] font-medium">{filteredList.length} matching</span>
         </div>
       </div>
 
-      <Card className="overflow-hidden">
+      <Card className="overflow-hidden pm-cream-card">
         <div className="overflow-x-auto">
           <table className="w-full min-w-[700px] text-left text-xs">
             <thead className="bg-slate-50 text-slate-500 font-bold uppercase tracking-wider border-b border-slate-100">
@@ -2644,43 +2774,46 @@ export function Admin() {
   const publishedCount = allOppsList.filter(o => o.status === 'published').length;
 
   return (
-    <W className="grid gap-6 py-8 md:grid-cols-[220px_1fr]">
+    <W className="grid gap-6 py-8 md:grid-cols-[230px_1fr]">
       {/* Admin Sidebar Navigation */}
-      <nav className="flex gap-1 overflow-x-auto md:flex-col">
-        {adminTabs.map(([n, I]) => (
-          <button
-            key={n}
-            onClick={() => setT(n)}
-            className={`flex shrink-0 items-center gap-2.5 rounded-xl px-3.5 py-2.5 text-xs font-bold transition ${
-              t === n
-                ? 'bg-sky-50 text-sky-700 border border-sky-200/80 shadow-xs'
-                : 'text-slate-600 hover:bg-slate-50'
-            }`}
-          >
-            <I size={16} className={t === n ? 'text-sky-600' : 'text-slate-400'} />
-            <span>{n}</span>
-            {n === 'Submissions' && pendingOpps.length > 0 && (
-              <span className="ml-auto rounded-full bg-amber-500 px-2 py-0.5 text-[10px] font-bold text-white">
-                {pendingOpps.length}
-              </span>
-            )}
-          </button>
-        ))}
+      <nav className="flex gap-1.5 overflow-x-auto md:flex-col pb-2 md:pb-0 scrollbar-hide">
+        {adminTabs.map(([n, I]) => {
+          const isActive = t === n;
+          return (
+            <button
+              key={n}
+              onClick={() => setT(n)}
+              className={`flex shrink-0 items-center gap-2.5 rounded-full px-4 py-2.5 text-xs font-bold transition cursor-pointer ${
+                isActive
+                  ? 'bg-[#16171D] text-[#DFB76C] shadow-md shadow-black/15 ring-1 ring-[#C5A059]/30'
+                  : 'bg-white/60 text-[#5D574F] border border-black/5 hover:bg-white hover:text-[#16171D]'
+              }`}
+            >
+              <I size={15} className={isActive ? 'text-[#DFB76C]' : 'text-[#8C827A]'} />
+              <span>{n}</span>
+              {n === 'Submissions' && pendingOpps.length > 0 && (
+                <span className="ml-auto rounded-full bg-[#DFB76C] px-2 py-0.5 text-[10px] font-bold text-[#16171D]">
+                  {pendingOpps.length}
+                </span>
+              )}
+            </button>
+          );
+        })}
       </nav>
 
       {/* Admin Panel Body */}
       <section className="min-w-0 space-y-6">
         <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-extrabold text-slate-900">{t}</h1>
-          <Badge className="bg-emerald-50 text-emerald-700 font-bold border-emerald-200">
-            <ShieldCheck size={13} className="mr-1 inline" /> Admin Control Active
+          <h1 className="font-['Outfit',sans-serif] text-2xl font-extrabold text-[#16171D]">{t}</h1>
+          <Badge className="bg-[#16171D] text-[#DFB76C] font-bold border-white/10 !rounded-full !px-3.5 !py-1">
+            <ShieldCheck size={13} className="mr-1.5 inline text-[#C5A059]" /> Admin Control Active
           </Badge>
         </div>
 
         {/* OVERVIEW TAB */}
         {t === 'Overview' && (
           <>
-            <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+            <div className="grid grid-cols-2 gap-3.5 lg:grid-cols-4">
               {[
                 ['Live Opportunities', publishedCount.toString()],
                 ['Pending Review', pendingOpps.length.toString()],
@@ -2691,17 +2824,17 @@ export function Admin() {
                 ['Community Posts', communityPosts.length.toString()],
                 ['Active Announcements', announcements.filter(a => a.status === 'published').length.toString()]
               ].map(([l, v]) => (
-                <Card key={l as string} className="p-4">
-                  <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">{l}</p>
-                  <p className="mt-1 text-2xl font-extrabold text-slate-900">{v}</p>
+                <Card key={l as string} className="p-4 pm-cream-card">
+                  <p className="text-[10px] font-bold text-[#8C827A] uppercase tracking-wider">{l}</p>
+                  <p className="mt-1 font-['Outfit',sans-serif] text-2xl font-extrabold text-[#16171D]">{v}</p>
                 </Card>
               ))}
             </div>
 
-            <Card className="overflow-hidden">
-              <div className="border-b border-slate-100 p-4 font-bold text-sm text-slate-900 flex justify-between items-center">
+            <Card className="overflow-hidden pm-cream-card">
+              <div className="border-b border-black/8 p-4 font-bold text-sm text-[#16171D] flex justify-between items-center">
                 <span>Pending Community Submissions</span>
-                <span className="text-xs font-semibold text-slate-500">{pendingOpps.length} awaiting review</span>
+                <span className="text-xs font-semibold text-[#8C827A]">{pendingOpps.length} awaiting review</span>
               </div>
               <div className="overflow-x-auto">
                 <table className="w-full min-w-[540px] text-left text-xs">
@@ -2831,41 +2964,41 @@ export function Admin() {
             </div>
 
             {showCreatePost && (
-              <Card className="p-5 border-sky-200 bg-sky-50/20">
+              <Card className="p-5 pm-cream-card">
                 <form onSubmit={handleCreatePost} className="space-y-3">
-                  <h4 className="font-bold text-xs uppercase tracking-wider text-slate-700">New Admin Post</h4>
+                  <h4 className="font-bold text-xs uppercase tracking-wider text-[#16171D]">New Admin Post</h4>
                   <div>
-                    <label className="text-xs font-semibold text-slate-600 block mb-1">Category</label>
-                    <select value={postCategory} onChange={e=>setPostCategory(e.target.value)} className="w-full rounded-xl border border-slate-200 bg-white p-2.5 text-xs outline-none focus:border-sky-500">
+                    <label className="text-xs font-semibold text-[#5D574F] block mb-1">Category</label>
+                    <select value={postCategory} onChange={e=>setPostCategory(e.target.value)} className="w-full rounded-xl border border-black/10 bg-white/80 p-2.5 text-xs outline-none focus:border-[#C5A059] text-[#16171D]">
                       {['Announcements', 'Internships', 'Hackathons', 'Jobs', 'Workshops', 'Scholarships', 'Competitions', 'Events', 'Courses', 'Tech Updates'].map(c => (
                         <option key={c} value={c}>{c}</option>
                       ))}
                     </select>
                   </div>
                   <div>
-                    <label className="text-xs font-semibold text-slate-600 block mb-1">Message Content</label>
+                    <label className="text-xs font-semibold text-[#5D574F] block mb-1">Message Content</label>
                     <textarea
                       rows={3}
                       value={postText}
                       onChange={e=>setPostText(e.target.value)}
                       placeholder="Write your announcement or community update here..."
-                      className="w-full rounded-xl border border-slate-200 p-2.5 text-xs outline-none focus:border-sky-500"
+                      className="w-full rounded-xl border border-black/10 bg-white/80 p-2.5 text-xs outline-none focus:border-[#C5A059] text-[#16171D]"
                       required
                     />
                   </div>
                   <div>
-                    <label className="text-xs font-semibold text-slate-600 block mb-1">Resource Link (optional)</label>
+                    <label className="text-xs font-semibold text-[#5D574F] block mb-1">Resource Link (optional)</label>
                     <input
                       type="url"
                       value={postLink}
                       onChange={e=>setPostLink(e.target.value)}
                       placeholder="https://example.com"
-                      className="w-full rounded-xl border border-slate-200 p-2 text-xs outline-none focus:border-sky-500 bg-white"
+                      className="w-full rounded-xl border border-black/10 bg-white/80 p-2 text-xs outline-none focus:border-[#C5A059] text-[#16171D]"
                     />
                   </div>
                   <div className="flex justify-end gap-2 pt-2">
-                    <Btn v="outline" onClick={() => setShowCreatePost(false)} className="!text-xs">Cancel</Btn>
-                    <Btn type="submit" className="!text-xs">Publish to Feed</Btn>
+                    <Btn v="outline" onClick={() => setShowCreatePost(false)} className="!text-xs !rounded-full !px-4">Cancel</Btn>
+                    <Btn type="submit" className="!text-xs !rounded-full !px-5">Publish to Feed</Btn>
                   </div>
                 </form>
               </Card>
@@ -2926,55 +3059,55 @@ export function Admin() {
             </div>
 
             {showCreateAnnouncement && (
-              <Card className="p-5 border-sky-200 bg-sky-50/20">
+              <Card className="p-5 pm-cream-card">
                 <form onSubmit={handleCreateAnnouncement} className="space-y-4">
-                  <div className="flex items-center justify-between border-b border-sky-100 pb-2">
-                    <h4 className="font-bold text-xs uppercase tracking-wider text-slate-700">New Website Announcement</h4>
-                    <span className="text-[11px] text-slate-500">Visible to all visitors in the announcement banner modal</span>
+                  <div className="flex items-center justify-between border-b border-black/8 pb-2">
+                    <h4 className="font-bold text-xs uppercase tracking-wider text-[#16171D]">New Website Announcement</h4>
+                    <span className="text-[11px] text-[#7D756C]">Visible to all visitors in the announcement banner modal</span>
                   </div>
 
                   <div>
-                    <label className="text-xs font-semibold text-slate-600 block mb-1">Headline</label>
+                    <label className="text-xs font-semibold text-[#5D574F] block mb-1">Headline</label>
                     <input
                       value={annTitle}
                       onChange={e=>setAnnTitle(e.target.value)}
                       placeholder="e.g. Smart India Hackathon registrations live!"
-                      className="w-full rounded-xl border border-slate-200 p-2.5 text-xs outline-none focus:border-sky-500 bg-white"
+                      className="w-full rounded-xl border border-black/10 p-2.5 text-xs outline-none focus:border-[#C5A059] bg-white/80 text-[#16171D]"
                       required
                     />
                   </div>
 
                   <div>
-                    <label className="text-xs font-semibold text-slate-600 block mb-1">Announcement Message</label>
+                    <label className="text-xs font-semibold text-[#5D574F] block mb-1">Announcement Message</label>
                     <textarea
                       rows={2}
                       value={annMessage}
                       onChange={e=>setAnnMessage(e.target.value)}
                       placeholder="Detailed update or instructions for students..."
-                      className="w-full rounded-xl border border-slate-200 p-2.5 text-xs outline-none focus:border-sky-500 bg-white"
+                      className="w-full rounded-xl border border-black/10 p-2.5 text-xs outline-none focus:border-[#C5A059] bg-white/80 text-[#16171D]"
                       required
                     />
                   </div>
 
                   {/* Banner Image Upload & Preview */}
                   <div>
-                    <label className="text-xs font-semibold text-slate-600 block mb-1">Banner Image (Optional)</label>
+                    <label className="text-xs font-semibold text-[#5D574F] block mb-1">Banner Image (Optional)</label>
                     {annImageUrl ? (
                       <div className="space-y-2">
-                        <div className="relative rounded-2xl overflow-hidden border border-slate-200 aspect-[16/9] max-h-48 bg-slate-100">
+                        <div className="relative rounded-2xl overflow-hidden border border-black/10 aspect-[16/9] max-h-48 bg-stone-100">
                           <img src={annImageUrl} alt="Announcement banner preview" className="w-full h-full object-cover" />
                           <button
                             type="button"
                             onClick={() => setAnnImageUrl('')}
-                            className="absolute top-2.5 right-2.5 p-1.5 rounded-xl bg-black/70 text-white hover:bg-black/90 transition shadow-sm"
+                            className="absolute top-2.5 right-2.5 p-1.5 rounded-full bg-black/70 text-white hover:bg-black/90 transition shadow-sm"
                             title="Remove image"
                           >
                             <X size={14} />
                           </button>
                         </div>
                         <div className="flex items-center justify-between">
-                          <span className="text-[11px] text-emerald-600 font-medium">✓ Image uploaded to Supabase Storage</span>
-                          <label className="inline-flex items-center gap-1 text-xs font-semibold text-sky-600 hover:text-sky-700 cursor-pointer">
+                          <span className="text-[11px] text-emerald-700 font-medium">✓ Image uploaded to storage</span>
+                          <label className="inline-flex items-center gap-1 text-xs font-semibold text-[#C5A059] hover:text-[#DFB76C] cursor-pointer">
                             <Upload size={12} />
                             <span>Replace image</span>
                             <input
@@ -2988,12 +3121,12 @@ export function Admin() {
                         </div>
                       </div>
                     ) : (
-                      <label className="flex flex-col items-center justify-center h-28 rounded-2xl border-2 border-dashed border-slate-200 bg-white p-4 text-center cursor-pointer hover:bg-slate-50 transition">
-                        <Upload size={22} className="text-slate-400 mb-1.5" />
-                        <span className="text-xs font-semibold text-slate-700">
-                          {uploadingAnnImage ? 'Uploading image to Supabase...' : 'Click or drop to upload banner image (16:9 ratio)'}
+                      <label className="flex flex-col items-center justify-center h-28 rounded-2xl border-2 border-dashed border-black/15 bg-white/50 p-4 text-center cursor-pointer hover:bg-white hover:border-[#C5A059]/50 transition">
+                        <Upload size={22} className="text-[#C5A059] mb-1.5" />
+                        <span className="text-xs font-semibold text-[#2D2A26]">
+                          {uploadingAnnImage ? 'Uploading image...' : 'Click or drop to upload banner image (16:9 ratio)'}
                         </span>
-                        <span className="text-[10px] text-slate-400 mt-0.5">PNG, JPG, WebP up to 5MB</span>
+                        <span className="text-[10px] text-[#8C827A] mt-0.5">PNG, JPG, WebP up to 5MB</span>
                         <input
                           type="file"
                           accept="image/*"
@@ -3007,30 +3140,30 @@ export function Admin() {
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
-                      <label className="text-xs font-semibold text-slate-600 block mb-1">Destination Link (Optional)</label>
+                      <label className="text-xs font-semibold text-[#5D574F] block mb-1">Destination Link (Optional)</label>
                       <input
                         type="url"
                         value={annCtaLink}
                         onChange={e=>setAnnCtaLink(e.target.value)}
                         placeholder="https://... or /opportunities"
-                        className="w-full rounded-xl border border-slate-200 p-2.5 text-xs outline-none focus:border-sky-500 bg-white"
+                        className="w-full rounded-xl border border-black/10 p-2.5 text-xs outline-none focus:border-[#C5A059] bg-white/80 text-[#16171D]"
                       />
-                      <span className="text-[10px] text-slate-400 mt-0.5 block">Clicking the banner image or CTA button will navigate here</span>
+                      <span className="text-[10px] text-[#8C827A] mt-0.5 block">Clicking the banner image or CTA button will navigate here</span>
                     </div>
                     <div>
-                      <label className="text-xs font-semibold text-slate-600 block mb-1">CTA Button Text</label>
+                      <label className="text-xs font-semibold text-[#5D574F] block mb-1">CTA Button Text</label>
                       <input
                         value={annCtaText}
                         onChange={e=>setAnnCtaText(e.target.value)}
                         placeholder="e.g. Learn More / Apply"
-                        className="w-full rounded-xl border border-slate-200 p-2.5 text-xs outline-none focus:border-sky-500 bg-white"
+                        className="w-full rounded-xl border border-black/10 p-2.5 text-xs outline-none focus:border-[#C5A059] bg-white/80 text-[#16171D]"
                       />
                     </div>
                   </div>
 
-                  <div className="flex justify-end gap-2 pt-2 border-t border-sky-100">
-                    <Btn v="outline" onClick={() => setShowCreateAnnouncement(false)} className="!text-xs">Cancel</Btn>
-                    <Btn type="submit" disabled={uploadingAnnImage} className="!text-xs">
+                  <div className="flex justify-end gap-2 pt-2 border-t border-black/8">
+                    <Btn v="outline" onClick={() => setShowCreateAnnouncement(false)} className="!text-xs !rounded-full !px-4">Cancel</Btn>
+                    <Btn type="submit" disabled={uploadingAnnImage} className="!text-xs !rounded-full !px-5">
                       Publish Announcement
                     </Btn>
                   </div>
@@ -3116,31 +3249,31 @@ export function Admin() {
             </div>
 
             {showCreateNotif && (
-              <Card className="p-5 border-sky-200 bg-sky-50/20">
+              <Card className="p-5 pm-cream-card">
                 <form onSubmit={handleSendAdminNotification} className="space-y-4">
-                  <div className="flex items-center justify-between border-b border-sky-100 pb-2">
-                    <h4 className="font-bold text-xs uppercase tracking-wider text-slate-700">Compose Notification</h4>
-                    <span className="text-[11px] text-slate-500">Delivered directly to user NotificationBell</span>
+                  <div className="flex items-center justify-between border-b border-black/8 pb-2">
+                    <h4 className="font-bold text-xs uppercase tracking-wider text-[#16171D]">Compose Notification</h4>
+                    <span className="text-[11px] text-[#7D756C]">Delivered directly to user NotificationBell</span>
                   </div>
 
                   <div>
-                    <label className="text-xs font-semibold text-slate-600 block mb-1">Notification Title</label>
+                    <label className="text-xs font-semibold text-[#5D574F] block mb-1">Notification Title</label>
                     <input
                       value={notifTitle}
                       onChange={e=>setNotifTitle(e.target.value)}
                       placeholder="e.g. New Hackathon Announced / Submission Review Update"
-                      className="w-full rounded-xl border border-slate-200 p-2.5 text-xs outline-none focus:border-sky-500 bg-white"
+                      className="w-full rounded-xl border border-black/10 p-2.5 text-xs outline-none focus:border-[#C5A059] bg-white/80 text-[#16171D]"
                       required
                     />
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
-                      <label className="text-xs font-semibold text-slate-600 block mb-1">Target Audience</label>
+                      <label className="text-xs font-semibold text-[#5D574F] block mb-1">Target Audience</label>
                       <select
                         value={notifTarget}
                         onChange={(e: any) => setNotifTarget(e.target.value)}
-                        className="w-full rounded-xl border border-slate-200 p-2.5 text-xs outline-none focus:border-sky-500 bg-white"
+                        className="w-full rounded-xl border border-black/10 p-2.5 text-xs outline-none focus:border-[#C5A059] bg-white/80 text-[#16171D]"
                       >
                         <option value="everyone">Everyone (All registered users)</option>
                         <option value="user">Specific User</option>
@@ -3148,11 +3281,11 @@ export function Admin() {
                     </div>
 
                     <div>
-                      <label className="text-xs font-semibold text-slate-600 block mb-1">Notification Category / Type</label>
+                      <label className="text-xs font-semibold text-[#5D574F] block mb-1">Notification Category / Type</label>
                       <select
                         value={notifType}
                         onChange={(e: any) => setNotifType(e.target.value)}
-                        className="w-full rounded-xl border border-slate-200 p-2.5 text-xs outline-none focus:border-sky-500 bg-white"
+                        className="w-full rounded-xl border border-black/10 p-2.5 text-xs outline-none focus:border-[#C5A059] bg-white/80 text-[#16171D]"
                       >
                         <option value="system">System Notice</option>
                         <option value="opportunity">Opportunity Update</option>
@@ -3165,11 +3298,11 @@ export function Admin() {
 
                   {notifTarget === 'user' && (
                     <div>
-                      <label className="text-xs font-semibold text-slate-600 block mb-1">Select Registered Recipient</label>
+                      <label className="text-xs font-semibold text-[#5D574F] block mb-1">Select Registered Recipient</label>
                       <select
                         value={notifTargetUserId}
                         onChange={e=>setNotifTargetUserId(e.target.value)}
-                        className="w-full rounded-xl border border-slate-200 p-2.5 text-xs outline-none focus:border-sky-500 bg-white"
+                        className="w-full rounded-xl border border-black/10 p-2.5 text-xs outline-none focus:border-[#C5A059] bg-white/80 text-[#16171D]"
                         required
                       >
                         <option value="">-- Choose a user --</option>
@@ -3183,31 +3316,31 @@ export function Admin() {
                   )}
 
                   <div>
-                    <label className="text-xs font-semibold text-slate-600 block mb-1">Message Body</label>
+                    <label className="text-xs font-semibold text-[#5D574F] block mb-1">Message Body</label>
                     <textarea
                       rows={3}
                       value={notifMessage}
                       onChange={e=>setNotifMessage(e.target.value)}
                       placeholder="Write your notification message here..."
-                      className="w-full rounded-xl border border-slate-200 p-2.5 text-xs outline-none focus:border-sky-500 bg-white"
+                      className="w-full rounded-xl border border-black/10 p-2.5 text-xs outline-none focus:border-[#C5A059] bg-white/80 text-[#16171D]"
                       required
                     />
                   </div>
 
                   <div>
-                    <label className="text-xs font-semibold text-slate-600 block mb-1">Destination URL (Optional)</label>
+                    <label className="text-xs font-semibold text-[#5D574F] block mb-1">Destination URL (Optional)</label>
                     <input
                       value={notifLink}
                       onChange={e=>setNotifLink(e.target.value)}
                       placeholder="e.g. /opportunities or /profile?tab=My+Submissions or https://example.com"
-                      className="w-full rounded-xl border border-slate-200 p-2.5 text-xs outline-none focus:border-sky-500 bg-white"
+                      className="w-full rounded-xl border border-black/10 p-2.5 text-xs outline-none focus:border-[#C5A059] bg-white/80 text-[#16171D]"
                     />
-                    <span className="text-[10px] text-slate-400 mt-0.5 block">When the user clicks the notification in their bell, they will be navigated here</span>
+                    <span className="text-[10px] text-[#8C827A] mt-0.5 block">When the user clicks the notification in their bell, they will be navigated here</span>
                   </div>
 
-                  <div className="flex justify-end gap-2 pt-2 border-t border-sky-100">
-                    <Btn v="outline" onClick={() => setShowCreateNotif(false)} className="!text-xs">Cancel</Btn>
-                    <Btn type="submit" disabled={sendingNotif} className="!text-xs inline-flex items-center gap-1.5">
+                  <div className="flex justify-end gap-2 pt-2 border-t border-black/8">
+                    <Btn v="outline" onClick={() => setShowCreateNotif(false)} className="!text-xs !rounded-full !px-4">Cancel</Btn>
+                    <Btn type="submit" disabled={sendingNotif} className="!text-xs !rounded-full !px-5 inline-flex items-center gap-1.5">
                       <Send size={13} />
                       <span>{sendingNotif ? 'Dispatching...' : 'Send Notification'}</span>
                     </Btn>
@@ -3371,36 +3504,36 @@ export function Admin() {
 
             {/* Pixel Adjustment Modal Dialog */}
             {selectedUserForPixel && (
-              <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
-                <Card className="max-w-md w-full p-6 space-y-4 shadow-xl">
-                  <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-                    <h3 className="font-bold text-sm text-slate-900">Adjust Pixels for {selectedUserForPixel.displayName}</h3>
-                    <button onClick={() => setSelectedUserForPixel(null)} className="text-slate-400 hover:text-slate-600 font-bold">✕</button>
+              <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-md flex items-center justify-center p-4">
+                <Card className="max-w-md w-full p-6 space-y-4 shadow-2xl pm-cream-card">
+                  <div className="flex items-center justify-between border-b border-black/8 pb-3">
+                    <h3 className="font-['Outfit',sans-serif] font-bold text-sm text-[#16171D]">Adjust Pixels for {selectedUserForPixel.displayName}</h3>
+                    <button onClick={() => setSelectedUserForPixel(null)} className="text-[#8C827A] hover:text-[#16171D] font-bold text-base cursor-pointer">✕</button>
                   </div>
                   <div>
-                    <p className="text-xs text-slate-500">Current Balance: <b className="text-sky-600 font-bold">{selectedUserForPixel.pixels || 0} Pixels</b></p>
+                    <p className="text-xs text-[#7D756C]">Current Balance: <b className="text-[#C5A059] font-bold">{selectedUserForPixel.pixels || 0} Pixels</b></p>
                   </div>
                   <div>
-                    <label className="text-xs font-semibold text-slate-700 block mb-1">Amount (+ to grant, - to deduct)</label>
+                    <label className="text-xs font-semibold text-[#2D2A26] block mb-1">Amount (+ to grant, - to deduct)</label>
                     <input
                       type="number"
                       value={pixelAmount}
                       onChange={e => setPixelAmount(Number(e.target.value))}
-                      className="w-full rounded-xl border border-slate-200 p-2.5 text-xs outline-none focus:border-sky-500"
+                      className="w-full rounded-xl border border-black/10 bg-white/80 p-2.5 text-xs outline-none focus:border-[#C5A059] text-[#16171D]"
                     />
                   </div>
                   <div>
-                    <label className="text-xs font-semibold text-slate-700 block mb-1">Reason for Adjustment</label>
+                    <label className="text-xs font-semibold text-[#2D2A26] block mb-1">Reason for Adjustment</label>
                     <input
                       value={pixelReason}
                       onChange={e => setPixelReason(e.target.value)}
                       placeholder="e.g. Hackathon winner bonus / Community moderation"
-                      className="w-full rounded-xl border border-slate-200 p-2.5 text-xs outline-none focus:border-sky-500"
+                      className="w-full rounded-xl border border-black/10 bg-white/80 p-2.5 text-xs outline-none focus:border-[#C5A059] text-[#16171D]"
                     />
                   </div>
-                  <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
-                    <Btn v="outline" onClick={() => setSelectedUserForPixel(null)} className="!text-xs">Cancel</Btn>
-                    <Btn onClick={handleAdjustPixelSubmit} disabled={adjustingPixel} className="!text-xs">
+                  <div className="flex justify-end gap-2 pt-2 border-t border-black/8">
+                    <Btn v="outline" onClick={() => setSelectedUserForPixel(null)} className="!text-xs !rounded-full !px-4">Cancel</Btn>
+                    <Btn onClick={handleAdjustPixelSubmit} disabled={adjustingPixel} className="!text-xs !rounded-full !px-5">
                       {adjustingPixel ? 'Recording...' : 'Record Transaction'}
                     </Btn>
                   </div>
@@ -3413,71 +3546,71 @@ export function Admin() {
         {/* REWARD CONFIGURATION TAB */}
         {t === 'Reward Config' && (
           <div className="space-y-4">
-            <div className="bg-slate-50/70 p-4 rounded-2xl border border-slate-200/80">
-              <h3 className="text-sm font-bold text-slate-900">Centralized Reward Configuration</h3>
-              <p className="text-xs text-slate-500">All components dynamically reference these Firestore values for rewarding actions across the website</p>
+            <div className="bg-white/60 p-4 rounded-2xl border border-black/6">
+              <h3 className="font-['Outfit',sans-serif] text-sm font-bold text-[#16171D]">Centralized Reward Configuration</h3>
+              <p className="text-xs text-[#7D756C]">All components dynamically reference these Firestore values for rewarding actions across the website</p>
             </div>
 
-            <Card className="p-6">
+            <Card className="p-6 pm-cream-card">
               <form onSubmit={handleSaveRewardConfig} className="space-y-4 max-w-lg">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="text-xs font-semibold text-slate-700 block mb-1">Share Opportunity</label>
+                    <label className="text-xs font-semibold text-[#2D2A26] block mb-1">Share Opportunity</label>
                     <input
                       type="number"
                       value={rewardConfig.shareOpportunity}
                       onChange={e => setRewardConfig({...rewardConfig, shareOpportunity: Number(e.target.value)})}
-                      className="w-full rounded-xl border border-slate-200 p-2.5 text-xs outline-none focus:border-sky-500"
+                      className="w-full rounded-xl border border-black/10 bg-white/80 p-2.5 text-xs outline-none focus:border-[#C5A059] text-[#16171D]"
                     />
                   </div>
                   <div>
-                    <label className="text-xs font-semibold text-slate-700 block mb-1">Submit Opportunity</label>
+                    <label className="text-xs font-semibold text-[#2D2A26] block mb-1">Submit Opportunity</label>
                     <input
                       type="number"
                       value={rewardConfig.submitOpportunity}
                       onChange={e => setRewardConfig({...rewardConfig, submitOpportunity: Number(e.target.value)})}
-                      className="w-full rounded-xl border border-slate-200 p-2.5 text-xs outline-none focus:border-sky-500"
+                      className="w-full rounded-xl border border-black/10 bg-white/80 p-2.5 text-xs outline-none focus:border-[#C5A059] text-[#16171D]"
                     />
                   </div>
                   <div>
-                    <label className="text-xs font-semibold text-slate-700 block mb-1">Approved Opportunity</label>
+                    <label className="text-xs font-semibold text-[#2D2A26] block mb-1">Approved Opportunity</label>
                     <input
                       type="number"
                       value={rewardConfig.approvedOpportunity}
                       onChange={e => setRewardConfig({...rewardConfig, approvedOpportunity: Number(e.target.value)})}
-                      className="w-full rounded-xl border border-slate-200 p-2.5 text-xs outline-none focus:border-sky-500"
+                      className="w-full rounded-xl border border-black/10 bg-white/80 p-2.5 text-xs outline-none focus:border-[#C5A059] text-[#16171D]"
                     />
                   </div>
                   <div>
-                    <label className="text-xs font-semibold text-slate-700 block mb-1">Referral Signup</label>
+                    <label className="text-xs font-semibold text-[#2D2A26] block mb-1">Referral Signup</label>
                     <input
                       type="number"
                       value={rewardConfig.referralSignup}
                       onChange={e => setRewardConfig({...rewardConfig, referralSignup: Number(e.target.value)})}
-                      className="w-full rounded-xl border border-slate-200 p-2.5 text-xs outline-none focus:border-sky-500"
+                      className="w-full rounded-xl border border-black/10 bg-white/80 p-2.5 text-xs outline-none focus:border-[#C5A059] text-[#16171D]"
                     />
                   </div>
                   <div>
-                    <label className="text-xs font-semibold text-slate-700 block mb-1">Valid Report</label>
+                    <label className="text-xs font-semibold text-[#2D2A26] block mb-1">Valid Report</label>
                     <input
                       type="number"
                       value={rewardConfig.validReport}
                       onChange={e => setRewardConfig({...rewardConfig, validReport: Number(e.target.value)})}
-                      className="w-full rounded-xl border border-slate-200 p-2.5 text-xs outline-none focus:border-sky-500"
+                      className="w-full rounded-xl border border-black/10 bg-white/80 p-2.5 text-xs outline-none focus:border-[#C5A059] text-[#16171D]"
                     />
                   </div>
                   <div>
-                    <label className="text-xs font-semibold text-slate-700 block mb-1">Daily Activity Bonus</label>
+                    <label className="text-xs font-semibold text-[#2D2A26] block mb-1">Daily Activity Bonus</label>
                     <input
                       type="number"
                       value={rewardConfig.dailyActivity}
                       onChange={e => setRewardConfig({...rewardConfig, dailyActivity: Number(e.target.value)})}
-                      className="w-full rounded-xl border border-slate-200 p-2.5 text-xs outline-none focus:border-sky-500"
+                      className="w-full rounded-xl border border-black/10 bg-white/80 p-2.5 text-xs outline-none focus:border-[#C5A059] text-[#16171D]"
                     />
                   </div>
                 </div>
                 <div className="pt-2">
-                  <Btn type="submit" disabled={savingConfig} className="!text-xs">
+                  <Btn type="submit" disabled={savingConfig} className="!text-xs !rounded-full !px-5">
                     {savingConfig ? 'Saving...' : 'Save Configuration'}
                   </Btn>
                 </div>
@@ -3489,15 +3622,15 @@ export function Admin() {
         {/* AUDIT LOGS TAB */}
         {t === 'Audit Logs' && (
           <div className="space-y-4">
-            <div className="bg-slate-50/70 p-4 rounded-2xl border border-slate-200/80">
-              <h3 className="text-sm font-bold text-slate-900">Admin Audit Trail</h3>
-              <p className="text-xs text-slate-500">Immutable chronological history of all administrative operations, target entities, and value updates</p>
+            <div className="bg-white/60 p-4 rounded-2xl border border-black/6">
+              <h3 className="font-['Outfit',sans-serif] text-sm font-bold text-[#16171D]">Admin Audit Trail</h3>
+              <p className="text-xs text-[#7D756C]">Immutable chronological history of all administrative operations, target entities, and value updates</p>
             </div>
 
-            <Card className="overflow-hidden">
+            <Card className="overflow-hidden pm-cream-card">
               <div className="overflow-x-auto">
                 <table className="w-full min-w-[650px] text-left text-xs">
-                  <thead className="bg-slate-50 text-slate-500 font-bold uppercase tracking-wider border-b border-slate-100">
+                  <thead className="bg-black/[0.02] text-[#8C827A] font-bold uppercase tracking-wider border-b border-black/8">
                     <tr>
                       <th className="px-4 py-3">Timestamp</th>
                       <th className="px-4 py-3">Admin</th>
@@ -3506,16 +3639,16 @@ export function Admin() {
                       <th className="px-4 py-3">Reason / Details</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100 font-mono text-[11px]">
+                  <tbody className="divide-y divide-black/6 font-mono text-[11px]">
                     {auditLogs.map((log) => (
-                      <tr key={log.id} className="hover:bg-slate-50/70 transition">
-                        <td className="px-4 py-3 text-slate-500 whitespace-nowrap">
+                      <tr key={log.id} className="hover:bg-black/[0.02] transition">
+                        <td className="px-4 py-3 text-[#7D756C] whitespace-nowrap">
                           {new Date(log.createdAt).toLocaleString()}
                         </td>
-                        <td className="px-4 py-3 font-semibold text-slate-800">{log.adminEmail}</td>
-                        <td className="px-4 py-3 font-bold text-sky-700">{log.action}</td>
-                        <td className="px-4 py-3 text-slate-600 uppercase text-[10px]">{log.targetType}</td>
-                        <td className="px-4 py-3 text-slate-500 max-w-[200px] truncate">{log.reason || log.targetId}</td>
+                        <td className="px-4 py-3 font-semibold text-[#16171D]">{log.adminEmail}</td>
+                        <td className="px-4 py-3 font-bold text-[#C5A059]">{log.action}</td>
+                        <td className="px-4 py-3 text-[#5D574F] uppercase text-[10px]">{log.targetType}</td>
+                        <td className="px-4 py-3 text-[#7D756C] max-w-[200px] truncate">{log.reason || log.targetId}</td>
                       </tr>
                     ))}
                     {auditLogs.length === 0 && (

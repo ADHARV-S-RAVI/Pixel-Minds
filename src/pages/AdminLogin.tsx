@@ -59,34 +59,24 @@ export function AdminLogin() {
         sessionActive: !!data.session
       });
 
-      // 2. Fetch and verify admin role
+      // 2. Fetch and check role from user profile
       const profile = await getUserProfile(data.user.id);
-      console.log('[AdminLogin Debug] User Profile Result:', {
-        userId: data.user.id,
-        profileFound: !!profile,
-        role: profile?.role,
-        isSuspended: profile?.status === 'suspended'
-      });
+      console.log('[AdminLogin Debug] Profile returned from DB:', profile);
 
       if (!profile) {
-        // Sign out user since profile is missing
         await supabase.auth.signOut();
-        throw new Error(`Profile record not found for user ID "${data.user.id}" in public.profiles. Please check public.profiles table in Supabase.`);
+        throw new Error('User profile record not found in database. Contact system administrator.');
       }
 
       if (profile.role !== 'admin') {
-        // Immediately sign out non-admin user trying to access admin portal
+        console.warn('[AdminLogin Debug] User lacks admin privileges. Role is:', profile.role);
         await supabase.auth.signOut();
-        throw new Error(`Access denied. Account role is "${profile.role}", but "admin" is required for Admin Control Center.`);
+        throw new Error('Access denied. Administrator privileges required.');
       }
 
-      if (profile.status === 'suspended') {
-        await supabase.auth.signOut();
-        throw new Error('This administrator account is currently suspended.');
-      }
-
-      // 3. Refresh context and redirect to Admin Control Center
+      // 3. Refresh context state
       await refreshProfile();
+
       console.log('[AdminLogin Debug] Admin verified successfully. Navigating to:', from);
       navigate(from, { replace: true });
     } catch (err: any) {
@@ -98,25 +88,27 @@ export function AdminLogin() {
   };
 
   return (
-    <div className="min-h-[85vh] flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8 bg-slate-50">
-      <div className="sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="flex justify-center mb-4">
-          <div className="w-12 h-12 bg-sky-500/10 text-sky-600 rounded-2xl flex items-center justify-center border border-sky-200/80 shadow-xs">
-            <Shield size={24} className="stroke-[2.2]" />
-          </div>
-        </div>
-        <h2 className="text-center text-2xl font-bold text-slate-900 tracking-tight">
-          Admin Control Center
-        </h2>
-        <p className="mt-1 text-center text-xs text-slate-500 font-medium">
-          Sign in with authorized administrator credentials
-        </p>
-      </div>
+    <div className="min-h-[85vh] flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8 relative">
+      {/* Background Champagne Glow Orb */}
+      <div className="pointer-events-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-[500px] w-[500px] rounded-full bg-gradient-to-tr from-[#DFB76C]/10 via-[#C5A059]/5 to-transparent blur-3xl -z-10" />
 
-      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="bg-white py-8 px-6 shadow-sm rounded-2xl border border-slate-200 sm:px-10">
+      <div className="sm:mx-auto sm:w-full sm:max-w-md">
+        <div className="rounded-3xl bg-[#141418]/92 backdrop-blur-2xl border border-white/12 p-8 sm:p-10 shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5)] text-white relative overflow-hidden">
+          {/* Header Brand */}
+          <div className="flex flex-col items-center mb-6 text-center">
+            <div className="p-2.5 rounded-2xl bg-white/10 border border-white/15 text-[#DFB76C] mb-3 shadow-xs">
+              <Shield size={26} className="stroke-[2.2]" />
+            </div>
+            <h2 className="text-2xl font-extrabold tracking-tight text-white">
+              Admin Control Center
+            </h2>
+            <p className="mt-1 text-xs text-zinc-400 font-medium">
+              Sign in with authorized administrator credentials
+            </p>
+          </div>
+
           {error && (
-            <div className="mb-5 bg-rose-50 border border-rose-200 text-rose-700 px-4 py-3 rounded-xl text-xs flex items-start gap-2.5" role="alert">
+            <div className="mb-5 bg-rose-500/10 border border-rose-500/25 text-rose-300 px-4 py-3 rounded-2xl text-xs flex items-start gap-2.5" role="alert">
               <AlertCircle size={16} className="shrink-0 mt-0.5" />
               <div className="break-words">{error}</div>
             </div>
@@ -124,11 +116,11 @@ export function AdminLogin() {
 
           <form className="space-y-4" onSubmit={handleSubmit}>
             <div>
-              <label htmlFor="admin-email" className="block text-xs font-semibold text-slate-700 mb-1.5">
+              <label htmlFor="admin-email" className="block text-xs font-semibold text-zinc-300 mb-1.5 uppercase tracking-wider">
                 Admin Email
               </label>
               <div className="relative">
-                <Mail size={16} className="absolute left-3.5 top-3 text-slate-400" />
+                <Mail size={16} className="absolute left-3.5 top-3 text-zinc-400" />
                 <input
                   id="admin-email"
                   name="email"
@@ -137,18 +129,18 @@ export function AdminLogin() {
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="block w-full pl-10 pr-4 py-2.5 border border-slate-200 rounded-xl text-xs placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent transition-shadow bg-white"
+                  className="block w-full pl-10 pr-4 py-2.5 bg-white/6 border border-white/12 rounded-xl text-xs sm:text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-[#C5A059] focus:ring-1 focus:ring-[#C5A059] transition-all"
                   placeholder="admin@pixelminds.in"
                 />
               </div>
             </div>
 
             <div>
-              <label htmlFor="admin-password" className="block text-xs font-semibold text-slate-700 mb-1.5">
+              <label htmlFor="admin-password" className="block text-xs font-semibold text-zinc-300 mb-1.5 uppercase tracking-wider">
                 Password
               </label>
               <div className="relative">
-                <Lock size={16} className="absolute left-3.5 top-3 text-slate-400" />
+                <Lock size={16} className="absolute left-3.5 top-3 text-zinc-400" />
                 <input
                   id="admin-password"
                   name="password"
@@ -157,7 +149,7 @@ export function AdminLogin() {
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="block w-full pl-10 pr-4 py-2.5 border border-slate-200 rounded-xl text-xs placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent transition-shadow bg-white"
+                  className="block w-full pl-10 pr-4 py-2.5 bg-white/6 border border-white/12 rounded-xl text-xs sm:text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-[#C5A059] focus:ring-1 focus:ring-[#C5A059] transition-all"
                   placeholder="••••••••••••"
                 />
               </div>
@@ -167,18 +159,18 @@ export function AdminLogin() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full flex justify-center items-center py-2.5 px-4 rounded-xl text-xs font-semibold text-white bg-sky-500 hover:bg-sky-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sky-500 disabled:opacity-50 transition-colors shadow-sm cursor-pointer"
+                className="w-full flex justify-center items-center py-3 px-4 rounded-full text-xs font-bold text-zinc-950 bg-gradient-to-r from-[#C5A059] to-[#DFB76C] hover:brightness-105 active:scale-[0.98] focus:outline-none disabled:opacity-50 transition-all shadow-[0_4px_16px_rgba(212,175,55,0.3)] cursor-pointer"
               >
                 {loading ? 'Authenticating Admin...' : 'Enter Admin Panel'}
               </button>
             </div>
           </form>
 
-          <div className="mt-6 pt-5 border-t border-slate-100 flex items-center justify-between text-xs">
-            <Link to="/" className="text-slate-500 hover:text-slate-900 inline-flex items-center gap-1 font-medium transition">
-              <ArrowLeft size={13} /> Return to Home
+          <div className="mt-6 pt-5 border-t border-white/10 flex items-center justify-between text-xs">
+            <Link to="/" className="text-zinc-400 hover:text-white inline-flex items-center gap-1 font-medium transition">
+              <ArrowLeft size={13} /> <span>Return to Home</span>
             </Link>
-            <span className="text-slate-400 text-[11px]">Protected by Supabase Auth</span>
+            <span className="text-zinc-500 text-[11px]">Protected by Supabase Auth</span>
           </div>
         </div>
       </div>

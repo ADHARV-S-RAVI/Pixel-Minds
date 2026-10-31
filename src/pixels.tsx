@@ -13,7 +13,7 @@ import {
   RotateCcw,
   Sparkles
 } from 'lucide-react';
-import { Btn, Card, Avatar, Badge } from './ui';
+import { Avatar } from './ui';
 import { PixelMark } from './components/PixelMark';
 import { users, moves, tierInfo, rankOf } from './data';
 import { useAuth } from './contexts/AuthContext';
@@ -59,21 +59,21 @@ const evts: [number, string][] = [
 ];
 
 const Bar: FC<{ pct: number; on: boolean }> = ({ pct, on }) => (
-  <div className="h-2.5 overflow-hidden rounded-full bg-sky-100/80">
+  <div className="h-2.5 overflow-hidden rounded-full bg-white/10">
     <div
       style={{ width: on ? pct + '%' : '0%' }}
-      className="h-full rounded-full bg-gradient-to-r from-sky-400 to-sky-600 transition-[width] duration-1000 ease-out shadow-xs"
+      className="h-full rounded-full bg-gradient-to-r from-[#DFB76C] via-[#C5A059] to-[#997D46] transition-[width] duration-1000 ease-out shadow-[0_0_12px_rgba(212,175,55,0.4)]"
     />
   </div>
 );
 
 const Delta: FC<{ d: number }> = ({ d }) =>
   d === 0 ? (
-    <span className="flex items-center text-xs font-semibold text-slate-400">
+    <span className="flex items-center text-xs font-semibold text-zinc-500">
       <Minus size={12} />
     </span>
   ) : (
-    <span className={`flex items-center text-xs font-bold ${d > 0 ? 'text-emerald-600' : 'text-rose-500'}`}>
+    <span className={`flex items-center text-xs font-bold ${d > 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
       {d > 0 ? <ArrowUp size={12} /> : <ArrowDown size={12} />}
       {Math.abs(d)}
     </span>
@@ -97,14 +97,14 @@ export function PixelGrid({ pct }: { pct: number }) {
               style={on ? { animationDelay: `${i * 20}ms` } : undefined}
               className={`aspect-square rounded-[4px] sm:rounded-md transition-all duration-300 ${
                 on
-                  ? 'pm-light bg-sky-500 shadow-[0_0_8px_rgba(14,165,233,0.5)] hover:bg-sky-400 hover:scale-110'
-                  : 'bg-slate-100 border border-slate-200/50 hover:bg-slate-200'
+                  ? 'pm-light bg-gradient-to-br from-[#DFB76C] to-[#C5A059] shadow-[0_0_8px_rgba(223,183,108,0.5)] hover:scale-110'
+                  : 'bg-white/5 border border-white/8 hover:bg-white/10'
               }`}
             />
           );
         })}
       </div>
-      <p className="mt-3 h-5 text-xs font-semibold text-slate-500">
+      <p className="mt-3 h-5 text-xs font-semibold text-zinc-400">
         {h || `${lit} of 80 Pixels illuminated toward your next rank`}
       </p>
     </div>
@@ -163,25 +163,28 @@ export function ReferralPanel() {
           ['Successful Joined', joinedCount, ''],
           ['Pixels Earned', pixelsEarned, '+']
         ].map(([l, v, p]) => (
-          <Card key={l as string} className="p-4 text-center">
-            <p className="text-2xl font-extrabold text-sky-600 sm:text-3xl">
+          <div key={l as string} className="rounded-2xl bg-[#141418]/90 backdrop-blur-xl border border-white/12 p-4 text-center shadow-lg text-white">
+            <p className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-[#DFB76C] to-[#C5A059] sm:text-3xl">
               <Count n={v as number} pre={p as string} />
             </p>
-            <p className="mt-1 text-xs font-semibold text-slate-500">{l}</p>
-          </Card>
+            <p className="mt-1 text-xs font-semibold text-zinc-400">{l}</p>
+          </div>
         ))}
       </div>
 
-      <Card className="p-5">
+      <div className="rounded-3xl bg-[#141418]/90 backdrop-blur-xl border border-white/12 p-5 sm:p-6 shadow-xl text-white">
         <div className="flex items-center justify-between">
           <div>
-            <h3 className="font-bold text-slate-900 text-sm sm:text-base">Your Referral Journey</h3>
-            <p className="text-xs text-slate-500">How you earn Pixels by inviting friends</p>
+            <h3 className="font-bold text-white text-sm sm:text-base">Your Referral Journey</h3>
+            <p className="text-xs text-zinc-400 mt-0.5">How you earn Pixels by inviting friends</p>
           </div>
-          <Btn v="ghost" onClick={() => setK(k + 1)} className="!min-h-8 !px-2.5 !py-1 !text-xs">
+          <button
+            onClick={() => setK(k + 1)}
+            className="inline-flex items-center gap-1.5 rounded-full bg-white/8 hover:bg-white/14 px-3 py-1.5 text-xs font-semibold text-zinc-300 hover:text-white transition cursor-pointer"
+          >
             <RotateCcw size={13} />
-            Replay
-          </Btn>
+            <span>Replay</span>
+          </button>
         </div>
 
         <ol className="mt-4 flex flex-col items-stretch gap-2 sm:flex-row sm:items-center">
@@ -191,22 +194,22 @@ export function ReferralPanel() {
                 style={{ animationDelay: `${i * 350}ms` }}
                 className={`pm-in w-full flex-1 rounded-2xl border p-3.5 transition ${
                   i === 3
-                    ? 'border-sky-500 bg-sky-500 text-white shadow-sm'
-                    : 'border-slate-200 bg-slate-50/60'
+                    ? 'border-[#DFB76C]/40 bg-gradient-to-br from-[#1C1C24] to-[#121218] text-white shadow-[0_0_20px_rgba(212,175,55,0.2)]'
+                    : 'border-white/10 bg-white/5'
                 }`}
               >
                 <span
                   className={`grid h-8 w-8 place-items-center rounded-xl ${
-                    i === 3 ? 'bg-white/20 text-white' : 'bg-white text-sky-600 shadow-xs border border-slate-200/60'
+                    i === 3 ? 'bg-[#DFB76C] text-zinc-950 shadow-xs' : 'bg-white/10 text-[#DFB76C] border border-white/10'
                   }`}
                 >
                   <I size={16} />
                 </span>
-                <p className="mt-2 text-xs font-bold">{t}</p>
-                <p className={`text-[11px] mt-0.5 ${i === 3 ? 'text-sky-100' : 'text-slate-500'}`}>{d}</p>
+                <p className="mt-2 text-xs font-bold text-white">{t}</p>
+                <p className={`text-[11px] mt-0.5 ${i === 3 ? 'text-[#DFB76C]' : 'text-zinc-400'}`}>{d}</p>
               </div>
               {i < 3 && (
-                <span style={{ animationDelay: `${i * 350 + 200}ms` }} className="pm-in text-sky-400">
+                <span style={{ animationDelay: `${i * 350 + 200}ms` }} className="pm-in text-[#DFB76C]">
                   <ArrowRight size={16} className="hidden sm:block" />
                   <ArrowDown size={16} className="sm:hidden" />
                 </span>
@@ -214,24 +217,24 @@ export function ReferralPanel() {
             </li>
           ))}
         </ol>
-      </Card>
+      </div>
 
-      <Card>
-        <div className="border-b border-slate-100 p-4 font-bold text-sm text-slate-900">
+      <div className="rounded-3xl bg-[#141418]/90 backdrop-blur-xl border border-white/12 shadow-xl overflow-hidden text-white">
+        <div className="border-b border-white/10 p-4 font-bold text-sm text-white">
           Recent Referral Activity
         </div>
         {loading ? (
-          <div className="p-8 text-center text-xs text-slate-400">Loading referral activity...</div>
+          <div className="p-8 text-center text-xs text-zinc-400">Loading referral activity...</div>
         ) : referrals.length === 0 ? (
           <div className="p-8 text-center">
-            <UserPlus size={28} className="mx-auto text-slate-300 mb-2" />
-            <p className="font-bold text-xs text-slate-700">No referrals yet</p>
-            <p className="text-[11px] text-slate-400 mt-1 max-w-sm mx-auto">
+            <UserPlus size={28} className="mx-auto text-zinc-600 mb-2" />
+            <p className="font-bold text-xs text-zinc-200">No referrals yet</p>
+            <p className="text-[11px] text-zinc-400 mt-1 max-w-sm mx-auto">
               Share opportunities using your referral link to earn +25 Pixels when your friends sign up.
             </p>
           </div>
         ) : (
-          <ul className="divide-y divide-slate-100">
+          <ul className="divide-y divide-white/5">
             {referrals.map((refItem, i) => {
               const displayName = refItem.referredUserName || 'Member';
               const dateStr = new Date(refItem.createdAt).toLocaleDateString('en-IN', {
@@ -244,26 +247,26 @@ export function ReferralPanel() {
                 <li
                   key={refItem.id || i}
                   style={{ animationDelay: `${i * 60}ms` }}
-                  className="pm-in flex items-center gap-3 p-4 hover:bg-slate-50/60 transition"
+                  className="pm-in flex items-center gap-3 p-4 hover:bg-white/5 transition"
                 >
                   <Avatar name={displayName} photoURL={refItem.referredUserAvatar} size={36} />
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-xs font-bold text-slate-900">
+                    <p className="truncate text-xs font-bold text-white">
                       {refItem.opportunityTitle || 'Pixel Minds Invitation'}
                     </p>
-                    <p className="text-[11px] text-slate-500">
+                    <p className="text-[11px] text-zinc-400">
                       {displayName} · {dateStr}
                     </p>
                   </div>
                   <div className="text-right">
-                    <p className={`text-xs font-extrabold ${isCompleted ? 'text-sky-600' : 'text-slate-500'}`}>
+                    <p className={`text-xs font-extrabold ${isCompleted ? 'text-[#DFB76C]' : 'text-zinc-400'}`}>
                       +{refItem.pixelsRewarded || 25} Pixels
                     </p>
                     <span
                       className={`inline-block rounded-md px-2 py-0.5 text-[10px] font-semibold capitalize ${
                         isCompleted
-                          ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                          : 'bg-amber-50 text-amber-700 border border-amber-200'
+                          ? 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/30'
+                          : 'bg-amber-500/15 text-amber-300 border border-amber-500/30'
                       }`}
                     >
                       {refItem.status || 'Completed'}
@@ -274,7 +277,7 @@ export function ReferralPanel() {
             })}
           </ul>
         )}
-      </Card>
+      </div>
     </div>
   );
 }
@@ -309,14 +312,16 @@ export function Leaderboard() {
   return (
     <main className="mx-auto max-w-4xl space-y-6 px-4 py-8">
       <div>
-        <h1 className="text-3xl font-extrabold tracking-tight text-slate-900">Community Leaderboard</h1>
-        <p className="text-sm text-slate-500 mt-1">
+        <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-zinc-950">
+          Community Leaderboard
+        </h1>
+        <p className="text-sm text-zinc-500 mt-1">
           Discover opportunities, refer peers, earn Pixels and rise to Pixel Legend.
         </p>
       </div>
 
-      {/* User Pixel Balance Card */}
-      <Card className="relative overflow-hidden bg-gradient-to-br from-sky-50/50 via-white to-white p-6 sm:p-8 border-sky-100">
+      {/* User Pixel Balance Card in Dark Glassmorphism */}
+      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-b from-[#1C1C22]/95 to-[#121216]/98 backdrop-blur-2xl border border-white/12 p-6 sm:p-8 shadow-[0_20px_50px_-15px_rgba(0,0,0,0.5)] text-white">
         <div aria-hidden className="pointer-events-none absolute inset-0">
           {Array.from({ length: 14 }, (_, i) => (
             <i
@@ -328,34 +333,38 @@ export function Leaderboard() {
                 height: 6 + (i % 3) * 3,
                 animationDelay: `${i * 0.45}s`
               }}
-              className="pm-float absolute rounded-xs bg-sky-400/20"
+              className="pm-float absolute rounded-xs bg-[#DFB76C]/20 shadow-[0_0_6px_rgba(223,183,108,0.4)]"
             />
           ))}
         </div>
 
         <div className="relative grid gap-6 md:grid-cols-2 items-center">
           <div>
-            <p className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-sky-600">
+            <p className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-[#DFB76C]">
               <PixelMark s={6} />
-              Your Pixel Balance
+              <span>Your Pixel Balance</span>
             </p>
 
             <div className="relative mt-2 flex items-baseline gap-3">
-              <p className="text-5xl font-extrabold tracking-tight text-slate-900 sm:text-6xl">
+              <p className="text-5xl font-black tracking-tight text-white sm:text-6xl">
                 <Count n={mine} />
               </p>
-              <span className="text-sm font-bold text-slate-400">Pixels</span>
+              <span className="text-sm font-bold text-zinc-400">Pixels</span>
             </div>
 
             <div className="mt-3.5 flex flex-wrap items-center gap-2">
-              <Badge className="bg-sky-100 text-sky-800 font-bold">Rank #{mine > 0 ? 1 : '—'}</Badge>
-              <Badge className="bg-slate-100 text-slate-700 font-semibold">{ti.name}</Badge>
+              <span className="inline-flex items-center rounded-full bg-[#DFB76C]/15 border border-[#DFB76C]/30 px-3 py-1 text-xs font-bold text-[#DFB76C]">
+                Rank #{mine > 0 ? 1 : '—'}
+              </span>
+              <span className="inline-flex items-center rounded-full bg-white/10 border border-white/12 px-3 py-1 text-xs font-semibold text-zinc-200">
+                {ti.name}
+              </span>
             </div>
 
             <div className="mt-5">
               <div className="mb-1.5 flex justify-between text-xs font-semibold">
-                <span className="text-slate-800">{ti.name}</span>
-                <span className="text-slate-500">
+                <span className="text-zinc-200">{ti.name}</span>
+                <span className="text-zinc-400">
                   {ti.next ? `${ti.toGo.toLocaleString('en-IN')} Pixels to ${ti.next}` : 'Peak Rank Achieved 🏆'}
                 </span>
               </div>
@@ -363,21 +372,23 @@ export function Leaderboard() {
             </div>
           </div>
 
-          <div className="bg-slate-50/70 p-4 rounded-2xl border border-slate-100">
+          <div className="bg-white/5 p-4 rounded-2xl border border-white/10 backdrop-blur-md">
             <PixelGrid pct={ti.pct} />
           </div>
         </div>
-      </Card>
+      </div>
 
       {/* Filter Tabs */}
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="inline-flex rounded-xl border border-slate-200 bg-white p-1 shadow-xs">
+        <div className="inline-flex rounded-full border border-zinc-200/80 bg-white/80 p-1 shadow-xs backdrop-blur-md">
           {['Global', 'Monthly', 'Weekly'].map((x) => (
             <button
               key={x}
               onClick={() => setT(x)}
-              className={`rounded-lg px-4 py-1.5 text-xs font-bold transition ${
-                t === x ? 'bg-sky-500 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
+              className={`rounded-full px-5 py-1.5 text-xs font-bold transition cursor-pointer ${
+                t === x
+                  ? 'bg-zinc-900 text-white shadow-xs'
+                  : 'text-zinc-600 hover:text-zinc-950 hover:bg-zinc-100'
               }`}
             >
               {x}
@@ -385,8 +396,8 @@ export function Leaderboard() {
           ))}
         </div>
 
-        <div className="flex items-center gap-1.5 text-xs text-slate-500 font-medium">
-          <Sparkles size={14} className="text-sky-500" />
+        <div className="flex items-center gap-1.5 text-xs text-zinc-500 font-medium">
+          <Sparkles size={14} className="text-[#C5A059]" />
           <span>Top builders receive exclusive Discord perks &amp; badges</span>
         </div>
       </div>
@@ -401,17 +412,23 @@ export function Leaderboard() {
             <li
               key={u.rank}
               style={{ animationDelay: `${i * 50}ms` }}
-              className={`pm-in flex items-center gap-3 rounded-2xl border bg-white p-3.5 sm:gap-4 sm:p-4 transition ${
+              className={`pm-in flex items-center gap-3 rounded-2xl p-3.5 sm:gap-4 sm:p-4 transition ${
                 me
-                  ? 'border-sky-500 bg-sky-50/30 ring-2 ring-sky-100 shadow-sm'
+                  ? 'bg-gradient-to-r from-[#1C1C22] to-[#141418] border border-[#DFB76C]/40 text-white shadow-lg ring-1 ring-[#DFB76C]/20'
                   : top
-                  ? 'border-sky-200/80 bg-gradient-to-r from-sky-50/30 to-white'
-                  : 'border-slate-200 hover:border-slate-300'
+                  ? 'bg-gradient-to-r from-[#1C1C22]/95 to-[#16161C]/95 border border-white/12 text-white shadow-md'
+                  : 'bg-white/90 border border-zinc-200/80 text-zinc-900 shadow-xs hover:border-zinc-300'
               }`}
             >
               <span
                 className={`grid h-9 w-9 shrink-0 place-items-center rounded-xl text-xs font-extrabold ${
-                  top ? 'bg-sky-500 text-white shadow-xs' : 'bg-slate-100 text-slate-600'
+                  i === 0 
+                    ? 'bg-gradient-to-br from-[#DFB76C] to-[#997D46] text-zinc-950 shadow-[0_0_10px_rgba(212,175,55,0.4)]' 
+                    : i === 1
+                    ? 'bg-zinc-200 text-zinc-800 border border-zinc-300'
+                    : i === 2
+                    ? 'bg-amber-900/30 text-amber-300 border border-amber-700/40'
+                    : 'bg-zinc-100 text-zinc-600'
                 }`}
               >
                 {i === 0 ? <Crown size={17} /> : u.rank}
@@ -421,16 +438,18 @@ export function Leaderboard() {
 
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-x-2">
-                  <p className="truncate text-xs sm:text-sm font-bold text-slate-900">
+                  <p className={`truncate text-xs sm:text-sm font-bold ${top ? 'text-white' : 'text-zinc-950'}`}>
                     {u.name}
                     {me && (
-                      <span className="ml-2 rounded-md bg-sky-500 px-1.5 py-0.5 text-[10px] font-extrabold text-white">
+                      <span className="ml-2 rounded-md bg-[#DFB76C] px-1.5 py-0.5 text-[10px] font-extrabold text-zinc-950">
                         YOU
                       </span>
                     )}
                   </p>
                   <span className="hidden sm:inline">
-                    <Badge className="text-[10px] !py-0.2">{rankOf(u.raw)}</Badge>
+                    <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${top ? 'bg-white/10 border-white/12 text-zinc-300' : 'bg-zinc-100 border-zinc-200 text-zinc-700'}`}>
+                      {rankOf(u.raw)}
+                    </span>
                   </span>
                 </div>
                 <div className="mt-1.5 max-w-xs">
@@ -439,10 +458,10 @@ export function Leaderboard() {
               </div>
 
               <div className="text-right">
-                <p className="text-sm font-extrabold text-sky-600">
+                <p className={`text-sm font-black ${top ? 'text-[#DFB76C]' : 'text-zinc-950'}`}>
                   <Count n={u.pixels} />
                 </p>
-                <div className="flex items-center justify-end gap-1 text-[10px] font-semibold text-slate-400">
+                <div className="flex items-center justify-end gap-1 text-[10px] font-semibold text-zinc-400">
                   Pixels <Delta d={u.mv} />
                 </div>
               </div>
@@ -453,7 +472,7 @@ export function Leaderboard() {
 
       {/* Referral journey section */}
       <section className="pt-4">
-        <h2 className="mb-3 text-lg font-bold tracking-tight text-slate-900">Referred by You</h2>
+        <h2 className="mb-3 text-xl font-extrabold tracking-tight text-zinc-950">Referred by You</h2>
         <ReferralPanel />
       </section>
     </main>

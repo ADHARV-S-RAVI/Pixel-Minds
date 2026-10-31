@@ -215,28 +215,28 @@ export const NotificationBell: React.FC<{ className?: string }> = ({ className =
       <button
         onClick={handleToggle}
         aria-label="Notifications"
-        className="relative grid h-9 w-9 place-items-center rounded-xl text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-colors focus:outline-none"
+        className="relative grid h-9 w-9 place-items-center rounded-full text-zinc-300 hover:bg-white/10 hover:text-white transition-colors focus:outline-none cursor-pointer"
       >
-        <Bell size={18} className={unreadCount > 0 ? 'text-slate-800' : 'text-slate-600'} />
+        <Bell size={18} className={unreadCount > 0 ? 'text-[#DFB76C]' : 'text-zinc-300'} />
         {unreadCount > 0 && (
-          <span className="absolute -top-0.5 -right-0.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-bold text-white shadow-xs animate-in zoom-in-50 duration-200">
+          <span className="absolute -top-0.5 -right-0.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-[#DFB76C] px-1 text-[10px] font-extrabold text-zinc-950 shadow-[0_0_8px_rgba(223,183,108,0.5)] animate-in zoom-in-50 duration-200">
             {unreadCount > 9 ? '9+' : unreadCount}
           </span>
         )}
         {unreadCount === 0 && fetchError && (
-          <span className="absolute -top-0.5 -right-0.5 flex h-2 w-2 rounded-full bg-amber-500 shadow-xs" title="Sync alert" />
+          <span className="absolute -top-0.5 -right-0.5 flex h-2 w-2 rounded-full bg-amber-400 shadow-xs" title="Sync alert" />
         )}
       </button>
 
-      {/* Dropdown Panel */}
+      {/* Dropdown Panel in Dark Glassmorphism */}
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-80 sm:w-96 rounded-2xl border border-slate-200 bg-white shadow-xl z-50 overflow-hidden pm-in">
+        <div className="absolute right-0 mt-3 w-80 sm:w-96 rounded-3xl border border-white/15 bg-[#141418]/95 backdrop-blur-2xl shadow-2xl z-50 overflow-hidden text-white pm-in">
           {/* Header */}
-          <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3 bg-slate-50/70">
+          <div className="flex items-center justify-between border-b border-white/10 px-4 py-3 bg-white/5">
             <div className="flex items-center gap-2">
-              <h3 className="text-sm font-bold text-slate-900">Notifications</h3>
+              <h3 className="text-sm font-bold text-white">Notifications</h3>
               {unreadCount > 0 && (
-                <span className="rounded-full bg-sky-100 px-2 py-0.5 text-[10px] font-bold text-sky-700">
+                <span className="rounded-full bg-[#DFB76C]/20 border border-[#DFB76C]/30 px-2 py-0.5 text-[10px] font-bold text-[#DFB76C]">
                   {unreadCount} new
                 </span>
               )}
@@ -246,7 +246,7 @@ export const NotificationBell: React.FC<{ className?: string }> = ({ className =
                 <button
                   onClick={handleMarkAll}
                   disabled={loading}
-                  className="inline-flex items-center gap-1 text-[11px] font-semibold text-sky-600 hover:text-sky-700 hover:underline disabled:opacity-50"
+                  className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#DFB76C] hover:underline disabled:opacity-50 cursor-pointer"
                   title="Mark all as read"
                 >
                   <CheckCheck size={13} />
@@ -255,7 +255,7 @@ export const NotificationBell: React.FC<{ className?: string }> = ({ className =
               )}
               <button
                 onClick={() => setIsOpen(false)}
-                className="text-slate-400 hover:text-slate-600 p-0.5 rounded-md hover:bg-slate-200/50"
+                className="text-zinc-400 hover:text-white p-1 rounded-lg hover:bg-white/10 cursor-pointer"
               >
                 <X size={14} />
               </button>
@@ -264,17 +264,17 @@ export const NotificationBell: React.FC<{ className?: string }> = ({ className =
 
           {/* Sync / Database Error Alert */}
           {fetchError && (
-            <div className="bg-rose-50 border-b border-rose-100 p-3 flex items-start gap-2.5 text-rose-800">
-              <AlertCircle size={15} className="text-rose-600 shrink-0 mt-0.5" />
+            <div className="bg-rose-500/10 border-b border-rose-500/20 p-3 flex items-start gap-2.5 text-rose-300">
+              <AlertCircle size={15} className="text-rose-400 shrink-0 mt-0.5" />
               <div className="flex-1 min-w-0">
                 <p className="text-xs font-semibold">Notification sync alert</p>
-                <p className="text-[11px] text-rose-700 leading-snug mt-0.5 break-words">
+                <p className="text-[11px] text-rose-300 leading-snug mt-0.5 break-words">
                   {fetchError}
                 </p>
               </div>
               <button
                 onClick={() => fetchNotifications()}
-                className="shrink-0 text-[11px] font-bold text-rose-700 underline hover:text-rose-900"
+                className="shrink-0 text-[11px] font-bold text-rose-300 underline hover:text-white cursor-pointer"
               >
                 Retry
               </button>
@@ -282,14 +282,14 @@ export const NotificationBell: React.FC<{ className?: string }> = ({ className =
           )}
 
           {/* Notifications List */}
-          <div className="max-h-[380px] overflow-y-auto divide-y divide-slate-100">
+          <div className="max-h-[380px] overflow-y-auto divide-y divide-white/5">
             {notifications.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-10 px-4 text-center">
-                <div className="grid h-12 w-12 place-items-center rounded-full bg-slate-100 text-slate-400 mb-2">
+                <div className="grid h-12 w-12 place-items-center rounded-full bg-white/5 text-zinc-400 mb-2">
                   <Bell size={22} className="opacity-50" />
                 </div>
-                <p className="text-xs font-bold text-slate-800">No notifications yet</p>
-                <p className="text-[11px] text-slate-500 mt-0.5">
+                <p className="text-xs font-bold text-white">No notifications yet</p>
+                <p className="text-[11px] text-zinc-400 mt-0.5">
                   You're all caught up! Updates regarding your submissions will appear here.
                 </p>
               </div>
@@ -300,27 +300,27 @@ export const NotificationBell: React.FC<{ className?: string }> = ({ className =
                   onClick={() => handleNotificationClick(n)}
                   className={`flex items-start gap-3 p-3.5 transition-colors cursor-pointer text-left ${
                     !n.isRead
-                      ? 'bg-sky-50/50 hover:bg-sky-50'
-                      : 'hover:bg-slate-50'
+                      ? 'bg-white/8 hover:bg-white/12'
+                      : 'hover:bg-white/5'
                   }`}
                 >
-                  <div className="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-white border border-slate-200/80 shadow-2xs mt-0.5">
+                  <div className="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-white/10 border border-white/10 shadow-2xs mt-0.5 text-[#DFB76C]">
                     {getIcon(n.type)}
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center justify-between gap-1">
-                      <p className={`text-xs font-bold truncate ${!n.isRead ? 'text-slate-900' : 'text-slate-700'}`}>
+                      <p className={`text-xs font-bold truncate ${!n.isRead ? 'text-white' : 'text-zinc-300'}`}>
                         {n.title}
                       </p>
-                      <span className="shrink-0 text-[10px] text-slate-400 font-medium">
+                      <span className="shrink-0 text-[10px] text-zinc-400 font-medium">
                         {formatTimeAgo(n.createdAt)}
                       </span>
                     </div>
-                    <p className="mt-0.5 text-xs text-slate-600 line-clamp-2 leading-relaxed">
+                    <p className="mt-0.5 text-xs text-zinc-300 line-clamp-2 leading-relaxed">
                       {n.message}
                     </p>
                     {n.link && (
-                      <span className="mt-1 inline-flex items-center gap-1 text-[11px] font-semibold text-sky-600 hover:underline">
+                      <span className="mt-1 inline-flex items-center gap-1 text-[11px] font-semibold text-[#DFB76C] hover:underline">
                         <span>View Details</span>
                         <ExternalLink size={10} />
                       </span>
@@ -330,7 +330,7 @@ export const NotificationBell: React.FC<{ className?: string }> = ({ className =
                     <button
                       onClick={(e) => handleMarkOne(e, n)}
                       title="Mark as read"
-                      className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-sky-100 text-sky-600 hover:bg-sky-200 transition"
+                      className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-[#DFB76C]/20 text-[#DFB76C] hover:bg-[#DFB76C]/30 transition cursor-pointer"
                     >
                       <Check size={11} strokeWidth={2.5} />
                     </button>
