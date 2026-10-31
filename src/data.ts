@@ -216,45 +216,87 @@ export const moves = [2, -1, 1, 0, 3, -2, 1, 0];
 export interface FeedPost {
   id: number | string;
   user: string;
+  userId?: string;
   role: string;
   time: string;
   text: string;
+  category?: string;
   likes: number;
   comments: number;
   opp?: number | string;
-  img?: boolean;
   link?: string;
+  hackathonDetails?: {
+    name: string;
+    date: string;
+    location: string;
+    link: string;
+  };
 }
 
 export const initialPosts: FeedPost[] = [
   {
-    id: 1,
+    id: 'post-1',
     user: 'Diya Nair',
+    userId: 'user-diya',
     role: 'CS student, VIT',
     time: '2h ago',
-    text: 'Registrations just opened for Smart India Hackathon. Team of 6, problem statements are out — sharing so nobody misses the Nov 14 deadline.',
-    opp: 1,
+    category: 'Upcoming Hackathon',
+    text: '🚀 Upcoming Hackathon: Smart India Hackathon 2026\n📅 Dates: Nov 14 - 16, 2026\n📍 Location: Hybrid (Nationwide Centers)\n🔗 Registration: https://sih.gov.in\n\nRegistrations just opened for SIH 2026! Problem statements across AI, Smart Automation, and Clean Tech are now live. We have 4 team members from VIT and are looking for 2 backend engineers experienced in Python/FastAPI. Reach out if you want to team up!',
+    link: 'https://sih.gov.in',
+    hackathonDetails: {
+      name: 'Smart India Hackathon 2026',
+      date: 'Nov 14 - 16, 2026',
+      location: 'Hybrid (Nationwide Centers)',
+      link: 'https://sih.gov.in'
+    },
     likes: 128,
     comments: 14
   },
   {
-    id: 2,
+    id: 'post-2',
     user: 'Rohan Iyer',
-    role: 'Backend intern',
+    userId: 'user-rohan',
+    role: 'Backend Intern & Hacker',
     time: '5h ago',
-    text: 'Attended the GDG Pune meetup yesterday. Best talk: shipping ML models on a budget. Slides are in the comments.',
+    category: 'Learning',
+    text: 'Just wrapped up a 36-hour sprint building an AI agent for real-time document verification. Three biggest learnings for hackathon teams:\n\n1. Do not start fine-tuning models during the hackathon. Solid prompt engineering + RAG will take you 90% of the way in 1/10th of the time.\n2. Build a reliable fallback flow for every LLM call so live demos never fail when rate limits strike.\n3. Polish the user onboarding — judges only spend 3-5 minutes evaluating your project.',
+    link: 'https://github.com/rohaniyer/hack-ai-agent',
     likes: 76,
-    comments: 9,
-    img: true
+    comments: 9
   },
   {
-    id: 3,
+    id: 'post-3',
     user: 'Sana Qureshi',
-    role: 'Open source contributor',
+    userId: 'user-sana',
+    role: 'Open Source Contributor',
     time: '1d ago',
-    text: 'The Linux Foundation fellowship is paying $3,000 and takes first-time contributors. Apply before Nov 20.',
+    category: 'Achievement',
+    text: 'Thrilled to share that our team took 1st Place at HackOut Global 2026! 🏆\n\nWe created "GuardianGuard", an automated developer tool that scans smart contracts and flags access control vulnerabilities before deployment. Massive thanks to the mentors and the Pixel Minds community for reviewing our architecture diagram at 2 AM.\n\nPreparing to open source the repository next week!',
     opp: 8,
     likes: 203,
     comments: 31
+  },
+  {
+    id: 'post-4',
+    user: 'Arjun Patel',
+    userId: 'user-arjun',
+    role: 'Full-stack Builder',
+    time: '1d ago',
+    category: 'Idea',
+    text: 'Hackathon Project Pitch: An offline-first, peer-to-peer triage app for emergency response teams during natural disasters.\n\nWhen mobile cell towers collapse, local volunteers need to share critical resource coordinates without internet. Using local Wi-Fi direct and IndexedDB caching, field teams can sync dispatch queues seamlessly once back in range.\n\nLooking for collaborators interested in building this for the next civic tech hackathon!',
+    likes: 94,
+    comments: 18
+  },
+  {
+    id: 'post-5',
+    user: 'Priya Sharma',
+    userId: 'user-priya',
+    role: 'Product Designer & Builder',
+    time: '2d ago',
+    category: 'Experience',
+    text: 'Six months ago I had never joined a hackathon because I thought you needed to be a 10x systems programmer. Last weekend our team shipped a working health accessibility prototype and won the Best UX track.\n\nTo any beginners hesitating: every team needs storytellers, problem framers, and intuitive designers. Jump in!',
+    likes: 165,
+    comments: 24
   }
 ];
+

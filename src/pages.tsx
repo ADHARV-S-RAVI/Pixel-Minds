@@ -38,7 +38,8 @@ import {
   Inbox,
   Trash2,
   Compass,
-  PlusSquare
+  PlusSquare,
+  ArrowLeft
 } from 'lucide-react';
 import { SubmissionDetailModal } from './components/SubmissionDetailModal';
 import { getCategoryMeta } from './utils/meta';
@@ -83,7 +84,7 @@ import {
   deleteOpportunityAdmin
 } from './services/opportunities';
 import { uploadImage } from './services/storage';
-import { updateUserProfile } from './services/users';
+import { updateUserProfile, getUserProfile } from './services/users';
 import { getUserCommunityPosts } from './services/community';
 import {
   DEFAULT_REWARD_CONFIG,
@@ -836,15 +837,20 @@ export function OppDetail() {
 export function Feed() {
   const { userProfile, user } = useAuth();
   const [posts, setPosts] = useState<CommunityPost[]>([]);
+  const [filterCategory, setFilterCategory] = useState<string>('All');
+  const [refreshing, setRefreshing] = useState(false);
   const userName = userProfile?.displayName || user?.displayName || 'Aarav Mehta';
   const pixels = userProfile?.pixels ?? 4820;
 
   const loadFeed = async () => {
+    setRefreshing(true);
     try {
       const data = await getCommunityPosts(false);
       setPosts(data);
     } catch (err) {
       console.error('Failed to load feed:', err);
+    } finally {
+      setRefreshing(false);
     }
   };
 
@@ -853,6 +859,32 @@ export function Feed() {
   }, []);
 
   const allPosts = posts.length > 0 ? posts : initialPosts;
+
+  // Filter posts based on active category
+  const filteredPosts = allPosts.filter((p: any) => {
+    if (filterCategory === 'All') return true;
+    if (filterCategory === 'Upcoming Hackathons') {
+      return (
+        p.category === 'Upcoming Hackathon' ||
+        p.category === 'Hackathon' ||
+        (typeof p.text === 'string' && p.text.includes('🚀 Upcoming Hackathon:'))
+      );
+    }
+    if (filterCategory === 'Experiences') return p.category === 'Experience';
+    if (filterCategory === 'Achievements') return p.category === 'Achievement';
+    if (filterCategory === 'Ideas') return p.category === 'Idea';
+    if (filterCategory === 'Learnings') return p.category === 'Learning';
+    return true;
+  });
+
+  const feedCategories = [
+    { id: 'All', label: 'All Updates' },
+    { id: 'Upcoming Hackathons', label: '🚀 Hackathons' },
+    { id: 'Experiences', label: '✨ Experiences' },
+    { id: 'Achievements', label: '🏆 Achievements' },
+    { id: 'Ideas', label: '💡 Ideas' },
+    { id: 'Learnings', label: '🧠 Learnings' }
+  ];
 
   return (
     <W className="grid gap-6 py-8 lg:grid-cols-[270px_1fr_310px]">
@@ -911,23 +943,72 @@ export function Feed() {
 
       {/* Main Feed Section */}
       <section className="space-y-4">
+        {/* Category Filters Bar */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-2xl bg-[#141418]/80 backdrop-blur-xl border border-white/10 p-3.5 text-white">
+          <div className="flex items-center gap-2">
+            <span className="font-['Outfit',sans-serif] font-bold text-sm text-white">Community Feed</span>
+            <span className="text-[11px] px-2 py-0.5 rounded-full bg-white/8 text-[#DFB76C] font-semibold border border-white/8">
+              {filteredPosts.length} posts
+            </span>
+          </div>
+
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
+            {feedCategories.map((fc) => (
+              <button
+                key={fc.id}
+                onClick={() => setFilterCategory(fc.id)}
+                className={`rounded-full px-3 py-1 text-xs font-semibold whitespace-nowrap transition cursor-pointer ${
+                  filterCategory === fc.id
+                    ? 'bg-[#C5A059]/20 text-[#DFB76C] border border-[#C5A059]/40 shadow-xs'
+                    : 'bg-white/6 text-zinc-400 hover:text-white hover:bg-white/10 border border-transparent'
+                }`}
+              >
+                {fc.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
         <Composer onPostCreated={(newPost) => setPosts(prev => [newPost, ...prev])} />
-        {allPosts.map((p: any) => (
-          <PostCard
-            key={p.id}
-            p={p}
-            onPostDeleted={(id) => setPosts(prev => prev.filter(item => String(item.id) !== String(id)))}
-          />
-        ))}
+
+        {filteredPosts.length > 0 ? (
+          filteredPosts.map((p: any) => (
+            <PostCard
+              key={p.id}
+              p={p}
+              onPostDeleted={(id) => setPosts(prev => prev.filter(item => String(item.id) !== String(id)))}
+            />
+          ))
+        ) : (
+          <Card className="text-center py-12 text-[#8C827A] text-xs pm-cream-card">
+            <p className="font-semibold text-sm text-[#16171D] mb-1">No posts in this category yet</p>
+            <p className="mb-4">Be the first to share an update, or browse all community updates.</p>
+            <button
+              onClick={() => setFilterCategory('All')}
+              className="px-4 py-2 rounded-full bg-[#16171D] hover:bg-[#25262E] text-xs font-bold text-[#DFB76C] transition cursor-pointer"
+            >
+              View All Posts
+            </button>
+          </Card>
+        )}
       </section>
 
       {/* Right Sidebar: Deadlines & Trending */}
       <aside className="hidden space-y-4 lg:block">
         <Card className="p-5 pm-cream-card">
-          <h3 className="mb-3.5 text-xs font-bold uppercase tracking-wider text-[#8C827A] flex items-center gap-1.5">
-            <Clock size={13} className="text-[#C5A059]" />
-            Closing Soon
-          </h3>
+          <div className="flex items-center justify-between mb-3.5">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-[#8C827A] flex items-center gap-1.5">
+              <Clock size={13} className="text-[#C5A059]" />
+              Closing Soon
+            </h3>
+            <button
+              onClick={loadFeed}
+              disabled={refreshing}
+              className="text-[11px] text-[#C5A059] hover:underline font-semibold cursor-pointer disabled:opacity-50"
+            >
+              {refreshing ? 'Refreshing...' : 'Refresh Feed'}
+            </button>
+          </div>
           <div className="space-y-2.5">
             {[...initialOpps]
               .sort((a, b) => a.days - b.days)
@@ -976,6 +1057,50 @@ export function Profile() {
       }
     }
   }, [searchParams]);
+
+  // Target User check for viewing other user's public profile
+  const targetUid = searchParams.get('uid');
+  const targetName = searchParams.get('name');
+  const isViewingOtherUser = Boolean(targetUid && (!user || targetUid !== user.uid));
+
+  const [otherUser, setOtherUser] = useState<UserType | null>(null);
+  const [otherUserPosts, setOtherUserPosts] = useState<CommunityPost[]>([]);
+  const [loadingOtherUser, setLoadingOtherUser] = useState(false);
+
+  useEffect(() => {
+    if (isViewingOtherUser && targetUid) {
+      setLoadingOtherUser(true);
+      Promise.all([
+        getUserProfile(targetUid),
+        getUserCommunityPosts(targetUid)
+      ])
+        .then(([profile, posts]) => {
+          setOtherUser(profile);
+          if (posts && posts.length > 0) {
+            setOtherUserPosts(posts);
+          } else {
+            const matched = initialPosts.filter(
+              (p: any) =>
+                p.userId === targetUid ||
+                (targetName && p.user.toLowerCase() === targetName.toLowerCase())
+            );
+            setOtherUserPosts((matched as any) || []);
+          }
+        })
+        .catch((err) => {
+          console.error('Failed to load user profile or posts:', err);
+          const matched = initialPosts.filter(
+            (p: any) =>
+              p.userId === targetUid ||
+              (targetName && p.user.toLowerCase() === targetName.toLowerCase())
+          );
+          setOtherUserPosts((matched as any) || []);
+        })
+        .finally(() => {
+          setLoadingOtherUser(false);
+        });
+    }
+  }, [isViewingOtherUser, targetUid, targetName]);
 
   // Academic / Profile settings edit state
   const [nameInput, setNameInput] = useState(userProfile?.displayName || '');
@@ -1110,6 +1235,159 @@ export function Profile() {
       setChangingPwd(false);
     }
   };
+
+  if (isViewingOtherUser) {
+    const profileName = otherUser?.displayName || targetName || 'Community Member';
+    const profileRole = otherUser?.role === 'admin' ? 'Community Admin' : 'Pixel Member';
+    const profileBio = otherUser?.bio || 'Active hackathon participant and builder in the Pixel Minds community.';
+    const profilePixels = otherUser?.pixels || 1200;
+
+    return (
+      <W className="max-w-4xl py-8 space-y-6">
+        {/* Navigation Back Link */}
+        <div className="flex items-center justify-between">
+          <Link
+            to="/feed"
+            className="inline-flex items-center gap-2 rounded-xl bg-black/[0.04] hover:bg-black/[0.08] px-4 py-2 text-xs font-bold text-[#16171D] transition"
+          >
+            <ArrowLeft size={14} />
+            <span>Back to Community Feed</span>
+          </Link>
+          <span className="text-xs text-[#7D756C] font-semibold">Community Member Profile</span>
+        </div>
+
+        {/* Public Profile Card */}
+        <Card className="overflow-hidden pm-cream-card">
+          <div className="h-36 bg-[#121317] relative overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-r from-[#C5A059]/20 via-[#DFB76C]/10 to-transparent" />
+            <svg
+              aria-hidden="true"
+              className="absolute -right-8 -top-8 h-48 w-48 text-[#DFB76C]/20"
+              viewBox="0 0 100 100"
+              fill="none"
+            >
+              <circle cx="50" cy="50" r="45" stroke="currentColor" strokeWidth="0.8" strokeDasharray="2 2" />
+              <circle cx="50" cy="50" r="30" stroke="currentColor" strokeWidth="1" />
+              <path d="M5 50 Q 50 10 95 50" stroke="currentColor" strokeWidth="0.8" />
+            </svg>
+          </div>
+
+          <div className="px-6 pb-6">
+            <div className="-mt-14 w-fit rounded-full ring-4 ring-[#FAF7F2] shadow-lg">
+              <Avatar
+                name={profileName}
+                photoURL={otherUser?.photoURL || undefined}
+                size={84}
+              />
+            </div>
+
+            <div className="mt-4 flex flex-wrap items-start justify-between gap-4">
+              <div>
+                <div className="flex items-center gap-2.5">
+                  <h1 className="font-['Outfit',sans-serif] text-2xl font-extrabold text-[#16171D] sm:text-3xl">
+                    {profileName}
+                  </h1>
+                  <span className="px-2.5 py-0.5 rounded-full bg-[#16171D] text-[#DFB76C] text-xs font-bold">
+                    {profileRole}
+                  </span>
+                </div>
+                <p className="mt-1.5 max-w-xl text-xs leading-relaxed text-[#5D574F]">
+                  {profileBio}
+                </p>
+
+                {(otherUser?.college || otherUser?.course || otherUser?.branch) && (
+                  <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-[#4A453F]">
+                    {otherUser.college && (
+                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/[0.04] text-[#2D2A26] font-medium border border-black/6">
+                        <Building2 size={12} className="text-[#C5A059]" />
+                        {otherUser.college}
+                      </span>
+                    )}
+                    {(otherUser.course || otherUser.branch) && (
+                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/[0.04] text-[#2D2A26] font-medium border border-black/6">
+                        <GraduationCap size={12} className="text-[#C5A059]" />
+                        {[otherUser.course, otherUser.branch].filter(Boolean).join(' - ')}
+                      </span>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              <div className="flex items-center gap-2">
+                <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-black/[0.04] text-[#16171D] text-xs font-bold border border-black/6">
+                  <Sparkles size={12} className="text-[#C5A059]" />
+                  {rankOf(profilePixels)}
+                </span>
+              </div>
+            </div>
+
+            <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3">
+              <div className="rounded-2xl bg-white/70 p-3.5 border border-black/6 shadow-xs">
+                <p className="text-[10px] font-bold text-[#8C827A] uppercase tracking-wider">Pixel Balance</p>
+                <p className="font-['Outfit',sans-serif] font-extrabold text-[#C5A059] text-lg mt-0.5">{profilePixels} Pixels</p>
+              </div>
+              <div className="rounded-2xl bg-white/70 p-3.5 border border-black/6 shadow-xs">
+                <p className="text-[10px] font-bold text-[#8C827A] uppercase tracking-wider">Posts Shared</p>
+                <p className="font-['Outfit',sans-serif] font-extrabold text-[#16171D] text-lg mt-0.5">{otherUserPosts.length}</p>
+              </div>
+              <div className="rounded-2xl bg-white/70 p-3.5 border border-black/6 shadow-xs">
+                <p className="text-[10px] font-bold text-[#8C827A] uppercase tracking-wider">Community Standing</p>
+                <p className="font-['Outfit',sans-serif] font-extrabold text-[#16171D] text-lg mt-0.5">Verified Builder</p>
+              </div>
+            </div>
+          </div>
+        </Card>
+
+        {/* User's Posts Section */}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between pb-2 border-b border-black/8">
+            <h2 className="font-['Outfit',sans-serif] text-lg font-bold text-[#16171D] flex items-center gap-2">
+              <span>Posts by {profileName}</span>
+              <span className="text-xs px-2.5 py-0.5 rounded-full bg-black/[0.05] text-[#5D574F] font-semibold">
+                {otherUserPosts.length}
+              </span>
+            </h2>
+          </div>
+
+          {loadingOtherUser ? (
+            <Card className="text-center py-12 text-[#8C827A] text-xs pm-cream-card">
+              Loading posts...
+            </Card>
+          ) : otherUserPosts.length > 0 ? (
+            otherUserPosts.map((p) => (
+              <PostCard
+                key={p.id}
+                p={p}
+                onPostDeleted={(id) => setOtherUserPosts((prev) => prev.filter((item) => String(item.id) !== String(id)))}
+              />
+            ))
+          ) : (
+            <Card className="text-center py-12 text-[#8C827A] text-xs pm-cream-card">
+              <p className="font-semibold text-sm text-[#16171D] mb-1">No posts shared yet</p>
+              <p>This user hasn't published any updates or hackathons to the community feed yet.</p>
+            </Card>
+          )}
+        </div>
+      </W>
+    );
+  }
+
+  if (!user && !isViewingOtherUser) {
+    return (
+      <W className="max-w-md py-16 text-center space-y-4">
+        <Card className="p-8 pm-cream-card">
+          <div className="w-16 h-16 rounded-full bg-[#16171D] text-[#DFB76C] grid place-items-center mx-auto mb-4 shadow-md">
+            <Sparkles size={28} />
+          </div>
+          <h2 className="font-['Outfit',sans-serif] text-xl font-bold text-[#16171D]">Sign in to View Your Profile</h2>
+          <p className="text-xs text-[#7D756C] mt-1 mb-6 leading-relaxed">
+            Sign in to track your opportunity submissions, review feedback, earn Pixels, and view your community contributions.
+          </p>
+          <BtnLink to="/login" v="gold" className="w-full">Sign In to Pixel Minds</BtnLink>
+        </Card>
+      </W>
+    );
+  }
 
   return (
     <W className="max-w-4xl py-8 space-y-7">
