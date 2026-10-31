@@ -4,9 +4,7 @@ import { Link, NavLink, Outlet, useNavigate, useLocation } from 'react-router-do
 import {
   ArrowLeft,
   Home,
-  Compass,
   PlusSquare,
-  Users,
   User,
   Search,
   Heart,
@@ -21,7 +19,6 @@ import {
   Briefcase,
   Send,
   ExternalLink,
-  LogIn,
   LogOut,
   ShieldCheck,
   Trash2,
@@ -31,14 +28,20 @@ import {
   Lightbulb,
   BookOpen,
   PenSquare,
-  MessageSquare
+  MessageSquare,
+  BarChart2,
+  Sun,
+  FileText,
+  Bell,
+  ChevronRight,
+  Code2,
+  GraduationCap
 } from 'lucide-react';
 import { opps } from './data';
 import type { Opp } from './data';
 import { AnnouncementModal } from './components/AnnouncementModal';
 import { grad, getCategoryMeta } from './utils/meta';
 import { useApp } from './store';
-import { PixelMark } from './components/PixelMark';
 import { NotificationBell } from './components/NotificationBell';
 import { useAuth } from './contexts/AuthContext';
 import { createCommunityPost, updateCommunityPost, deleteCommunityPost, formatTimeAgo } from './services/community';
@@ -46,16 +49,18 @@ import { createCommunityPost, updateCommunityPost, deleteCommunityPost, formatTi
 const cls = (v: string, c = '') =>
   `inline-flex items-center justify-center gap-2 min-h-10 rounded-full px-5 py-2.5 text-xs font-bold transition cursor-pointer select-none ${
     v === 'primary'
-      ? 'bg-[#141418] text-white hover:bg-[#1E1E24] border border-white/15 shadow-[0_10px_25px_-8px_rgba(0,0,0,0.5),0_0_15px_-4px_rgba(212,175,55,0.25)] hover:shadow-[0_14px_28px_-6px_rgba(0,0,0,0.6),0_0_20px_-3px_rgba(212,175,55,0.35)] active:scale-[0.98]'
-      : v === 'cream'
-      ? 'bg-[#F7F4EE] hover:bg-white text-zinc-950 border border-zinc-300/80 shadow-xs hover:shadow active:scale-[0.98]'
+      ? 'bg-[#112240] text-white hover:bg-[#1a335e] border border-transparent shadow-md shadow-slate-900/10 active:scale-[0.98]'
+      : v === 'blue'
+      ? 'bg-[#2563eb] text-white hover:bg-[#1d4ed8] shadow-md shadow-blue-500/20 active:scale-[0.98]'
+      : v === 'cream' || v === 'outline'
+      ? 'bg-white/80 hover:bg-white text-[#0e1b33] border border-white/90 shadow-xs active:scale-[0.98]'
       : v === 'gold'
-      ? 'bg-gradient-to-r from-[#C5A059] to-[#DFB76C] text-zinc-950 border border-[#EBD197]/40 shadow-[0_6px_20px_rgba(212,175,55,0.35)] hover:brightness-105 active:scale-[0.98]'
+      ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md active:scale-[0.98]'
       : v === 'ghost'
-      ? 'text-zinc-300 hover:text-white hover:bg-white/8 active:bg-white/12'
+      ? 'text-slate-600 hover:text-[#0e1b33] hover:bg-white/60 active:bg-white/80'
       : v === 'danger'
-      ? 'bg-rose-500/15 text-rose-300 hover:bg-rose-500/25 border border-rose-500/30 active:scale-[0.98]'
-      : 'border border-white/15 bg-white/8 text-zinc-200 hover:bg-white/14 hover:text-white active:scale-[0.98]'
+      ? 'bg-rose-50 text-rose-600 hover:bg-rose-100 border border-rose-200 active:scale-[0.98]'
+      : 'border border-white/80 bg-white/70 text-slate-700 hover:bg-white hover:text-[#0e1b33] active:scale-[0.98]'
   } ${c}`;
 
 export const Btn: FC<any> = ({ children, v = 'primary', className = '', ...p }) => (
@@ -77,14 +82,14 @@ export const Card: FC<{ children: ReactNode; className?: string; onClick?: () =>
 }) => (
   <div
     onClick={onClick}
-    className={`rounded-3xl border border-zinc-200/80 bg-white/90 shadow-sm backdrop-blur-md ${className}`}
+    className={`rounded-3xl border border-white/85 bg-white/75 shadow-sm backdrop-blur-xl text-[#0e1b33] ${className}`}
   >
     {children}
   </div>
 );
 
 export const Badge: FC<{ children: ReactNode; className?: string }> = ({ children, className = '' }) => (
-  <span className={`inline-flex items-center rounded-lg bg-zinc-900/5 px-2.5 py-0.5 text-xs font-semibold text-zinc-700 border border-zinc-200/80 ${className}`}>
+  <span className={`inline-flex items-center rounded-lg bg-blue-50/80 px-2.5 py-0.5 text-xs font-semibold text-blue-700 border border-blue-200/80 ${className}`}>
     {children}
   </span>
 );
@@ -101,7 +106,7 @@ export const Avatar: FC<{ name?: string; size?: number; photoURL?: string; class
         src={photoURL}
         alt={name}
         style={{ width: size, height: size }}
-        className={`rounded-full object-cover shrink-0 ring-1 ring-white/20 shadow-xs ${className}`}
+        className={`rounded-full object-cover shrink-0 ring-2 ring-white/60 shadow-xs ${className}`}
       />
     );
   }
@@ -114,7 +119,7 @@ export const Avatar: FC<{ name?: string; size?: number; photoURL?: string; class
   return (
     <div
       style={{ width: size, height: size, fontSize: Math.max(11, Math.floor(size * 0.36)) }}
-      className={`grid shrink-0 place-items-center rounded-full bg-gradient-to-br from-[#24242C] to-[#141418] font-bold text-[#DFB76C] border border-[#DFB76C]/30 ring-1 ring-white/10 select-none shadow-xs ${className}`}
+      className={`grid shrink-0 place-items-center rounded-full bg-gradient-to-br from-[#2563eb] to-[#1d4ed8] font-bold text-white shadow-xs select-none ring-2 ring-white/60 ${className}`}
     >
       {initials || 'PM'}
     </div>
@@ -123,10 +128,12 @@ export const Avatar: FC<{ name?: string; size?: number; photoURL?: string; class
 
 export const Logo: FC<{ light?: boolean }> = ({ light = false }) => (
   <Link to="/" className="flex items-center gap-2.5 font-bold tracking-tight group shrink-0">
-    <span className="p-1.5 rounded-xl bg-white/10 border border-white/15 transition group-hover:scale-105 group-hover:border-[#DFB76C]/40 shadow-xs">
-      <PixelMark s={6} />
-    </span>
-    <span className={`text-base font-extrabold tracking-tight ${light ? 'text-zinc-900' : 'text-white'}`}>
+    <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-md shadow-blue-500/20 text-white shrink-0 group-hover:scale-105 transition-transform">
+      <div className="h-4.5 w-4.5 rounded-md border-2 border-white flex items-center justify-center bg-blue-500/40">
+        <div className="h-1.5 w-1.5 rounded-xs bg-white" />
+      </div>
+    </div>
+    <span className={`text-base font-extrabold tracking-tight ${light ? 'text-white' : 'text-[#0e1b33]'}`}>
       Pixel Minds
     </span>
   </Link>
@@ -141,9 +148,7 @@ export const BackBtn: FC<{ light?: boolean }> = ({ light = false }) => {
       aria-label="Go back"
       onClick={() => (loc.key === 'default' ? nav('/') : nav(-1))}
       className={`grid h-9 w-9 shrink-0 place-items-center rounded-full transition ${
-        light 
-          ? 'text-zinc-700 hover:bg-zinc-200/70 active:bg-zinc-300' 
-          : 'text-zinc-300 hover:bg-white/10 hover:text-white active:bg-white/15'
+        light ? 'text-white hover:bg-white/20' : 'text-slate-700 hover:bg-white/80 active:bg-white border border-transparent hover:border-white/80'
       }`}
     >
       <ArrowLeft size={18} />
@@ -154,13 +159,13 @@ export const BackBtn: FC<{ light?: boolean }> = ({ light = false }) => {
 export const SectionTitle: FC<{ t: string; to?: string; subtitle?: string; light?: boolean }> = ({ t, to, subtitle, light = false }) => (
   <div className="mb-5 flex items-end justify-between">
     <div>
-      <h2 className={`text-2xl font-extrabold tracking-tight sm:text-3xl ${light ? 'text-white' : 'text-zinc-950'}`}>
+      <h2 className={`text-xl sm:text-2xl font-black tracking-tight ${light ? 'text-white' : 'text-[#0e1b33]'}`}>
         {t}
       </h2>
-      {subtitle && <p className="text-xs sm:text-sm text-zinc-500 mt-1">{subtitle}</p>}
+      {subtitle && <p className="text-xs sm:text-sm text-slate-500 mt-1">{subtitle}</p>}
     </div>
     {to && (
-      <Link to={to} className="inline-flex items-center gap-1 text-xs font-bold text-[#C5A059] hover:text-[#DFB76C] transition">
+      <Link to={to} className="inline-flex items-center gap-1 text-xs font-bold text-blue-600 hover:text-blue-700 transition bg-white/60 hover:bg-white px-3 py-1.5 rounded-full border border-white/80 shadow-2xs">
         <span>View all</span>
         <ArrowRight size={13} />
       </Link>
@@ -177,107 +182,191 @@ export const ReferBtn: FC<{ title: string; path: string; className?: string }> =
   return (
     <button
       onClick={() => share(title, path)}
-      className={`inline-flex min-h-9 items-center justify-center gap-1.5 rounded-xl bg-[#FAF7F0] hover:bg-white text-zinc-950 px-4 py-2 text-xs font-bold shadow-xs transition hover:shadow active:scale-[0.98] ${className}`}
+      className={`inline-flex min-h-9 items-center justify-center gap-1.5 rounded-xl bg-white/80 hover:bg-white text-[#0e1b33] border border-white/90 px-3.5 py-2 text-xs font-bold shadow-xs transition hover:shadow active:scale-[0.98] ${className}`}
     >
-      <Users size={14} className="text-[#997D46]" />
+      <Share2 size={13} className="text-[#2563eb]" />
       <span>Refer &amp; Earn</span>
-      <span className="rounded-md bg-zinc-900/10 px-1.5 py-0.5 text-[10px] font-extrabold text-zinc-800">+25</span>
+      <span className="rounded-md bg-blue-500/10 px-1.5 py-0.5 text-[10px] font-extrabold text-blue-700">+25</span>
     </button>
   );
 };
 
-export const OppCard: FC<{ o: Opp }> = ({ o }) => {
+export const OppCard: FC<{ o: Opp; variant?: 'light' | 'dark' }> = ({ o, variant = 'light' }) => {
   const { saved, toggle } = useApp();
-  const catMeta = getCategoryMeta(o.cat);
-  const Ic = catMeta.Icon;
   const on = saved.includes(String(o.id));
 
-  return (
-    <div className="group relative flex flex-col rounded-3xl bg-gradient-to-b from-[#1C1C22]/95 to-[#121216]/98 backdrop-blur-2xl border border-white/12 p-5 sm:p-6 shadow-[0_20px_45px_-15px_rgba(0,0,0,0.5)] transition-all duration-300 hover:-translate-y-1.5 hover:shadow-[0_25px_50px_-12px_rgba(0,0,0,0.6),0_0_25px_-5px_rgba(212,175,55,0.18)] hover:border-[#C5A059]/40 overflow-hidden text-white">
-      {/* Decorative Celestial Orbital Curved Lines Art in Background */}
-      <svg
-        className="pointer-events-none absolute -right-10 -top-10 h-44 w-44 text-white/5 opacity-60 transition-opacity duration-300 group-hover:opacity-100 group-hover:text-[#DFB76C]/10"
-        viewBox="0 0 160 160"
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg"
-      >
-        <circle cx="80" cy="80" r="70" stroke="currentColor" strokeWidth="1" strokeDasharray="3 3" />
-        <ellipse cx="80" cy="80" rx="75" ry="35" stroke="currentColor" strokeWidth="1.2" transform="rotate(-30 80 80)" />
-        <circle cx="80" cy="80" r="45" stroke="currentColor" strokeWidth="0.8" />
-        <circle cx="125" cy="50" r="3" fill="#DFB76C" opacity="0.8" />
-      </svg>
-
-      {/* Top Header: Category Tag & Save Bookmark */}
-      <div className="relative z-10 flex items-center justify-between gap-2 mb-4">
-        <span className="inline-flex items-center gap-1.5 rounded-full bg-white/8 border border-white/12 px-3 py-1 text-xs font-semibold text-zinc-200 backdrop-blur-md">
-          <Ic size={13} className="text-[#DFB76C]" />
-          <span>{o.cat}</span>
-        </span>
-        <button
-          aria-label={on ? 'Unsave' : 'Save'}
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            toggle(String(o.id));
-          }}
-          className="grid h-8 w-8 place-items-center rounded-full bg-white/8 hover:bg-white/16 border border-white/12 text-zinc-300 hover:text-white transition shadow-xs cursor-pointer"
-        >
-          <Bookmark size={15} fill={on ? '#DFB76C' : 'none'} className={on ? 'text-[#DFB76C]' : 'text-zinc-300'} />
-        </button>
-      </div>
-
-      {/* Title & Organization */}
-      <div className="relative z-10 mb-3">
-        <Link to={'/opportunities/' + o.id}>
-          <h3 className="font-bold text-lg sm:text-xl text-white tracking-tight leading-snug line-clamp-1 group-hover:text-[#DFB76C] transition">
-            {o.title}
-          </h3>
-        </Link>
-        <p className="text-xs text-zinc-400 font-medium mt-1 line-clamp-1">{o.org}</p>
-      </div>
-
-      {/* Metadata Badges with Champagne Gold Icons */}
-      <div className="relative z-10 flex flex-wrap gap-x-3 gap-y-1.5 text-xs text-zinc-300 mb-4">
-        <span className="flex items-center gap-1.5">
-          <Calendar size={13} className="text-[#DFB76C]" />
-          <span>{o.deadline} {o.days ? `· ${o.days}d left` : ''}</span>
-        </span>
-        <span className="flex items-center gap-1.5">
-          <MapPin size={13} className="text-[#DFB76C]" />
-          <span>{o.mode}</span>
-        </span>
-        {o.prize && (
-          <span className="flex items-center gap-1.5 font-semibold text-zinc-200">
-            <Trophy size={13} className="text-[#DFB76C]" />
-            <span>{o.prize}</span>
+  // Dark variant matching reference "Featured Opportunity"
+  if (variant === 'dark') {
+    return (
+      <div className="group relative flex flex-col justify-between rounded-3xl pm-dark-featured p-5 sm:p-6 text-white shadow-xl transition-all duration-300 hover:shadow-2xl overflow-hidden min-h-[310px]">
+        {/* Top Header */}
+        <div className="flex items-center justify-between gap-2 mb-3">
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 border border-white/15 px-3 py-1 text-xs font-semibold text-blue-200">
+            <Code2 size={13} className="text-blue-300" />
+            <span>{o.cat}</span>
           </span>
-        )}
+          <button
+            aria-label={on ? 'Unsave' : 'Save'}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              toggle(String(o.id));
+            }}
+            className="grid h-8 w-8 place-items-center rounded-full bg-white/10 hover:bg-white/20 border border-white/15 text-white transition shadow-xs cursor-pointer"
+          >
+            <Bookmark size={15} fill={on ? '#60a5fa' : 'none'} className={on ? 'text-blue-400' : 'text-white'} />
+          </button>
+        </div>
+
+        {/* Title & Organization */}
+        <div className="mb-3">
+          <Link to={'/opportunities/' + o.id}>
+            <h3 className="font-extrabold text-lg sm:text-xl text-white tracking-tight leading-snug line-clamp-1 group-hover:text-blue-300 transition">
+              {o.title}
+            </h3>
+          </Link>
+          <p className="text-xs text-blue-200/70 font-medium mt-1 line-clamp-1">{o.org}</p>
+        </div>
+
+        {/* Metadata */}
+        <div className="flex flex-wrap items-center gap-x-3.5 gap-y-1.5 text-xs text-blue-100/90 mb-3.5">
+          <span className="flex items-center gap-1.5">
+            <Calendar size={13} className="text-blue-300" />
+            <span>{o.deadline} {o.days ? `· ${o.days}d left` : ''}</span>
+          </span>
+          <span className="flex items-center gap-1.5">
+            <MapPin size={13} className="text-blue-300" />
+            <span>{o.mode}</span>
+          </span>
+          {o.prize && (
+            <span className="flex items-center gap-1.5 font-bold text-amber-300">
+              <Trophy size={13} className="text-amber-400" />
+              <span>{o.prize}</span>
+            </span>
+          )}
+        </div>
+
+        {/* Skill Tags */}
+        <div className="flex flex-wrap gap-1.5 mb-5">
+          {o.skills.slice(0, 3).map((s) => (
+            <span key={s} className="rounded-lg bg-white/10 border border-white/10 px-2.5 py-0.5 text-[11px] font-medium text-blue-100">
+              {s}
+            </span>
+          ))}
+          {o.skills.length > 3 && (
+            <span className="text-[10px] text-blue-200/60 font-medium self-center">
+              +{o.skills.length - 3}
+            </span>
+          )}
+        </div>
+
+        {/* Action Buttons */}
+        <div className="grid grid-cols-2 gap-2 pt-3 border-t border-white/10 mt-auto">
+          <Link
+            to={'/opportunities/' + o.id}
+            className="inline-flex min-h-9 items-center justify-center gap-1.5 rounded-xl bg-[#1d3557] hover:bg-[#274775] border border-white/15 px-3 py-2 text-xs font-bold text-white transition active:scale-[0.98]"
+          >
+            <span>View Details</span>
+            <ArrowRight size={13} />
+          </Link>
+          <button
+            onClick={() => {
+              if (navigator.share) {
+                navigator.share({ title: o.title, url: window.location.origin + '/opportunities/' + o.id }).catch(() => {});
+              } else {
+                navigator.clipboard.writeText(window.location.origin + '/opportunities/' + o.id);
+              }
+            }}
+            className="inline-flex min-h-9 items-center justify-center gap-1.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/15 px-3 py-2 text-xs font-semibold text-white transition active:scale-[0.98]"
+          >
+            <Share2 size={13} />
+            <span>Refer &amp; Earn</span>
+            <span className="rounded-md bg-white/15 px-1 py-0.2 text-[10px] font-extrabold text-blue-200">+25</span>
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Light variant matching reference "Trending Opportunities"
+  const isHackathon = o.cat.toLowerCase().includes('hackathon');
+  const isInternship = o.cat.toLowerCase().includes('internship');
+  const isScholarship = o.cat.toLowerCase().includes('scholarship');
+
+  return (
+    <div className="group relative flex flex-col justify-between rounded-[22px] pm-glass-card p-4 sm:p-5 transition-all duration-300 hover:-translate-y-1 hover:shadow-lg border border-white/85 text-[#0e1b33] overflow-hidden min-h-[220px]">
+      <div>
+        {/* Top Header: Category Tag & Save Bookmark */}
+        <div className="flex items-center justify-between gap-2 mb-2.5">
+          {isHackathon ? (
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-blue-100/90 border border-blue-200/80 px-2.5 py-0.5 text-xs font-bold text-blue-700">
+              <Code2 size={12} className="text-blue-600" />
+              <span>Hackathon</span>
+            </span>
+          ) : isInternship ? (
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-100/90 border border-emerald-200/80 px-2.5 py-0.5 text-xs font-bold text-emerald-700">
+              <Briefcase size={12} className="text-emerald-600" />
+              <span>Internship</span>
+            </span>
+          ) : isScholarship ? (
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-100/90 border border-amber-200/80 px-2.5 py-0.5 text-xs font-bold text-amber-700">
+              <GraduationCap size={12} className="text-amber-600" />
+              <span>Scholarship</span>
+            </span>
+          ) : (
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-100/90 border border-slate-200/80 px-2.5 py-0.5 text-xs font-bold text-slate-700">
+              <span>{o.cat}</span>
+            </span>
+          )}
+
+          <button
+            aria-label={on ? 'Unsave' : 'Save'}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              toggle(String(o.id));
+            }}
+            className="grid h-7 w-7 place-items-center rounded-full bg-white/70 hover:bg-white border border-white/80 text-slate-500 hover:text-blue-600 transition shadow-2xs cursor-pointer"
+          >
+            <Bookmark size={14} fill={on ? '#2563eb' : 'none'} className={on ? 'text-blue-600' : 'text-slate-500'} />
+          </button>
+        </div>
+
+        {/* Title & Organization */}
+        <div className="mb-2">
+          <Link to={'/opportunities/' + o.id}>
+            <h3 className="font-extrabold text-sm sm:text-base text-[#0e1b33] tracking-tight leading-snug line-clamp-1 group-hover:text-blue-600 transition">
+              {o.title}
+            </h3>
+          </Link>
+          <p className="text-xs text-slate-500 font-medium mt-0.5 line-clamp-1">{o.org}</p>
+        </div>
+
+        {/* Metadata */}
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-600 mt-2">
+          <span className="flex items-center gap-1.5">
+            <Calendar size={13} className="text-slate-400" />
+            <span>{o.deadline} {o.days ? `· ${o.days}d left` : ''}</span>
+          </span>
+          <span className="flex items-center gap-1.5">
+            <MapPin size={13} className="text-slate-400" />
+            <span>{o.mode}</span>
+          </span>
+        </div>
       </div>
 
       {/* Skill Tags */}
-      <div className="relative z-10 flex flex-wrap gap-1.5 mb-5">
+      <div className="flex flex-wrap gap-1.5 mt-3 pt-2.5 border-t border-slate-200/50">
         {o.skills.slice(0, 3).map((s) => (
-          <span key={s} className="rounded-lg bg-white/6 border border-white/10 px-2.5 py-0.5 text-[11px] font-medium text-zinc-300">
+          <span key={s} className="rounded-lg bg-white/90 border border-white/90 px-2.5 py-0.5 text-[11px] font-semibold text-slate-700 shadow-2xs">
             {s}
           </span>
         ))}
         {o.skills.length > 3 && (
-          <span className="text-[10px] text-zinc-400 font-medium self-center">
+          <span className="text-[10px] text-slate-400 font-medium self-center">
             +{o.skills.length - 3}
           </span>
         )}
-      </div>
-
-      {/* Action Buttons: View Details & Refer Button */}
-      <div className="relative z-10 mt-auto grid grid-cols-2 gap-2 pt-3 border-t border-white/10">
-        <Link
-          to={'/opportunities/' + o.id}
-          className="inline-flex min-h-9 items-center justify-center gap-1.5 rounded-xl bg-white/10 hover:bg-white/18 border border-white/12 px-3 py-2 text-xs font-semibold text-white transition active:scale-[0.98]"
-        >
-          <span>View Details</span>
-          <ArrowRight size={13} />
-        </Link>
-        <ReferBtn title={o.title} path={'/opportunities/' + o.id} className="!py-2 !text-xs !min-h-9" />
       </div>
     </div>
   );
@@ -416,16 +505,16 @@ export const Composer: FC<{ onPostCreated?: (p: any) => void }> = ({ onPostCreat
   ];
 
   return (
-    <div className="rounded-3xl bg-[#141418]/92 backdrop-blur-2xl border border-white/12 p-5 sm:p-6 shadow-xl text-white">
+    <div className="rounded-3xl pm-glass-card border border-white/90 p-5 sm:p-6 shadow-sm text-[#0e1b33]">
       {/* Mode Selector Tabs */}
-      <div className="flex border-b border-white/10 pb-3 mb-4 gap-2 overflow-x-auto">
+      <div className="flex border-b border-slate-200/60 pb-3 mb-4 gap-2 overflow-x-auto">
         <button
           type="button"
           onClick={() => setComposerMode('update')}
           className={`inline-flex items-center gap-2 rounded-xl px-3.5 py-2 text-xs font-bold transition cursor-pointer shrink-0 ${
             composerMode === 'update'
-              ? 'bg-white/12 text-[#DFB76C] shadow-xs border border-[#C5A059]/40'
-              : 'text-zinc-400 hover:text-white hover:bg-white/6'
+              ? 'bg-blue-100/90 text-[#2563eb] shadow-xs border border-blue-200/80'
+              : 'text-slate-600 hover:text-[#0e1b33] hover:bg-white/60'
           }`}
         >
           <PenSquare size={14} />
@@ -437,8 +526,8 @@ export const Composer: FC<{ onPostCreated?: (p: any) => void }> = ({ onPostCreat
           onClick={() => setComposerMode('hackathon')}
           className={`inline-flex items-center gap-2 rounded-xl px-3.5 py-2 text-xs font-bold transition cursor-pointer shrink-0 ${
             composerMode === 'hackathon'
-              ? 'bg-white/12 text-[#DFB76C] shadow-xs border border-[#C5A059]/40'
-              : 'text-zinc-400 hover:text-white hover:bg-white/6'
+              ? 'bg-blue-100/90 text-[#2563eb] shadow-xs border border-blue-200/80'
+              : 'text-slate-600 hover:text-[#0e1b33] hover:bg-white/60'
           }`}
         >
           <Rocket size={14} />
@@ -449,8 +538,8 @@ export const Composer: FC<{ onPostCreated?: (p: any) => void }> = ({ onPostCreat
       {composerMode === 'hackathon' ? (
         /* ================= Share Upcoming Hackathon Form ================= */
         <div className="space-y-3.5">
-          <div className="rounded-2xl bg-[#C5A059]/10 border border-[#C5A059]/25 p-3.5 text-xs text-[#EAD5AB] flex items-start gap-2.5">
-            <Rocket size={16} className="text-[#DFB76C] shrink-0 mt-0.5" />
+          <div className="rounded-2xl bg-blue-50/80 border border-blue-200/80 p-3.5 text-xs text-blue-900 flex items-start gap-2.5">
+            <Rocket size={16} className="text-[#2563eb] shrink-0 mt-0.5" />
             <p>
               Know an upcoming hackathon? Share the details with the community to help fellow developers discover opportunities and form teams!
             </p>
@@ -458,57 +547,57 @@ export const Composer: FC<{ onPostCreated?: (p: any) => void }> = ({ onPostCreat
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="block text-[11px] font-semibold text-zinc-300 mb-1">
-                Hackathon Name <span className="text-[#DFB76C]">*</span>
+              <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                Hackathon Name <span className="text-[#2563eb]">*</span>
               </label>
               <input
                 value={hName}
                 onChange={(e) => setHName(e.target.value)}
                 placeholder="e.g. Smart India Hackathon 2026"
-                className="w-full rounded-xl bg-white/6 border border-white/12 px-3.5 py-2 text-xs text-white outline-none focus:border-[#C5A059]/70 placeholder-zinc-500 transition"
+                className="w-full rounded-xl bg-white/70 border border-white/90 px-3.5 py-2 text-xs text-[#0e1b33] outline-none focus:border-blue-500 focus:bg-white placeholder-slate-400 transition"
               />
             </div>
 
             <div>
-              <label className="block text-[11px] font-semibold text-zinc-300 mb-1">
-                Date / Schedule <span className="text-[#DFB76C]">*</span>
+              <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                Date / Schedule <span className="text-[#2563eb]">*</span>
               </label>
               <input
                 value={hDate}
                 onChange={(e) => setHDate(e.target.value)}
                 placeholder="e.g. Nov 14 - 16, 2026 (or Deadline)"
-                className="w-full rounded-xl bg-white/6 border border-white/12 px-3.5 py-2 text-xs text-white outline-none focus:border-[#C5A059]/70 placeholder-zinc-500 transition"
+                className="w-full rounded-xl bg-white/70 border border-white/90 px-3.5 py-2 text-xs text-[#0e1b33] outline-none focus:border-blue-500 focus:bg-white placeholder-slate-400 transition"
               />
             </div>
 
             <div>
-              <label className="block text-[11px] font-semibold text-zinc-300 mb-1">
-                Location & Mode <span className="text-[#DFB76C]">*</span>
+              <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                Location & Mode <span className="text-[#2563eb]">*</span>
               </label>
               <input
                 value={hLoc}
                 onChange={(e) => setHLoc(e.target.value)}
                 placeholder="e.g. Online (Virtual), Bengaluru, or Hybrid"
-                className="w-full rounded-xl bg-white/6 border border-white/12 px-3.5 py-2 text-xs text-white outline-none focus:border-[#C5A059]/70 placeholder-zinc-500 transition"
+                className="w-full rounded-xl bg-white/70 border border-white/90 px-3.5 py-2 text-xs text-[#0e1b33] outline-none focus:border-blue-500 focus:bg-white placeholder-slate-400 transition"
               />
             </div>
 
             <div>
-              <label className="block text-[11px] font-semibold text-zinc-300 mb-1">
-                Registration Link (URL) <span className="text-[#DFB76C]">*</span>
+              <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                Registration Link (URL) <span className="text-[#2563eb]">*</span>
               </label>
               <input
                 value={hLink}
                 onChange={(e) => setHLink(e.target.value)}
                 type="url"
                 placeholder="https://hackathon-website.com/register"
-                className="w-full rounded-xl bg-white/6 border border-white/12 px-3.5 py-2 text-xs text-white outline-none focus:border-[#C5A059]/70 placeholder-zinc-500 transition"
+                className="w-full rounded-xl bg-white/70 border border-white/90 px-3.5 py-2 text-xs text-[#0e1b33] outline-none focus:border-blue-500 focus:bg-white placeholder-slate-400 transition"
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-[11px] font-semibold text-zinc-300 mb-1">
+            <label className="block text-[11px] font-bold text-slate-700 mb-1">
               Description & Highlights (Prizes, tracks, or teammate callouts)
             </label>
             <textarea
@@ -516,16 +605,16 @@ export const Composer: FC<{ onPostCreated?: (p: any) => void }> = ({ onPostCreat
               onChange={(e) => setHDesc(e.target.value)}
               rows={2}
               placeholder="Themes (AI, Web3, CleanTech), eligibility, cash prizes, or if you are looking to assemble a squad..."
-              className="w-full resize-none rounded-xl bg-white/6 border border-white/12 px-3.5 py-2.5 text-xs text-white outline-none focus:border-[#C5A059]/70 placeholder-zinc-500 transition"
+              className="w-full resize-none rounded-xl bg-white/70 border border-white/90 px-3.5 py-2.5 text-xs text-[#0e1b33] outline-none focus:border-blue-500 focus:bg-white placeholder-slate-400 transition"
             />
           </div>
 
-          <div className="flex items-center justify-between pt-2 border-t border-white/10">
-            <span className="text-[11px] text-zinc-400">Strictly text-only · No uploads needed</span>
+          <div className="flex items-center justify-between pt-2 border-t border-slate-200/60">
+            <span className="text-[11px] text-slate-500">Strictly text-only · No uploads needed</span>
             <button
               disabled={!hName.trim() || !hDate.trim() || !hLoc.trim() || !hLink.trim() || posting}
               onClick={postHackathon}
-              className="inline-flex items-center gap-1.5 rounded-full bg-gradient-to-r from-[#C5A059] to-[#DFB76C] px-5 py-2 text-xs font-bold text-zinc-950 shadow-sm hover:brightness-105 disabled:opacity-40 transition active:scale-[0.98] cursor-pointer"
+              className="inline-flex items-center gap-1.5 rounded-full bg-[#112240] hover:bg-[#1a335e] px-5 py-2 text-xs font-bold text-white shadow-sm disabled:opacity-40 transition active:scale-[0.98] cursor-pointer"
             >
               <Rocket size={13} />
               <span>{posting ? 'Publishing...' : 'Share Hackathon'}</span>
@@ -537,7 +626,7 @@ export const Composer: FC<{ onPostCreated?: (p: any) => void }> = ({ onPostCreat
         <div className="space-y-3.5">
           {/* Category Tag Selection */}
           <div className="flex flex-wrap items-center gap-1.5">
-            <span className="text-[11px] font-semibold text-zinc-400 mr-1">Topic:</span>
+            <span className="text-[11px] font-bold text-slate-600 mr-1">Topic:</span>
             {categories.map((c) => {
               const IconComp = c.icon;
               const isSelected = selectedCategory === c.id;
@@ -546,13 +635,13 @@ export const Composer: FC<{ onPostCreated?: (p: any) => void }> = ({ onPostCreat
                   key={c.id}
                   type="button"
                   onClick={() => setSelectedCategory(c.id)}
-                  className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold transition cursor-pointer ${
+                  className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold transition cursor-pointer ${
                     isSelected
-                      ? 'bg-[#C5A059]/20 text-[#DFB76C] border border-[#C5A059]/50 shadow-xs'
-                      : 'bg-white/6 text-zinc-400 border border-white/8 hover:text-white hover:bg-white/10'
+                      ? 'bg-blue-100/90 text-[#2563eb] border border-blue-200/80 shadow-xs'
+                      : 'bg-white/60 text-slate-600 border border-white/80 hover:text-[#0e1b33] hover:bg-white'
                   }`}
                 >
-                  <IconComp size={11} className={isSelected ? 'text-[#DFB76C]' : 'text-zinc-400'} />
+                  <IconComp size={11} className={isSelected ? 'text-[#2563eb]' : 'text-slate-500'} />
                   <span>{c.label}</span>
                 </button>
               );
@@ -578,9 +667,9 @@ export const Composer: FC<{ onPostCreated?: (p: any) => void }> = ({ onPostCreat
                     ? 'Share key tech insights, architecture tips, or lessons from your builds...'
                     : 'Share an update or ask a question to fellow builders...'
                 }
-                className="w-full resize-none rounded-2xl bg-white/6 border border-white/10 px-4 py-2.5 text-xs sm:text-sm outline-none focus:border-[#C5A059]/70 text-white placeholder:text-zinc-500 transition leading-relaxed"
+                className="w-full resize-none rounded-2xl bg-white/70 border border-white/90 px-4 py-2.5 text-xs sm:text-sm outline-none focus:border-blue-500 focus:bg-white text-[#0e1b33] placeholder:text-slate-400 transition leading-relaxed shadow-2xs"
               />
-              <div className="flex justify-end text-[10px] text-zinc-500">
+              <div className="flex justify-end text-[10px] text-slate-400">
                 {t.length}/1200
               </div>
             </div>
@@ -590,11 +679,11 @@ export const Composer: FC<{ onPostCreated?: (p: any) => void }> = ({ onPostCreat
             <select
               value={oid}
               onChange={(e) => setOid(e.target.value)}
-              className="w-full rounded-xl bg-white/8 border border-white/12 px-3 py-2 text-xs text-zinc-200 outline-none focus:border-[#C5A059]/70"
+              className="w-full rounded-xl bg-white/70 border border-white/90 px-3 py-2 text-xs text-[#0e1b33] outline-none focus:border-blue-500"
             >
-              <option value={0} className="bg-zinc-900 text-zinc-300">Attach {pick === 'event' ? 'an event' : 'an opportunity'}…</option>
+              <option value={0} className="bg-white text-slate-700">Attach {pick === 'event' ? 'an event' : 'an opportunity'}…</option>
               {list.map((o) => (
-                <option key={o.id} value={o.id} className="bg-zinc-900 text-zinc-200">
+                <option key={o.id} value={o.id} className="bg-white text-[#0e1b33]">
                   {o.title} ({o.org})
                 </option>
               ))}
@@ -607,23 +696,23 @@ export const Composer: FC<{ onPostCreated?: (p: any) => void }> = ({ onPostCreat
               onChange={(e) => setLnk(e.target.value)}
               type="url"
               placeholder="https://example.com/github-repo-or-resource"
-              className="w-full rounded-xl bg-white/8 border border-white/12 px-3.5 py-2 text-xs outline-none focus:border-[#C5A059]/70 text-white placeholder-zinc-500"
+              className="w-full rounded-xl bg-white/70 border border-white/90 px-3.5 py-2 text-xs outline-none focus:border-blue-500 text-[#0e1b33] placeholder-slate-400"
             />
           )}
 
-          <div className="flex items-center justify-between border-t border-white/10 pt-3">
-            <div className="flex gap-1.5 text-zinc-400">
+          <div className="flex items-center justify-between border-t border-slate-200/60 pt-3">
+            <div className="flex gap-1.5 text-slate-500">
               {tools.map(([I, l, f, a]) => (
                 <button
                   key={l}
                   onClick={f}
                   className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition cursor-pointer ${
                     a
-                      ? 'bg-[#C5A059]/20 text-[#DFB76C] border border-[#C5A059]/40'
-                      : 'text-zinc-400 hover:text-white hover:bg-white/8'
+                      ? 'bg-blue-100/90 text-[#2563eb] border border-blue-200/80'
+                      : 'text-slate-600 hover:text-[#0e1b33] hover:bg-white/70'
                   }`}
                 >
-                  <I size={13} className={a ? 'text-[#DFB76C]' : 'text-zinc-400'} />
+                  <I size={13} className={a ? 'text-[#2563eb]' : 'text-slate-500'} />
                   <span className="hidden sm:inline">{l}</span>
                 </button>
               ))}
@@ -631,7 +720,7 @@ export const Composer: FC<{ onPostCreated?: (p: any) => void }> = ({ onPostCreat
             <button
               disabled={!t.trim() || posting}
               onClick={postStandard}
-              className="inline-flex items-center gap-1.5 rounded-full bg-gradient-to-r from-[#C5A059] to-[#DFB76C] px-5 py-2 text-xs font-bold text-zinc-950 shadow-sm hover:brightness-105 disabled:opacity-40 transition active:scale-[0.98] cursor-pointer"
+              className="inline-flex items-center gap-1.5 rounded-full bg-[#112240] hover:bg-[#1a335e] px-5 py-2 text-xs font-bold text-white shadow-sm disabled:opacity-40 transition active:scale-[0.98] cursor-pointer"
             >
               <Send size={13} />
               <span>{posting ? 'Posting...' : 'Post'}</span>
@@ -797,16 +886,16 @@ export const PostCard: FC<{ p: any; onPostDeleted?: (id: string) => void }> = ({
     : `/profile?name=${encodeURIComponent(p.user)}`;
 
   return (
-    <div id={String(p.id)} className="rounded-3xl bg-[#141418]/90 backdrop-blur-2xl border border-white/12 p-5 sm:p-6 shadow-xl text-white transition hover:border-white/20">
+    <div id={String(p.id)} className="rounded-3xl pm-glass-card border border-white/90 p-5 sm:p-6 shadow-sm text-[#0e1b33] transition hover:shadow-md">
       {/* Author Header */}
       <div className="flex items-center justify-between gap-3">
         <Link to={authorProfileUrl} className="flex items-center gap-3 min-w-0 group cursor-pointer">
           <Avatar name={p.user} size={40} />
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-bold text-white truncate group-hover:text-[#DFB76C] transition">
+            <p className="text-sm font-bold text-[#0e1b33] truncate group-hover:text-blue-600 transition">
               {p.user}
             </p>
-            <p className="text-xs text-zinc-400">
+            <p className="text-xs text-slate-500">
               {p.role} · {p.time}
             </p>
           </div>
@@ -815,7 +904,7 @@ export const PostCard: FC<{ p: any; onPostDeleted?: (id: string) => void }> = ({
           <button
             onClick={handleDelete}
             title="Delete post"
-            className="text-zinc-400 hover:text-rose-400 transition p-1.5 rounded-lg hover:bg-rose-500/10 cursor-pointer"
+            className="text-slate-400 hover:text-rose-600 transition p-1.5 rounded-lg hover:bg-rose-50 cursor-pointer"
           >
             <Trash2 size={15} />
           </button>
@@ -825,9 +914,9 @@ export const PostCard: FC<{ p: any; onPostDeleted?: (id: string) => void }> = ({
       {/* Post Content */}
       {isHackathon && parsedDetails ? (
         /* Structured Hackathon Highlight Box */
-        <div className="mt-3.5 rounded-2xl bg-gradient-to-br from-[#1C1D24] to-[#121317] border border-[#C5A059]/35 p-4 sm:p-5 space-y-3.5 shadow-lg">
+        <div className="mt-3.5 rounded-2xl bg-white/80 border border-blue-200/80 p-4 sm:p-5 space-y-3.5 shadow-xs">
           <div className="flex items-center justify-between gap-2">
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#C5A059]/20 text-[#DFB76C] text-[11px] font-bold border border-[#C5A059]/40 uppercase tracking-wider">
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-blue-100 text-blue-700 text-[11px] font-bold border border-blue-200 uppercase tracking-wider">
               <Rocket size={12} />
               Upcoming Hackathon
             </span>
@@ -836,7 +925,7 @@ export const PostCard: FC<{ p: any; onPostDeleted?: (id: string) => void }> = ({
                 href={parsedDetails.link}
                 target="_blank"
                 rel="noreferrer"
-                className="inline-flex items-center gap-1 text-xs font-semibold text-[#DFB76C] hover:underline"
+                className="inline-flex items-center gap-1 text-xs font-semibold text-blue-600 hover:underline"
               >
                 <span>Registration Link</span>
                 <ExternalLink size={12} />
@@ -845,19 +934,19 @@ export const PostCard: FC<{ p: any; onPostDeleted?: (id: string) => void }> = ({
           </div>
 
           <div>
-            <h3 className="font-['Outfit',sans-serif] text-base sm:text-lg font-bold text-white">
+            <h3 className="font-['Outfit',sans-serif] text-base sm:text-lg font-bold text-[#0e1b33]">
               {parsedDetails.name}
             </h3>
             <div className="mt-2.5 flex flex-wrap items-center gap-2 text-xs">
               {parsedDetails.date && (
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-black/40 text-zinc-300 border border-white/10">
-                  <Calendar size={12} className="text-[#C5A059]" />
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-blue-50/80 text-blue-900 border border-blue-200/60 font-medium">
+                  <Calendar size={12} className="text-blue-600" />
                   {parsedDetails.date}
                 </span>
               )}
               {parsedDetails.location && (
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-black/40 text-zinc-300 border border-white/10">
-                  <MapPin size={12} className="text-[#DFB76C]" />
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-blue-50/80 text-blue-900 border border-blue-200/60 font-medium">
+                  <MapPin size={12} className="text-blue-600" />
                   {parsedDetails.location}
                 </span>
               )}
@@ -865,7 +954,7 @@ export const PostCard: FC<{ p: any; onPostDeleted?: (id: string) => void }> = ({
           </div>
 
           {parsedDetails.description && (
-            <p className="text-xs sm:text-sm leading-relaxed text-zinc-200 whitespace-pre-wrap">
+            <p className="text-xs sm:text-sm leading-relaxed text-slate-700 whitespace-pre-wrap">
               {parsedDetails.description}
             </p>
           )}
@@ -876,7 +965,7 @@ export const PostCard: FC<{ p: any; onPostDeleted?: (id: string) => void }> = ({
                 href={parsedDetails.link}
                 target="_blank"
                 rel="noreferrer"
-                className="inline-flex items-center justify-center gap-2 w-full sm:w-auto rounded-xl bg-gradient-to-r from-[#C5A059] to-[#DFB76C] px-5 py-2.5 text-xs font-bold text-zinc-950 shadow-md hover:brightness-105 active:scale-[0.98] transition cursor-pointer"
+                className="inline-flex items-center justify-center gap-2 w-full sm:w-auto rounded-xl bg-[#112240] hover:bg-[#1a335e] px-5 py-2.5 text-xs font-bold text-white shadow-sm active:scale-[0.98] transition cursor-pointer"
               >
                 <span>Register for Hackathon</span>
                 <ExternalLink size={13} />
@@ -892,14 +981,14 @@ export const PostCard: FC<{ p: any; onPostDeleted?: (id: string) => void }> = ({
               <span
                 className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold border ${
                   p.category === 'Achievement'
-                    ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30'
+                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
                     : p.category === 'Idea'
-                    ? 'bg-cyan-500/15 text-cyan-300 border-cyan-500/30'
+                    ? 'bg-sky-50 text-sky-700 border-sky-200'
                     : p.category === 'Learning'
-                    ? 'bg-violet-500/15 text-violet-300 border-violet-500/30'
+                    ? 'bg-purple-50 text-purple-700 border-purple-200'
                     : p.category === 'Experience'
-                    ? 'bg-blue-500/15 text-blue-300 border-blue-500/30'
-                    : 'bg-white/8 text-zinc-300 border-white/10'
+                    ? 'bg-blue-50 text-blue-700 border-blue-200'
+                    : 'bg-slate-100 text-slate-700 border-slate-200'
                 }`}
               >
                 {p.category === 'Achievement' && <Trophy size={11} />}
@@ -911,14 +1000,14 @@ export const PostCard: FC<{ p: any; onPostDeleted?: (id: string) => void }> = ({
             </div>
           )}
 
-          <p className="text-xs sm:text-sm leading-relaxed text-zinc-200 whitespace-pre-wrap">{p.text}</p>
+          <p className="text-xs sm:text-sm leading-relaxed text-slate-700 whitespace-pre-wrap">{p.text}</p>
 
           {p.link && (
             <a
               href={p.link}
               target="_blank"
               rel="noreferrer"
-              className="mt-2.5 inline-flex items-center gap-1.5 truncate text-xs font-semibold text-[#DFB76C] hover:underline"
+              className="mt-2.5 inline-flex items-center gap-1.5 truncate text-xs font-semibold text-blue-600 hover:underline"
             >
               <ExternalLink size={13} />
               <span>{p.link}</span>
@@ -929,25 +1018,25 @@ export const PostCard: FC<{ p: any; onPostDeleted?: (id: string) => void }> = ({
 
       {/* Attached Opportunity Preview (if linked) */}
       {o && (
-        <div className="mt-3.5 flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 p-3">
+        <div className="mt-3.5 flex items-center gap-3 rounded-2xl border border-white/90 bg-white/70 p-3">
           <div
             style={{ background: grad(o.cat) }}
             className="grid h-12 w-12 shrink-0 place-items-center rounded-xl text-white shadow-xs border border-white/10"
           >
             {(() => {
               const Ic = getCategoryMeta(o.cat).Icon;
-              return <Ic size={20} className="text-[#DFB76C]" />;
+              return <Ic size={20} className="text-white" />;
             })()}
           </div>
           <div className="min-w-0 flex-1">
-            <p className="truncate text-xs font-bold text-white">{o.title}</p>
-            <p className="text-[11px] text-zinc-400">
+            <p className="truncate text-xs font-bold text-[#0e1b33]">{o.title}</p>
+            <p className="text-[11px] text-slate-500">
               {o.org} · {o.deadline} · {o.mode}
             </p>
           </div>
           <Link
             to={'/opportunities/' + o.id}
-            className="rounded-lg bg-white/10 hover:bg-white/18 text-white px-3 py-1.5 text-xs font-semibold border border-white/10"
+            className="rounded-lg bg-white hover:bg-slate-50 text-[#0e1b33] px-3 py-1.5 text-xs font-semibold border border-slate-200 shadow-2xs"
           >
             View
           </Link>
@@ -955,11 +1044,11 @@ export const PostCard: FC<{ p: any; onPostDeleted?: (id: string) => void }> = ({
       )}
 
       {/* Interaction Bar */}
-      <div className="mt-4 flex justify-between border-t border-white/10 pt-2.5 text-xs text-zinc-300">
+      <div className="mt-4 flex justify-between border-t border-slate-200/60 pt-2.5 text-xs text-slate-600">
         <button
           onClick={handleLike}
-          className={`flex items-center gap-1.5 rounded-full px-3 py-1 hover:bg-white/8 transition cursor-pointer ${
-            liked ? 'text-rose-400 font-semibold' : ''
+          className={`flex items-center gap-1.5 rounded-full px-3 py-1 hover:bg-white/70 transition cursor-pointer ${
+            liked ? 'text-rose-600 font-semibold' : ''
           }`}
           title={liked ? 'Unlike' : 'Like'}
         >
@@ -969,8 +1058,8 @@ export const PostCard: FC<{ p: any; onPostDeleted?: (id: string) => void }> = ({
 
         <button
           onClick={() => setOpen(!open)}
-          className={`flex items-center gap-1.5 rounded-full px-3 py-1 hover:bg-white/8 transition cursor-pointer ${
-            open ? 'text-[#DFB76C] font-semibold' : ''
+          className={`flex items-center gap-1.5 rounded-full px-3 py-1 hover:bg-white/70 transition cursor-pointer ${
+            open ? 'text-blue-600 font-semibold' : ''
           }`}
           title="Comments"
         >
@@ -980,7 +1069,7 @@ export const PostCard: FC<{ p: any; onPostDeleted?: (id: string) => void }> = ({
 
         <button
           onClick={handleShare}
-          className="flex items-center gap-1.5 rounded-full px-3 py-1 hover:bg-white/8 transition cursor-pointer"
+          className="flex items-center gap-1.5 rounded-full px-3 py-1 hover:bg-white/70 transition cursor-pointer"
           title="Share"
         >
           <Share2 size={15} />
@@ -989,8 +1078,8 @@ export const PostCard: FC<{ p: any; onPostDeleted?: (id: string) => void }> = ({
 
         <button
           onClick={() => toggle('p' + p.id)}
-          className={`flex items-center gap-1.5 rounded-full px-3 py-1 hover:bg-white/8 transition cursor-pointer ${
-            isSaved ? 'text-[#DFB76C] font-semibold' : ''
+          className={`flex items-center gap-1.5 rounded-full px-3 py-1 hover:bg-white/70 transition cursor-pointer ${
+            isSaved ? 'text-blue-600 font-semibold' : ''
           }`}
           title={isSaved ? 'Unsave' : 'Save'}
         >
@@ -1001,7 +1090,7 @@ export const PostCard: FC<{ p: any; onPostDeleted?: (id: string) => void }> = ({
 
       {/* Expandable Comments Section */}
       {open && (
-        <div className="mt-3.5 space-y-3 border-t border-white/10 pt-3">
+        <div className="mt-3.5 space-y-3 border-t border-slate-200/60 pt-3">
           <div className="space-y-2.5 max-h-72 overflow-y-auto pr-1">
             {comments.length > 0 ? (
               comments.map((c) => {
@@ -1013,27 +1102,27 @@ export const PostCard: FC<{ p: any; onPostDeleted?: (id: string) => void }> = ({
                     <Link to={commentUserUrl}>
                       <Avatar name={c.authorName} size={28} />
                     </Link>
-                    <div className="rounded-2xl bg-white/6 px-3.5 py-2.5 text-xs text-zinc-200 border border-white/8 flex-1">
+                    <div className="rounded-2xl bg-white/80 px-3.5 py-2.5 text-xs text-slate-700 border border-white/90 flex-1">
                       <div className="flex items-center justify-between gap-2 mb-1">
                         <Link
                           to={commentUserUrl}
-                          className="font-bold text-white hover:text-[#DFB76C] transition"
+                          className="font-bold text-[#0e1b33] hover:text-blue-600 transition"
                         >
                           {c.authorName}
                         </Link>
                         {c.createdAt && (
-                          <span className="text-[10px] text-zinc-500">
+                          <span className="text-[10px] text-slate-400">
                             {formatTimeAgo(c.createdAt)}
                           </span>
                         )}
                       </div>
-                      <p className="leading-relaxed text-zinc-300">{c.text}</p>
+                      <p className="leading-relaxed text-slate-600">{c.text}</p>
                     </div>
                   </div>
                 );
               })
             ) : (
-              <p className="text-xs text-zinc-500 py-1 text-center">No comments yet. Start the conversation!</p>
+              <p className="text-xs text-slate-400 py-1 text-center">No comments yet. Start the conversation!</p>
             )}
           </div>
 
@@ -1044,12 +1133,12 @@ export const PostCard: FC<{ p: any; onPostDeleted?: (id: string) => void }> = ({
               onChange={(e) => setCommentText(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleSendComment()}
               placeholder="Add a comment to this discussion…"
-              className="min-w-0 flex-1 rounded-full bg-white/6 border border-white/12 px-4 py-2 text-xs outline-none focus:border-[#C5A059]/70 text-white placeholder-zinc-500"
+              className="min-w-0 flex-1 rounded-full bg-white/70 border border-white/90 px-4 py-2 text-xs outline-none focus:border-blue-500 text-[#0e1b33] placeholder-slate-400"
             />
             <button
               onClick={handleSendComment}
               disabled={!commentText.trim() || submittingComment}
-              className="grid h-8 w-8 place-items-center rounded-full bg-[#DFB76C] text-zinc-950 font-bold disabled:opacity-40 transition cursor-pointer shrink-0 hover:brightness-105"
+              className="grid h-8 w-8 place-items-center rounded-full bg-[#112240] text-white font-bold disabled:opacity-40 transition cursor-pointer shrink-0 hover:bg-[#1a335e]"
               title="Post comment"
             >
               <Send size={13} />
@@ -1063,9 +1152,9 @@ export const PostCard: FC<{ p: any; onPostDeleted?: (id: string) => void }> = ({
 
 const navItems = [
   ['/', 'Home', Home],
-  ['/opportunities', 'Explore', Compass],
+  ['/opportunities', 'Explore', Trophy],
   ['/submit', 'Create', PlusSquare],
-  ['/feed', 'Feed', Users],
+  ['/feed', 'Feed', MessageSquare],
   ['/profile', 'Profile', User]
 ] as const;
 
@@ -1095,103 +1184,195 @@ export const Layout: FC = () => {
     }
   };
 
-  return (
-    <div className="min-h-screen pm-bg-canvas flex flex-col pb-[calc(4.5rem+env(safe-area-inset-bottom))] md:pb-0 relative overflow-x-hidden selection:bg-[#C5A059]/30 selection:text-zinc-900">
-      {/* Subtle Warm Champagne Glow Orbs in Background */}
-      <div className="pointer-events-none fixed -top-40 right-1/4 h-[550px] w-[550px] rounded-full bg-gradient-to-b from-[#DFB76C]/12 via-[#C5A059]/5 to-transparent blur-3xl -z-10" />
-      <div className="pointer-events-none fixed -bottom-32 left-10 h-[500px] w-[500px] rounded-full bg-gradient-to-t from-[#C5A059]/10 to-transparent blur-3xl -z-10" />
+  const displayName = userProfile?.displayName || user?.displayName || 'Nithin N';
 
+  return (
+    <div className="min-h-screen pm-bg-canvas flex flex-col lg:flex-row p-3 sm:p-5 lg:p-6 gap-5 selection:bg-blue-500/20 selection:text-[#0e1b33]">
       {/* Active Announcement Popup Modal */}
       <AnnouncementModal />
 
-      {/* Floating Dark Glassmorphism Header Capsule */}
-      <div className="sticky top-3 sm:top-4 z-40 max-w-7xl mx-auto px-3 sm:px-6 w-full">
-        <header className="flex h-14 sm:h-16 items-center justify-between gap-3 px-3.5 sm:px-5 rounded-2xl md:rounded-full bg-[#121317]/92 backdrop-blur-2xl border border-white/12 shadow-[0_20px_45px_-15px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.12)] text-white">
-          <div className="flex items-center gap-3 shrink-0">
-            <BackBtn />
+      {/* ============================================================ */}
+      {/* 1. LEFT VERTICAL SIDEBAR (Desktop matching reference image) */}
+      {/* ============================================================ */}
+      <aside className="hidden lg:flex w-60 xl:w-64 shrink-0 flex-col justify-between pm-glass rounded-[28px] p-5 sticky top-6 self-start min-h-[calc(100vh-3rem)] shadow-lg shadow-blue-900/5">
+        <div>
+          {/* Logo */}
+          <div className="px-2 pt-1 pb-6">
             <Logo />
           </div>
 
-          {/* Desktop Search Bar embedded inside Dark Capsule */}
-          <form onSubmit={handleSearchSubmit} className="relative hidden max-w-xs flex-1 md:block mx-2">
-            <Search size={15} className="absolute left-3.5 top-3 text-zinc-400" />
+          {/* Navigation Links */}
+          <nav className="space-y-1.5">
+            {[
+              { to: '/', label: 'Home', icon: Home, exact: true },
+              { to: '/opportunities', label: 'Opportunities', icon: Trophy, exact: false },
+              { to: '/feed', label: 'Feed', icon: MessageSquare, exact: false },
+              { to: '/leaderboard', label: 'Leaderboard', icon: BarChart2, exact: false },
+            ].map((item) => (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                end={item.exact}
+                className={({ isActive }) =>
+                  `flex items-center gap-3 px-3.5 py-2.5 rounded-2xl text-xs font-bold transition ${
+                    isActive
+                      ? 'bg-blue-100/90 text-[#2563eb] shadow-xs'
+                      : 'text-slate-600 hover:text-[#0e1b33] hover:bg-white/70'
+                  }`
+                }
+              >
+                {({ isActive }) => (
+                  <>
+                    <item.icon size={17} className={isActive ? 'text-[#2563eb]' : 'text-slate-500'} />
+                    <span>{item.label}</span>
+                  </>
+                )}
+              </NavLink>
+            ))}
+
+            <div className="my-3 h-px bg-slate-300/40" />
+
+            {[
+              { to: '/opportunities?saved=true', label: 'Bookmarks', icon: Bookmark },
+              { to: '/profile?tab=applications', label: 'My Applications', icon: FileText },
+              { to: '/profile?tab=notifications', label: 'Notifications', icon: Bell },
+            ].map((item) => (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                className={({ isActive }) =>
+                  `flex items-center gap-3 px-3.5 py-2.5 rounded-2xl text-xs font-semibold transition ${
+                    isActive
+                      ? 'bg-blue-100/90 text-[#2563eb] font-bold shadow-xs'
+                      : 'text-slate-600 hover:text-[#0e1b33] hover:bg-white/70'
+                  }`
+                }
+              >
+                {({ isActive }) => (
+                  <>
+                    <item.icon size={17} className={isActive ? 'text-[#2563eb]' : 'text-slate-500'} />
+                    <span>{item.label}</span>
+                  </>
+                )}
+              </NavLink>
+            ))}
+
+            {userProfile?.role === 'admin' && (
+              <NavLink
+                to="/admin"
+                className={({ isActive }) =>
+                  `flex items-center gap-3 px-3.5 py-2.5 rounded-2xl text-xs font-bold transition mt-2 ${
+                    isActive
+                      ? 'bg-blue-100/90 text-[#2563eb] shadow-xs'
+                      : 'text-slate-600 hover:text-[#0e1b33] hover:bg-white/70'
+                  }`
+                }
+              >
+                <ShieldCheck size={17} className="text-blue-600" />
+                <span>Admin Console</span>
+              </NavLink>
+            )}
+          </nav>
+        </div>
+
+        {/* Bottom User Profile Widget */}
+        <div className="pt-4 border-t border-slate-200/50">
+          <Link
+            to={user ? '/profile' : '/login'}
+            className="flex items-center gap-3 p-2 rounded-2xl bg-white/40 hover:bg-white/90 border border-white/60 hover:border-white/90 transition shadow-xs group"
+          >
+            <Avatar
+              name={displayName}
+              photoURL={userProfile?.photoURL || user?.photoURL || undefined}
+              size={36}
+            />
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-bold text-[#0e1b33] truncate group-hover:text-blue-600 transition">
+                {displayName}
+              </p>
+              <p className="text-[11px] text-slate-500 truncate">
+                {user ? 'View Profile' : 'Sign In'}
+              </p>
+            </div>
+            <ChevronRight size={15} className="text-slate-400 group-hover:text-blue-600 group-hover:translate-x-0.5 transition" />
+          </Link>
+        </div>
+      </aside>
+
+      {/* ============================================================ */}
+      {/* 2. RIGHT SECTION: TOP NAV BAR + MAIN CONTENT */}
+      {/* ============================================================ */}
+      <div className="flex-1 min-w-0 flex flex-col gap-5 pb-20 lg:pb-0">
+        {/* Top Navigation Bar */}
+        <header className="pm-glass rounded-[24px] sm:rounded-full px-4 sm:px-6 py-2.5 sm:py-3 flex items-center justify-between gap-3 sm:gap-4 shadow-sm">
+          {/* Mobile Logo on left */}
+          <div className="flex items-center gap-2 lg:hidden">
+            <Logo />
+          </div>
+
+          {/* Search Bar matching reference image */}
+          <form onSubmit={handleSearchSubmit} className="relative flex-1 max-w-xl hidden sm:block">
+            <Search size={16} className="absolute left-4 top-3 text-slate-400" />
             <input
               ref={searchInputRef}
               name="q"
               placeholder="Search opportunities, events, tags..."
-              className="w-full rounded-full bg-white/6 hover:bg-white/10 focus:bg-white/10 border border-white/10 py-2 pl-9 pr-14 text-xs text-white placeholder-zinc-400 outline-none focus:border-[#C5A059]/70 focus:ring-1 focus:ring-[#C5A059]/40 transition"
+              className="w-full rounded-full bg-white/70 hover:bg-white/90 focus:bg-white border border-white/90 py-2.5 pl-11 pr-16 text-xs text-[#0e1b33] placeholder-slate-400 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15 transition shadow-xs"
             />
-            <span className="absolute right-3 top-2.5 rounded bg-white/10 px-1.5 py-0.5 text-[10px] font-semibold text-zinc-300 border border-white/10 select-none">
+            <span className="absolute right-4 top-2.5 rounded-md bg-white/90 px-1.5 py-0.5 text-[10px] font-bold text-slate-400 border border-slate-200 select-none shadow-2xs">
               Ctrl K
             </span>
           </form>
 
-          {/* Desktop Navigation Links & CTAs */}
-          <nav className="ml-auto hidden items-center gap-1.5 md:flex shrink-0">
-            {[
-              ['/opportunities', 'Opportunities'],
-              ['/feed', 'Feed'],
-              ['/leaderboard', 'Leaderboard']
-            ].map(([to, l]) => (
-              <NavLink
-                key={to}
-                to={to}
-                className={({ isActive }) =>
-                  `rounded-full px-3.5 py-2 text-xs font-semibold transition ${
-                    isActive
-                      ? 'bg-white/15 text-white border border-white/10 shadow-xs'
-                      : 'text-zinc-300 hover:text-white hover:bg-white/8'
-                  }`
-                }
-              >
-                {l}
-              </NavLink>
-            ))}
+          {/* Right Controls matching reference: Sun toggle, + Share Opportunity, NotificationBell */}
+          <div className="flex items-center gap-2 sm:gap-3 shrink-0 ml-auto">
+            {/* Sun Theme Toggle */}
+            <button
+              aria-label="Toggle theme"
+              onClick={() => {}}
+              className="grid h-10 w-10 place-items-center rounded-full bg-white/70 hover:bg-white text-slate-700 border border-white/90 shadow-xs transition hover:text-blue-600 cursor-pointer"
+            >
+              <Sun size={18} />
+            </button>
 
-            {/* + Share Opportunity Button */}
-            <Link to="/submit" className="ml-1">
-              <button className="inline-flex items-center gap-1.5 rounded-full bg-white/8 hover:bg-white/16 border border-white/15 px-3.5 py-2 text-xs font-semibold text-white shadow-xs transition hover:border-[#DFB76C]/40 cursor-pointer">
-                <PlusSquare size={14} className="text-[#DFB76C]" />
-                <span>Share Opportunity</span>
+            {/* + Share Opportunity (Navy Blue Button) */}
+            <Link to="/submit">
+              <button className="inline-flex items-center gap-1.5 rounded-full bg-[#112240] hover:bg-[#1a335e] text-white px-4 sm:px-5 py-2.5 text-xs font-bold shadow-md shadow-slate-900/10 transition active:scale-[0.98] cursor-pointer">
+                <span className="text-sm font-black leading-none">+</span>
+                <span className="hidden sm:inline">Share Opportunity</span>
+                <span className="sm:hidden">Share</span>
               </button>
             </Link>
 
-            {/* Admin link if role is admin */}
-            {userProfile?.role === 'admin' && (
-              <Link to="/admin" className="text-zinc-400 hover:text-[#DFB76C] p-2 rounded-full hover:bg-white/8 transition" title="Admin Console">
-                <ShieldCheck size={18} />
-              </Link>
-            )}
-
             {/* Notification Bell */}
-            <NotificationBell className="ml-0.5" />
+            <NotificationBell />
 
-            {/* Auth User Menu or Sign In */}
+            {/* User Avatar Menu */}
             {user ? (
-              <div className="relative ml-1.5">
+              <div className="relative">
                 <button
                   onClick={() => setShowUserMenu(!showUserMenu)}
-                  className="flex items-center gap-2 rounded-full p-0.5 hover:ring-2 hover:ring-[#DFB76C]/40 transition cursor-pointer"
+                  className="flex items-center rounded-full p-0.5 hover:ring-2 hover:ring-blue-500/40 transition cursor-pointer"
                 >
                   <Avatar
-                    name={userProfile?.displayName || user.displayName || 'User'}
+                    name={displayName}
                     photoURL={userProfile?.photoURL || user.photoURL || undefined}
-                    size={34}
+                    size={36}
                   />
                 </button>
 
                 {showUserMenu && (
                   <div
-                    className="absolute right-0 mt-3 w-56 rounded-3xl border border-white/15 bg-[#141418]/95 backdrop-blur-2xl p-2.5 shadow-2xl z-50 text-white pm-in"
+                    className="absolute right-0 mt-3 w-56 rounded-3xl border border-white/90 bg-white/95 backdrop-blur-2xl p-2.5 shadow-2xl z-50 text-[#0e1b33] pm-in"
                     onClick={() => setShowUserMenu(false)}
                   >
-                    <div className="px-3.5 py-2.5 border-b border-white/10">
-                      <p className="text-xs font-bold text-white truncate">
-                        {userProfile?.displayName || user.displayName || 'User'}
+                    <div className="px-3.5 py-2.5 border-b border-slate-200/60">
+                      <p className="text-xs font-bold text-[#0e1b33] truncate">
+                        {displayName}
                       </p>
-                      <p className="text-[11px] text-zinc-400 truncate">{user.email}</p>
-                      <div className="mt-1.5 flex items-center gap-1.5 text-xs font-bold text-[#DFB76C]">
-                        <PixelMark s={4} />
+                      <p className="text-[11px] text-slate-500 truncate">{user.email}</p>
+                      <div className="mt-1.5 flex items-center gap-1.5 text-xs font-bold text-blue-600">
+                        <Sparkles size={13} className="text-blue-500" />
                         <span>{userProfile?.pixels ?? 0} Pixels</span>
                       </div>
                     </div>
@@ -1199,22 +1380,22 @@ export const Layout: FC = () => {
                     <div className="py-1.5">
                       <Link
                         to="/profile"
-                        className="flex items-center gap-2 rounded-xl px-3 py-2 text-xs font-medium text-zinc-300 hover:bg-white/8 hover:text-white transition"
+                        className="flex items-center gap-2 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100/70 hover:text-blue-600 transition"
                       >
-                        <User size={14} className="text-zinc-400" />
+                        <User size={14} className="text-slate-400" />
                         <span>My Profile</span>
                       </Link>
                       <Link
                         to="/leaderboard"
-                        className="flex items-center gap-2 rounded-xl px-3 py-2 text-xs font-medium text-zinc-300 hover:bg-white/8 hover:text-white transition"
+                        className="flex items-center gap-2 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100/70 hover:text-blue-600 transition"
                       >
-                        <Trophy size={14} className="text-[#DFB76C]" />
+                        <Trophy size={14} className="text-amber-500" />
                         <span>Leaderboard &amp; Badges</span>
                       </Link>
                       {userProfile?.role === 'admin' && (
                         <Link
                           to="/admin"
-                          className="flex items-center gap-2 rounded-xl px-3 py-2 text-xs font-medium text-[#DFB76C] hover:bg-white/8 transition"
+                          className="flex items-center gap-2 rounded-xl px-3 py-2 text-xs font-semibold text-blue-600 hover:bg-blue-50 transition"
                         >
                           <ShieldCheck size={14} />
                           <span>Admin Console</span>
@@ -1222,10 +1403,10 @@ export const Layout: FC = () => {
                       )}
                     </div>
 
-                    <div className="border-t border-white/10 pt-1.5">
+                    <div className="border-t border-slate-200/60 pt-1.5">
                       <button
                         onClick={() => logout()}
-                        className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-xs font-medium text-rose-400 hover:bg-rose-500/10 transition cursor-pointer"
+                        className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-xs font-semibold text-rose-600 hover:bg-rose-50 transition cursor-pointer"
                       >
                         <LogOut size={14} />
                         <span>Sign Out</span>
@@ -1235,50 +1416,40 @@ export const Layout: FC = () => {
                 )}
               </div>
             ) : (
-              <div className="flex items-center gap-2 ml-1.5">
+              <div className="flex items-center gap-1.5">
                 <Link
                   to="/login"
-                  className="inline-flex items-center gap-1.5 rounded-full px-3.5 py-2 text-xs font-semibold text-zinc-300 hover:text-white hover:bg-white/8 transition"
+                  className="inline-flex items-center justify-center rounded-full bg-white/70 hover:bg-white text-[#0e1b33] font-bold text-xs px-3.5 py-2 shadow-xs transition active:scale-[0.98]"
                 >
-                  <LogIn size={14} />
-                  <span>Log In</span>
-                </Link>
-                <Link
-                  to="/signup"
-                  className="inline-flex items-center justify-center rounded-full bg-[#F7F4EE] hover:bg-white text-zinc-950 font-bold text-xs px-4 py-2 shadow-xs transition hover:shadow active:scale-[0.98]"
-                >
-                  Join Free
+                  Log In
                 </Link>
               </div>
             )}
-          </nav>
-
-          {/* Mobile Right Icons */}
-          <div className="ml-auto flex items-center gap-2 md:hidden shrink-0">
-            <Link to="/opportunities" aria-label="Search" className="grid h-9 w-9 place-items-center text-zinc-300 hover:text-white">
-              <Search size={18} />
-            </Link>
-            <NotificationBell />
-            <Link to={user ? '/profile' : '/login'}>
-              <Avatar
-                name={userProfile?.displayName || user?.displayName || 'User'}
-                photoURL={userProfile?.photoURL || user?.photoURL || undefined}
-                size={32}
-              />
-            </Link>
           </div>
         </header>
+
+        {/* Mobile Search Bar for small screens */}
+        <div className="sm:hidden">
+          <form onSubmit={handleSearchSubmit} className="relative w-full">
+            <Search size={16} className="absolute left-4 top-3 text-slate-400" />
+            <input
+              name="q"
+              placeholder="Search opportunities, events, tags..."
+              className="w-full rounded-full bg-white/70 hover:bg-white/90 focus:bg-white border border-white/90 py-2.5 pl-11 pr-4 text-xs text-[#0e1b33] placeholder-slate-400 outline-none focus:border-blue-500 shadow-xs"
+            />
+          </form>
+        </div>
+
+        {/* Main Routed Content */}
+        <main className="flex-1 min-w-0">
+          <Outlet />
+        </main>
       </div>
 
-      {/* Main Outlet */}
-      <main className="flex-1">
-        <Outlet />
-      </main>
-
-      {/* Mobile Bottom Navigation Bar in Dark Glassmorphism */}
+      {/* Mobile Bottom Navigation Bar in Frosted Glass */}
       <nav
         style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
-        className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-5 border-t border-white/10 bg-[#121317]/95 backdrop-blur-2xl md:hidden text-zinc-400 shadow-2xl"
+        className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-5 border-t border-white/90 bg-white/85 backdrop-blur-2xl lg:hidden text-slate-500 shadow-xl"
       >
         {navItems.map(([to, l, I]) => (
           <NavLink
@@ -1286,17 +1457,17 @@ export const Layout: FC = () => {
             to={to}
             end={to === '/'}
             className={({ isActive }) =>
-              `flex flex-col items-center justify-center gap-1 py-2.5 text-[10px] font-semibold transition ${
-                isActive ? 'text-[#DFB76C]' : 'text-zinc-400 hover:text-white'
+              `flex flex-col items-center justify-center gap-1 py-2 text-[10px] font-semibold transition ${
+                isActive ? 'text-[#2563eb]' : 'text-slate-500 hover:text-[#0e1b33]'
               }`
             }
           >
             {l === 'Create' ? (
-              <span className="grid h-7 w-7 place-items-center rounded-xl bg-gradient-to-br from-[#DFB76C] to-[#997D46] text-zinc-950 shadow-[0_0_10px_rgba(212,175,55,0.3)]">
+              <span className="grid h-8 w-8 place-items-center rounded-full bg-[#112240] text-white shadow-md shadow-slate-900/15">
                 <I size={16} />
               </span>
             ) : (
-              <I size={19} />
+              <I size={18} />
             )}
             <span>{l}</span>
           </NavLink>

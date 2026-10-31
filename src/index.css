@@ -4,33 +4,24 @@
 @theme {
   --font-sans: "Plus Jakarta Sans", "Inter", system-ui, -apple-system, sans-serif;
   --font-display: "Outfit", "Plus Jakarta Sans", sans-serif;
-  --color-gold-300: #ebd197;
-  --color-gold-400: #dfb76c;
-  --color-gold-500: #c5a059;
-  --color-gold-600: #997d46;
-  --color-cream-50: #fbf9f5;
-  --color-cream-100: #f7f4ee;
-  --color-cream-200: #efeae2;
-  --color-cream-300: #e5ded4;
-  --color-dark-950: #0d0d10;
-  --color-dark-900: #121317;
-  --color-dark-850: #16171d;
-  --color-dark-800: #1c1c24;
-  --color-dark-700: #262732;
+  --color-brand-blue: #2563eb;
+  --color-brand-cyan: #0284c7;
+  --color-brand-navy: #0e1b33;
+  --color-brand-dark: #112240;
+  --color-canvas-light: #c8e0f9;
 }
 
 :root {
   --font-sans: "Plus Jakarta Sans", "Inter", system-ui, -apple-system, sans-serif;
   --font-display: "Outfit", "Plus Jakarta Sans", sans-serif;
-  --pm-bg-cream: #FAF7F2;
-  --pm-gold: #C5A059;
-  --pm-gold-light: #DFB76C;
-  --pm-gold-dark: #997D46;
+  --pm-bg-canvas: #C8E0F9;
+  --pm-navy: #0E1B33;
+  --pm-blue: #2563EB;
 }
 
 body {
-  color: #18181b;
-  background-color: #FAF7F2;
+  color: #0e1b33;
+  background-color: #C8E0F9;
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -39,91 +30,124 @@ body {
   position: relative;
 }
 
-/* Background warm cream texture with subtle warm dot matrix */
-.pm-bg-canvas {
-  background-color: #FAF7F2;
-  background-image: 
-    radial-gradient(rgba(180, 140, 70, 0.13) 1.25px, transparent 1.25px);
-  background-size: 24px 24px;
-}
-
-/* Accessible focus ring with champagne gold */
-:focus-visible {
-  outline: 2px solid #C5A059;
-  outline-offset: 2px;
-}
-
 html {
   -webkit-text-size-adjust: 100%;
   -webkit-tap-highlight-color: transparent;
   scroll-behavior: smooth;
-  background-color: #FAF7F2;
+  background-color: #C8E0F9;
 }
 
-/* Dark Glassmorphism Utilities */
-.pm-dark-glass {
-  background: rgba(18, 19, 23, 0.88);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+/* Accessible focus ring */
+:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+}
+
+/* Ambient Icy Light-Blue Canvas Matching Reference Image */
+.pm-bg-canvas {
+  background-color: #C8E0F9;
+  background-image:
+    radial-gradient(at 8% 12%, rgba(255, 255, 255, 0.8) 0px, transparent 45%),
+    radial-gradient(at 92% 10%, rgba(186, 224, 253, 0.85) 0px, transparent 50%),
+    radial-gradient(at 35% 85%, rgba(190, 225, 255, 0.75) 0px, transparent 55%),
+    radial-gradient(at 85% 90%, rgba(224, 242, 254, 0.85) 0px, transparent 50%),
+    linear-gradient(135deg, #C5DCF7 0%, #D8ECFD 50%, #BDDCF8 100%);
+  background-attachment: fixed;
+}
+
+/* Translucent Frosted Glassmorphism Panels */
+.pm-glass {
+  background: rgba(255, 255, 255, 0.68);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.85);
+  box-shadow: 0 16px 40px -10px rgba(30, 80, 160, 0.08), 0 2px 6px -1px rgba(30, 80, 160, 0.04);
+}
+
+.pm-glass-hover {
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.pm-glass-hover:hover {
+  background: rgba(255, 255, 255, 0.82);
+  border-color: rgba(255, 255, 255, 0.95);
+  transform: translateY(-2px);
+  box-shadow: 0 20px 45px -8px rgba(30, 80, 160, 0.12);
+}
+
+/* Frosted Glass Card */
+.pm-glass-card {
+  background: rgba(255, 255, 255, 0.74);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  box-shadow: 0 14px 35px -8px rgba(30, 80, 160, 0.07);
+}
+
+.pm-glass-card:hover {
+  background: rgba(255, 255, 255, 0.88);
+  border-color: #ffffff;
+  box-shadow: 0 20px 45px -10px rgba(30, 80, 160, 0.12);
+}
+
+/* Dark Navy Glass Card (for Featured Opportunity) */
+.pm-dark-featured {
+  background: linear-gradient(155deg, rgba(19, 34, 56, 0.96) 0%, rgba(13, 23, 39, 0.98) 100%);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow: 0 24px 50px -12px rgba(10, 24, 48, 0.45);
+}
+
+/* Frosted Input */
+.pm-glass-input {
+  background: rgba(255, 255, 255, 0.65);
+  border: 1px solid rgba(255, 255, 255, 0.85);
+  color: #0e1b33;
+  backdrop-filter: blur(16px);
+}
+
+.pm-glass-input:focus {
+  background: rgba(255, 255, 255, 0.92);
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+}
+
+/* Electric Blue Text */
+.pm-blue-text {
+  color: #2563eb;
+}
+
+/* Backward compatibility aliases */
+.pm-cream-card {
+  background: rgba(255, 255, 255, 0.74);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  box-shadow: 0 14px 35px -8px rgba(30, 80, 160, 0.07);
 }
 
 .pm-dark-glass-card {
-  background: linear-gradient(155deg, rgba(28, 28, 34, 0.95) 0%, rgba(14, 14, 18, 0.98) 100%);
+  background: linear-gradient(155deg, rgba(19, 34, 56, 0.96) 0%, rgba(13, 23, 39, 0.98) 100%);
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow: 0 20px 45px -10px rgba(10, 24, 48, 0.45);
+}
+
+.pm-dark-glass {
+  background: rgba(19, 34, 56, 0.92);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   border: 1px solid rgba(255, 255, 255, 0.12);
-  box-shadow: 0 20px 50px -15px rgba(0, 0, 0, 0.45);
-}
-
-.pm-dark-glass-hover {
-  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-}
-.pm-dark-glass-hover:hover {
-  transform: translateY(-3px);
-  border-color: rgba(212, 175, 55, 0.35);
-  box-shadow: 0 25px 50px -15px rgba(0, 0, 0, 0.6), 0 0 25px -5px rgba(212, 175, 55, 0.18);
-}
-
-.pm-dark-glass-input {
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  color: #ffffff;
-  backdrop-filter: blur(12px);
-}
-.pm-dark-glass-input:focus {
-  border-color: rgba(212, 175, 55, 0.6);
-  box-shadow: 0 0 0 2px rgba(212, 175, 55, 0.2);
-}
-
-/* Champagne Gold Text Gradient */
-.pm-gold-text {
-  background: linear-gradient(135deg, #B88746 0%, #DFB76C 45%, #C5A059 75%, #997D46 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-}
-
-/* Champagne Gold Glow */
-.pm-gold-glow {
-  box-shadow: 0 0 25px -4px rgba(212, 175, 55, 0.35);
-}
-
-.pm-gold-halo {
-  box-shadow: 0 12px 28px -6px rgba(0, 0, 0, 0.5), 0 0 20px -3px rgba(212, 175, 55, 0.3);
-}
-
-/* Warm Cream Glass Card (For light secondary sections) */
-.pm-cream-card {
-  background: rgba(255, 255, 255, 0.85);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(190, 160, 120, 0.2);
-  box-shadow: 0 10px 30px -10px rgba(70, 50, 30, 0.05);
+  box-shadow: 0 20px 40px -15px rgba(10, 24, 48, 0.45);
 }
 
 @media (max-width: 767px) {
-  input, select, textarea {
+
+  input,
+  select,
+  textarea {
     font-size: 16px !important;
   }
 }
@@ -134,9 +158,11 @@ html {
     transform: translateY(0);
     opacity: 0;
   }
+
   20% {
     opacity: 0.7;
   }
+
   100% {
     transform: translateY(-120px);
     opacity: 0;
@@ -148,6 +174,7 @@ html {
     opacity: 0;
     transform: translateY(8px);
   }
+
   to {
     opacity: 1;
     transform: none;
@@ -159,9 +186,11 @@ html {
     transform: scale(0.3);
     opacity: 0;
   }
+
   70% {
     transform: scale(1.15);
   }
+
   100% {
     transform: scale(1);
     opacity: 1;
@@ -173,9 +202,11 @@ html {
     transform: scale(0.6);
     opacity: 0;
   }
+
   60% {
     transform: scale(1.15);
   }
+
   100% {
     transform: scale(1);
     opacity: 1;
@@ -187,9 +218,11 @@ html {
     transform: translateY(0);
     opacity: 0;
   }
+
   15% {
     opacity: 1;
   }
+
   100% {
     transform: translateY(-34px);
     opacity: 0;
@@ -197,9 +230,12 @@ html {
 }
 
 @keyframes pm-ring {
-  0%, 100% {
+
+  0%,
+  100% {
     box-shadow: 0 0 0 0 rgba(212, 175, 55, 0.4);
   }
+
   50% {
     box-shadow: 0 0 0 6px rgba(212, 175, 55, 0);
   }
@@ -231,6 +267,7 @@ html {
 }
 
 @media (prefers-reduced-motion: reduce) {
+
   .pm-float,
   .pm-in,
   .pm-light,
@@ -246,6 +283,7 @@ html {
 .scrollbar-hide::-webkit-scrollbar {
   display: none;
 }
+
 .scrollbar-hide {
   -ms-overflow-style: none;
   scrollbar-width: none;

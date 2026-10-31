@@ -37,9 +37,13 @@ import {
   Send,
   Inbox,
   Trash2,
-  Compass,
-  PlusSquare,
-  ArrowLeft
+  ArrowLeft,
+  ChevronLeft,
+  ChevronRight,
+  Code2,
+  ArrowRight,
+  Link2,
+  Share2
 } from 'lucide-react';
 import { SubmissionDetailModal } from './components/SubmissionDetailModal';
 import { getCategoryMeta } from './utils/meta';
@@ -175,7 +179,22 @@ export function Landing() {
   const allOpps = firestoreOpps.length > 0 ? [...firestoreOpps, ...initialOpps] : initialOpps;
   // If an opportunity is marked featured by admin, prioritize it in featured/trending
   const featuredOpps = allOpps.filter(o => o.featured);
-  const heroOpp = featuredOpps[0] || allOpps[0];
+  const [featuredIndex, setFeaturedIndex] = useState(0);
+
+  const prevFeatured = () => {
+    const listLen = featuredOpps.length || allOpps.length || 1;
+    setFeaturedIndex((i) => (i <= 0 ? listLen - 1 : i - 1));
+  };
+
+  const nextFeatured = () => {
+    const listLen = featuredOpps.length || allOpps.length || 1;
+    setFeaturedIndex((i) => (i + 1) % listLen);
+  };
+
+  const currentFeaturedOpp = featuredOpps.length > 0
+    ? featuredOpps[featuredIndex % featuredOpps.length]
+    : allOpps[featuredIndex % allOpps.length] || allOpps[0];
+
   const trending = featuredOpps.length > 0 
     ? [...featuredOpps, ...allOpps.filter(o => !o.featured)].slice(0, 6)
     : allOpps.slice(0, 6);
@@ -185,108 +204,231 @@ export function Landing() {
   const feedItems = communityPosts.length > 0 ? communityPosts : initialPosts;
 
   return (
-    <>
-      {/* Hero Section matching reference image */}
-      <section className="relative overflow-hidden py-12 sm:py-16 lg:py-20">
-        {/* Subtle decorative curved orbital gold lines & ambient blur */}
-        <div className="pointer-events-none absolute inset-0 -z-10">
-          <svg className="absolute -top-16 left-1/4 w-[750px] h-[550px] text-[#DFB76C]/15 opacity-80" viewBox="0 0 750 550" fill="none">
-            <ellipse cx="375" cy="240" rx="340" ry="170" stroke="currentColor" strokeWidth="1" strokeDasharray="3 4" />
-            <circle cx="375" cy="240" r="260" stroke="currentColor" strokeWidth="0.8" />
-            <ellipse cx="395" cy="260" rx="380" ry="190" stroke="currentColor" strokeWidth="0.5" />
-          </svg>
-          <div className="absolute top-1/4 right-1/4 w-80 h-80 bg-[#DFB76C]/10 rounded-full blur-3xl" />
-        </div>
+    <div className="space-y-8">
+      {/* ============================================================ */}
+      {/* DASHBOARD GRID: CENTER CONTENT (Hero + Trending) + RIGHT (Featured + Recent) */}
+      {/* ============================================================ */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+        {/* CENTER COLUMN (Hero Section + Trending Opportunities) */}
+        <div className="lg:col-span-8 space-y-6">
+          {/* Hero Section Card matching reference */}
+          <div className="pm-glass rounded-[28px] p-6 sm:p-8 relative overflow-hidden border border-white/90 shadow-sm flex flex-col justify-between">
+            {/* Ambient subtle light-blue glow */}
+            <div className="pointer-events-none absolute -top-16 -right-16 w-80 h-80 rounded-full bg-blue-400/15 blur-3xl" />
 
-        <W className="grid items-center gap-12 lg:grid-cols-2">
-          <div>
-            {/* Pill badge */}
-            <div className="inline-flex items-center gap-2 rounded-full border border-[#C5A059]/30 bg-amber-500/8 px-4 py-1.5 text-xs font-semibold text-zinc-800 shadow-xs mb-6 backdrop-blur-sm">
-              <Zap size={14} className="text-[#C5A059]" />
+            {/* Pill badge at top */}
+            <div className="inline-flex items-center gap-1.5 rounded-full bg-amber-100/90 border border-amber-300/80 px-3.5 py-1 text-xs font-semibold text-amber-900 shadow-2xs mb-5 self-start">
+              <Zap size={13} className="text-amber-600 fill-amber-500" />
               <span>Pixel Minds Tech Ecosystem · 800+ Members</span>
             </div>
 
-            {/* Headline matching image */}
-            <h1 className="text-5xl sm:text-6xl lg:text-7xl font-extrabold leading-[1.08] tracking-tight text-zinc-950 font-display">
-              Discover. Share.<br />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#B88746] via-[#DFB76C] to-[#997D46]">
-                Earn Pixels.
-              </span>
-            </h1>
+            {/* Flex container between Text & 3D Crystal Orb */}
+            <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+              <div className="max-w-md">
+                {/* Headline matching image */}
+                <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-[#0e1b33] tracking-tight leading-[1.12]">
+                  Discover. Share.<br />
+                  <span className="text-[#2563eb]">Earn Pixels.</span>
+                </h1>
 
-            {/* Subtitle */}
-            <p className="mt-5 max-w-xl text-base sm:text-lg leading-relaxed text-zinc-600">
-              Find hackathons, internships, events, workshops and scholarships curated for the next generation of tech builders.
-            </p>
+                {/* Subtitle */}
+                <p className="text-xs sm:text-sm text-slate-600 leading-relaxed mt-3.5 max-w-sm">
+                  Find hackathons, internships, events, workshops and scholarships curated for the next generation of tech builders.
+                </p>
 
-            {/* CTA Buttons */}
-            <div className="mt-8 flex flex-wrap items-center gap-3.5">
-              <Link to="/opportunities">
-                <button className="inline-flex items-center gap-2.5 rounded-full bg-[#141418] px-7 py-3.5 text-sm font-bold text-white border border-white/15 shadow-[0_12px_28px_-6px_rgba(0,0,0,0.5),0_0_20px_-3px_rgba(212,175,55,0.3)] hover:bg-[#1E1E24] hover:shadow-[0_16px_32px_-6px_rgba(0,0,0,0.6),0_0_25px_-3px_rgba(212,175,55,0.4)] transition active:scale-[0.98] cursor-pointer">
-                  <Compass size={17} className="text-[#DFB76C]" />
-                  <span>Explore Opportunities</span>
-                </button>
+                {/* CTA Buttons */}
+                <div className="mt-6 flex flex-wrap items-center gap-3">
+                  <Link to="/opportunities">
+                    <button className="inline-flex items-center gap-2 rounded-full bg-[#112240] hover:bg-[#1a335e] text-white px-5 sm:px-6 py-3 text-xs font-bold shadow-md shadow-slate-900/10 transition active:scale-[0.98] cursor-pointer">
+                      <span>Explore Opportunities</span>
+                      <ArrowRight size={14} />
+                    </button>
+                  </Link>
+                  <Link to="/submit">
+                    <button className="inline-flex items-center gap-2 rounded-full bg-white/80 hover:bg-white text-[#0e1b33] border border-white/90 px-5 sm:px-6 py-3 text-xs font-bold shadow-xs transition active:scale-[0.98] cursor-pointer">
+                      <Upload size={14} className="text-[#2563eb]" />
+                      <span>Share an Opportunity</span>
+                    </button>
+                  </Link>
+                </div>
+
+                {/* Stats Row with vertical dividers matching reference */}
+                <div className="mt-8 flex items-center gap-5 sm:gap-7 pt-5 border-t border-slate-200/60">
+                  <div>
+                    <p className="text-xl sm:text-2xl font-black text-[#0e1b33] tracking-tight">2,400+</p>
+                    <p className="text-xs text-slate-500 font-medium">opportunities</p>
+                  </div>
+                  <div className="h-8 w-px bg-slate-300/60" />
+                  <div>
+                    <p className="text-xl sm:text-2xl font-black text-[#0e1b33] tracking-tight">18k</p>
+                    <p className="text-xs text-slate-500 font-medium">builders</p>
+                  </div>
+                  <div className="h-8 w-px bg-slate-300/60" />
+                  <div>
+                    <p className="text-xl sm:text-2xl font-black text-[#0e1b33] tracking-tight">1.2M</p>
+                    <p className="text-xs text-slate-500 font-medium">Pixels awarded</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* 3D Crystal Blue Orb matching reference */}
+              <div className="relative hidden md:flex items-center justify-center shrink-0 w-60 h-60 lg:w-72 lg:h-72 my-auto ml-auto">
+                <img
+                  src="/hero-orb.jpg"
+                  alt="Pixel Minds Tech Orb"
+                  className="w-full h-full object-contain drop-shadow-xl select-none pointer-events-none rounded-full"
+                />
+                {/* Floating Node Badges */}
+                <div className="absolute top-10 left-2 rounded-full bg-white/95 border border-white shadow-lg p-2.5 text-[#2563eb] flex items-center justify-center animate-bounce duration-1000">
+                  <Code2 size={18} />
+                </div>
+                <div className="absolute top-4 right-8 rounded-full bg-[#2563eb] text-white shadow-lg p-2.5 flex items-center justify-center">
+                  <GraduationCap size={18} />
+                </div>
+                <div className="absolute bottom-8 right-3 rounded-full bg-white/95 border border-white shadow-lg p-2.5 text-[#2563eb] flex items-center justify-center">
+                  <Calendar size={18} />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Trending Opportunities */}
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <h2 className="text-lg sm:text-xl font-black text-[#0e1b33] tracking-tight">Trending Opportunities</h2>
+                <span className="text-[#2563eb] font-bold">↗</span>
+              </div>
+              <Link to="/opportunities" className="inline-flex items-center gap-1 text-xs font-bold text-slate-600 hover:text-blue-600 transition bg-white/60 hover:bg-white px-3 py-1.5 rounded-full border border-white/80 shadow-2xs">
+                <span>View all</span>
+                <ArrowRight size={13} />
               </Link>
-              <Link to="/submit">
-                <button className="inline-flex items-center gap-2.5 rounded-full bg-[#F4EFEA] hover:bg-white px-7 py-3.5 text-sm font-bold text-zinc-950 border border-zinc-300/80 shadow-xs hover:shadow transition active:scale-[0.98] cursor-pointer">
-                  <PlusSquare size={17} className="text-zinc-700" />
-                  <span>Share an Opportunity</span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {trending.slice(0, 3).map((o) => (
+                <OppCard key={o.id} o={o} variant="light" />
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* RIGHT COLUMN (Featured Opportunity Card + Recent Activity) */}
+        <div className="lg:col-span-4 space-y-6">
+          {/* Featured Opportunity Section */}
+          <div className="space-y-3.5">
+            <div className="flex items-center justify-between">
+              <h2 className="text-base sm:text-lg font-black text-[#0e1b33] tracking-tight">Featured Opportunity</h2>
+              <div className="flex items-center gap-1.5">
+                <button
+                  onClick={prevFeatured}
+                  aria-label="Previous featured"
+                  className="grid h-8 w-8 place-items-center rounded-full bg-white/70 hover:bg-white text-slate-700 border border-white/80 shadow-xs transition hover:text-blue-600 cursor-pointer"
+                >
+                  <ChevronLeft size={16} />
                 </button>
+                <button
+                  onClick={nextFeatured}
+                  aria-label="Next featured"
+                  className="grid h-8 w-8 place-items-center rounded-full bg-white/70 hover:bg-white text-slate-700 border border-white/80 shadow-xs transition hover:text-blue-600 cursor-pointer"
+                >
+                  <ChevronRight size={16} />
+                </button>
+              </div>
+            </div>
+
+            <OppCard o={currentFeaturedOpp} variant="dark" />
+          </div>
+
+          {/* Recent Activity Section */}
+          <div className="space-y-3.5">
+            <div className="flex items-center justify-between">
+              <h2 className="text-base sm:text-lg font-black text-[#0e1b33] tracking-tight">Recent Activity</h2>
+              <Link to="/feed" className="inline-flex items-center gap-1 text-xs font-bold text-slate-600 hover:text-blue-600 transition bg-white/60 hover:bg-white px-3 py-1.5 rounded-full border border-white/80 shadow-2xs">
+                <span>View all</span>
+                <ArrowRight size={13} />
               </Link>
             </div>
 
-            {/* Stats row with dividers matching image */}
-            <div className="mt-10 flex items-center gap-6 sm:gap-8 pt-6 border-t border-zinc-300/50">
-              <div>
-                <p className="text-2xl sm:text-3xl font-black text-zinc-950 tracking-tight">2,400+</p>
-                <p className="text-xs text-zinc-500 font-medium mt-0.5">opportunities</p>
+            <div className="pm-glass-card rounded-[24px] p-4 sm:p-5 space-y-4 border border-white/90 shadow-sm">
+              {/* Activity Item 1 */}
+              <div className="flex items-center gap-3">
+                <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-indigo-100 text-indigo-700 font-bold text-xs">
+                  A
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs text-[#0e1b33] truncate">
+                    <span className="font-bold">Adharv</span> posted in <span className="font-semibold text-slate-700">Community</span>
+                  </p>
+                  <p className="text-[11px] text-slate-500 flex items-center gap-1 mt-0.5">
+                    <MessageSquare size={11} className="text-slate-400" />
+                    <span>2 hours ago</span>
+                  </p>
+                </div>
               </div>
-              <div className="h-8 w-px bg-zinc-300/60" />
-              <div>
-                <p className="text-2xl sm:text-3xl font-black text-zinc-950 tracking-tight">18k</p>
-                <p className="text-xs text-zinc-500 font-medium mt-0.5">builders</p>
+
+              {/* Activity Item 2 */}
+              <div className="flex items-center gap-3">
+                <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-amber-100 text-amber-700 font-bold text-xs">
+                  🏆
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs text-[#0e1b33] truncate">
+                    <span className="font-bold">New Hackathon</span> added
+                  </p>
+                  <p className="text-[11px] text-slate-700 font-medium truncate">
+                    Smart India Hackathon 2026
+                  </p>
+                  <p className="text-[10px] text-slate-500 flex items-center gap-1 mt-0.5">
+                    <Clock size={10} className="text-slate-400" />
+                    <span>4 hours ago</span>
+                  </p>
+                </div>
               </div>
-              <div className="h-8 w-px bg-zinc-300/60" />
-              <div>
-                <p className="text-2xl sm:text-3xl font-black text-zinc-950 tracking-tight">1.2M</p>
-                <p className="text-xs text-zinc-500 font-medium mt-0.5">Pixels awarded</p>
+
+              {/* Activity Item 3 */}
+              <div className="flex items-center gap-3">
+                <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-blue-100 text-blue-700 font-bold text-xs">
+                  R
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs text-[#0e1b33] truncate">
+                    <span className="font-bold">Rahul</span> earned <span className="font-bold text-blue-600">50 Pixels</span>
+                  </p>
+                  <p className="text-[11px] text-slate-500 flex items-center gap-1 mt-0.5">
+                    <Sparkles size={11} className="text-amber-500" />
+                    <span>6 hours ago</span>
+                  </p>
+                </div>
+              </div>
+
+              {/* Activity Item 4 */}
+              <div className="flex items-center gap-3">
+                <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-sky-100 text-sky-700 font-bold text-xs">
+                  <Share2 size={13} className="text-sky-600" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs text-[#0e1b33] truncate">
+                    <span className="font-bold">New opportunity</span> shared
+                  </p>
+                  <p className="text-[11px] text-slate-700 font-medium truncate">
+                    Google Cloud Internship 2026
+                  </p>
+                  <p className="text-[10px] text-slate-500 flex items-center gap-1 mt-0.5">
+                    <Link2 size={10} className="text-slate-400" />
+                    <span>8 hours ago</span>
+                  </p>
+                </div>
               </div>
             </div>
           </div>
+        </div>
+      </div>
 
-          {/* Right Hero Column: Featured Card + Floating Pill */}
-          <div className="relative mx-auto w-full max-w-md lg:max-w-none">
-            {/* Ambient gold glow behind card */}
-            <div className="pointer-events-none absolute -inset-4 bg-gradient-to-tr from-[#DFB76C]/20 via-[#C5A059]/10 to-transparent rounded-[36px] blur-2xl -z-10" />
-
-            {/* Featured OppCard */}
-            <OppCard o={heroOpp} />
-
-            {/* Floating Dark Glass Referral Pill Chip matching image */}
-            <div className="mt-4 flex justify-end">
-              <div className="flex items-center gap-3 rounded-2xl bg-[#141418]/92 backdrop-blur-xl border border-white/12 px-5 py-3 text-xs sm:text-sm font-bold text-zinc-200 shadow-xl">
-                <span className="grid h-8 w-8 place-items-center rounded-xl bg-gradient-to-br from-[#DFB76C] to-[#997D46] text-zinc-950 shadow-[0_0_12px_rgba(212,175,55,0.4)]">
-                  <Zap size={16} />
-                </span>
-                <span>+25 Pixels for every friend referral</span>
-              </div>
-            </div>
-          </div>
-        </W>
-      </section>
-
-      {/* Main Content Sections */}
-      <W className="space-y-16 py-12">
-        {/* Trending Opportunities */}
-        <section>
-          <SectionTitle t="Trending Opportunities" to="/opportunities" subtitle="Most popular competitions and programs this week" />
-          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {trending.map((o) => (
-              <OppCard key={o.id} o={o} />
-            ))}
-          </div>
-        </section>
-
+      {/* ============================================================ */}
+      {/* SECONDARY SECTIONS: Categories, Hackathons, Internships, etc. */}
+      {/* ============================================================ */}
+      <div className="space-y-12 pt-6">
         {/* Explore Categories */}
         <section>
           <SectionTitle t="Explore Categories" subtitle="Browse opportunities tailored to your tech career pathway" />
@@ -297,12 +439,12 @@ export function Landing() {
               const count = allOpps.filter((o) => o.cat === c).length;
               return (
                 <Link key={c} to={'/opportunities?cat=' + encodeURIComponent(c)} className="group">
-                  <div className="rounded-3xl bg-white/90 border border-zinc-200/80 p-4 shadow-xs backdrop-blur-md transition-all duration-200 group-hover:-translate-y-1 group-hover:border-[#DFB76C]/50 group-hover:shadow-md">
-                    <div className="mb-3 grid h-11 w-11 place-items-center rounded-2xl bg-zinc-900 border border-white/10 text-[#DFB76C] shadow-xs">
-                      <I size={20} />
+                  <div className="rounded-2xl pm-glass-card border border-white/90 p-4 shadow-2xs transition-all duration-200 group-hover:-translate-y-1 group-hover:border-blue-400/50 group-hover:shadow-md">
+                    <div className="mb-3 grid h-10 w-10 place-items-center rounded-xl bg-blue-50 border border-blue-200/60 text-blue-600 shadow-2xs group-hover:bg-[#112240] group-hover:text-white transition">
+                      <I size={18} />
                     </div>
-                    <p className="text-xs font-bold text-zinc-950 group-hover:text-[#C5A059] transition">{c}</p>
-                    <p className="text-[11px] text-zinc-400 mt-0.5">{count || 12}+ listed</p>
+                    <p className="text-xs font-bold text-[#0e1b33] group-hover:text-blue-600 transition">{c}</p>
+                    <p className="text-[11px] text-slate-400 mt-0.5">{count || 12}+ listed</p>
                   </div>
                 </Link>
               );
@@ -318,14 +460,14 @@ export function Landing() {
               const metaInfo = getCategoryMeta(o.cat);
               const I = metaInfo.Icon;
               return (
-                <div key={o.id} className="flex items-center gap-4 rounded-3xl bg-white/90 border border-zinc-200/80 p-4 hover:border-zinc-300 transition shadow-xs backdrop-blur-md">
-                  <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-zinc-900 border border-white/10 text-[#DFB76C] shadow-xs">
-                    <I size={22} />
+                <div key={o.id} className="flex items-center gap-4 rounded-2xl pm-glass-card border border-white/90 p-4 hover:border-blue-300 transition shadow-2xs">
+                  <div className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-[#112240] text-white shadow-2xs">
+                    <I size={18} />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="font-bold text-zinc-950 text-sm truncate">{o.title}</p>
-                    <p className="text-xs text-zinc-500 mt-0.5">
-                      {o.deadline} · {o.mode} · <span className="font-semibold text-zinc-800">{o.prize}</span>
+                    <p className="font-bold text-[#0e1b33] text-sm truncate">{o.title}</p>
+                    <p className="text-xs text-slate-500 mt-0.5">
+                      {o.deadline} · {o.mode} · <span className="font-semibold text-[#0e1b33]">{o.prize}</span>
                     </p>
                   </div>
                   <BtnLink to={'/opportunities/' + o.id} v="outline" className="!py-1.5 !px-3 !text-xs !min-h-8 shrink-0">
@@ -338,11 +480,11 @@ export function Landing() {
         </section>
 
         {/* Internships & Fellowships */}
-        <section className="rounded-3xl bg-[#141418]/92 backdrop-blur-xl border border-white/12 p-6 sm:p-8 text-white shadow-xl">
-          <SectionTitle t="Internships & Fellowships" to="/opportunities?cat=Internships" subtitle="Fast-track your developer career" light={true} />
-          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        <section>
+          <SectionTitle t="Internships & Fellowships" to="/opportunities?cat=Internships" subtitle="Fast-track your developer career" />
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {internships.slice(0, 3).map((o) => (
-              <OppCard key={o.id} o={o} />
+              <OppCard key={o.id} o={o} variant="light" />
             ))}
           </div>
         </section>
@@ -350,9 +492,9 @@ export function Landing() {
         {/* Tech Events & Workshops */}
         <section>
           <SectionTitle t="Tech Events & Workshops" to="/opportunities?cat=Events" subtitle="Learn new frameworks and meet builders" />
-          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {events.slice(0, 3).map((o) => (
-              <OppCard key={o.id} o={o} />
+              <OppCard key={o.id} o={o} variant="light" />
             ))}
           </div>
         </section>
@@ -371,24 +513,24 @@ export function Landing() {
           </div>
         </section>
 
-        {/* Share CTA Banner in Dark Glassmorphism */}
-        <section className="rounded-3xl border border-white/12 bg-[#141418]/94 backdrop-blur-2xl p-8 sm:p-12 text-center text-white shadow-2xl relative overflow-hidden">
-          <div className="pointer-events-none absolute -right-20 -top-20 h-48 w-48 rounded-full bg-[#DFB76C]/15 blur-3xl" />
-          <h2 className="text-2xl font-extrabold tracking-tight text-white sm:text-3xl font-display">
+        {/* Share CTA Banner */}
+        <section className="rounded-3xl border border-white/90 pm-glass-card p-8 sm:p-12 text-center text-[#0e1b33] shadow-sm relative overflow-hidden">
+          <div className="pointer-events-none absolute -right-20 -top-20 h-48 w-48 rounded-full bg-blue-400/10 blur-3xl" />
+          <h2 className="text-2xl font-black tracking-tight text-[#0e1b33] sm:text-3xl font-display">
             Found an exciting tech opportunity?
           </h2>
-          <p className="mx-auto mt-2.5 max-w-lg text-sm text-zinc-300">
+          <p className="mx-auto mt-2.5 max-w-lg text-sm text-slate-600">
             Submit hackathons, events, or internships. Once verified, you'll earn +50 Pixels and help hundreds of students apply.
           </p>
           <Link to="/submit">
-            <button className="mt-6 inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-[#C5A059] to-[#DFB76C] px-8 py-3 text-sm font-bold text-zinc-950 shadow-[0_4px_20px_rgba(212,175,55,0.35)] hover:brightness-105 active:scale-[0.98] transition cursor-pointer">
+            <button className="mt-6 inline-flex items-center gap-2 rounded-full bg-[#112240] hover:bg-[#1a335e] px-8 py-3 text-sm font-bold text-white shadow-md shadow-slate-900/10 active:scale-[0.98] transition cursor-pointer">
               <Sparkles size={16} />
               <span>Share an Opportunity</span>
             </button>
           </Link>
         </section>
-      </W>
-    </>
+      </div>
+    </div>
   );
 }
 
