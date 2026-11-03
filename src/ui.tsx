@@ -29,10 +29,7 @@ import {
   BookOpen,
   PenSquare,
   MessageSquare,
-  BarChart2,
   Sun,
-  FileText,
-  Bell,
   ChevronRight,
   Code2,
   GraduationCap
@@ -40,6 +37,7 @@ import {
 import { opps } from './data';
 import type { Opp } from './data';
 import { AnnouncementModal } from './components/AnnouncementModal';
+import { SidebarGooeyNav } from './components/GooeyNav';
 import { grad, getCategoryMeta } from './utils/meta';
 import { useApp } from './store';
 import { NotificationBell } from './components/NotificationBell';
@@ -1201,78 +1199,8 @@ export const Layout: FC = () => {
             <Logo />
           </div>
 
-          {/* Navigation Links */}
-          <nav className="space-y-1.5">
-            {[
-              { to: '/', label: 'Home', icon: Home, exact: true },
-              { to: '/opportunities', label: 'Opportunities', icon: Trophy, exact: false },
-              { to: '/feed', label: 'Feed', icon: MessageSquare, exact: false },
-              { to: '/leaderboard', label: 'Leaderboard', icon: BarChart2, exact: false },
-            ].map((item) => (
-              <NavLink
-                key={item.to}
-                to={item.to}
-                end={item.exact}
-                className={({ isActive }) =>
-                  `flex items-center gap-3 px-3.5 py-2.5 rounded-2xl text-xs font-bold transition ${
-                    isActive
-                      ? 'bg-blue-100/90 text-[#2563eb] shadow-xs'
-                      : 'text-slate-600 hover:text-[#0e1b33] hover:bg-white/70'
-                  }`
-                }
-              >
-                {({ isActive }) => (
-                  <>
-                    <item.icon size={17} className={isActive ? 'text-[#2563eb]' : 'text-slate-500'} />
-                    <span>{item.label}</span>
-                  </>
-                )}
-              </NavLink>
-            ))}
-
-            <div className="my-3 h-px bg-slate-300/40" />
-
-            {[
-              { to: '/opportunities?saved=true', label: 'Bookmarks', icon: Bookmark },
-              { to: '/profile?tab=applications', label: 'My Applications', icon: FileText },
-              { to: '/profile?tab=notifications', label: 'Notifications', icon: Bell },
-            ].map((item) => (
-              <NavLink
-                key={item.to}
-                to={item.to}
-                className={({ isActive }) =>
-                  `flex items-center gap-3 px-3.5 py-2.5 rounded-2xl text-xs font-semibold transition ${
-                    isActive
-                      ? 'bg-blue-100/90 text-[#2563eb] font-bold shadow-xs'
-                      : 'text-slate-600 hover:text-[#0e1b33] hover:bg-white/70'
-                  }`
-                }
-              >
-                {({ isActive }) => (
-                  <>
-                    <item.icon size={17} className={isActive ? 'text-[#2563eb]' : 'text-slate-500'} />
-                    <span>{item.label}</span>
-                  </>
-                )}
-              </NavLink>
-            ))}
-
-            {userProfile?.role === 'admin' && (
-              <NavLink
-                to="/admin"
-                className={({ isActive }) =>
-                  `flex items-center gap-3 px-3.5 py-2.5 rounded-2xl text-xs font-bold transition mt-2 ${
-                    isActive
-                      ? 'bg-blue-100/90 text-[#2563eb] shadow-xs'
-                      : 'text-slate-600 hover:text-[#0e1b33] hover:bg-white/70'
-                  }`
-                }
-              >
-                <ShieldCheck size={17} className="text-blue-600" />
-                <span>Admin Console</span>
-              </NavLink>
-            )}
-          </nav>
+          {/* Navigation Links with GooeyNav liquid animation effect */}
+          <SidebarGooeyNav isAdmin={userProfile?.role === 'admin'} />
         </div>
 
         {/* Bottom User Profile Widget */}

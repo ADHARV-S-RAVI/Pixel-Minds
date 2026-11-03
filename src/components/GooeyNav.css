@@ -1,0 +1,82 @@
+.sidebar-gooey-nav {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+.sidebar-gooey-nav .gooey-nav__stage {
+  position: relative;
+  width: 100%;
+}
+
+.sidebar-gooey-nav .gooey-nav__canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.sidebar-gooey-nav .gooey-nav__fallback {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: none;
+  border-radius: 16px;
+  background: #000000;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+  pointer-events: none;
+  z-index: 0;
+  transition: transform 0.25s ease, width 0.25s ease, height 0.25s ease, opacity 0.2s ease;
+}
+
+.sidebar-gooey-nav .gooey-nav__list {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  width: 100%;
+  z-index: 1;
+}
+
+.sidebar-gooey-nav .gooey-nav__list--active {
+  position: absolute;
+  inset: 0;
+  color: #ffffff;
+  visibility: hidden;
+  clip-path: inset(100%);
+  pointer-events: none;
+  z-index: 2;
+}
+
+.sidebar-gooey-nav .gooey-nav__item {
+  display: flex;
+  width: 100%;
+}
+
+/* Remove extra grey hover/click/focus highlight effect on the selected button */
+.sidebar-gooey-nav a {
+  -webkit-tap-highlight-color: transparent;
+}
+
+.sidebar-gooey-nav .gooey-nav__item[data-active] a,
+.sidebar-gooey-nav .gooey-nav__item[data-active] a:hover,
+.sidebar-gooey-nav .gooey-nav__item[data-active] a:focus,
+.sidebar-gooey-nav .gooey-nav__item[data-active] a:focus-visible,
+.sidebar-gooey-nav .gooey-nav__item[data-active] a:active,
+.sidebar-gooey-nav a[aria-current="page"],
+.sidebar-gooey-nav a[aria-current="page"]:hover,
+.sidebar-gooey-nav a[aria-current="page"]:focus,
+.sidebar-gooey-nav a[aria-current="page"]:focus-visible,
+.sidebar-gooey-nav a[aria-current="page"]:active {
+  background: transparent !important;
+  background-color: transparent !important;
+  box-shadow: none !important;
+  outline: none !important;
+  -webkit-tap-highlight-color: transparent !important;
+}
+
