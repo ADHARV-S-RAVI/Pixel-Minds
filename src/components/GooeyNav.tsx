@@ -8,7 +8,6 @@ import {
   Bookmark,
   FileText,
   Bell,
-  ShieldCheck
 } from 'lucide-react';
 import './GooeyNav.css';
 
@@ -236,14 +235,6 @@ const SECONDARY_ITEMS: NavItemDef[] = [
   { to: '/profile?tab=notifications', label: 'Notifications', icon: Bell, exact: false, isSemibold: true },
 ];
 
-const ADMIN_ITEM: NavItemDef = {
-  to: '/admin',
-  label: 'Admin Console',
-  icon: ShieldCheck,
-  exact: false,
-  isExtraTop: true
-};
-
 function getSidebarActiveIndex(items: NavItemDef[], pathname: string, search: string): number {
   const fullPath = pathname + search;
 
@@ -274,14 +265,13 @@ function getSidebarActiveIndex(items: NavItemDef[], pathname: string, search: st
   return -1;
 }
 
-export const SidebarGooeyNav: React.FC<{ isAdmin?: boolean }> = ({ isAdmin = false }) => {
+export const SidebarGooeyNav: React.FC = () => {
   const location = useLocation();
 
   const allItems = useMemo<NavItemDef[]>(() => {
-    return isAdmin
-      ? [...PRIMARY_ITEMS, ...SECONDARY_ITEMS, ADMIN_ITEM]
-      : [...PRIMARY_ITEMS, ...SECONDARY_ITEMS];
-  }, [isAdmin]);
+    // Admin console is strictly hidden from dashboard navigation
+    return [...PRIMARY_ITEMS, ...SECONDARY_ITEMS];
+  }, []);
 
   const activeIndex = useMemo(
     () => getSidebarActiveIndex(allItems, location.pathname, location.search),
@@ -871,24 +861,7 @@ export const SidebarGooeyNav: React.FC<{ isAdmin?: boolean }> = ({ isAdmin = fal
             );
           })}
 
-          {isAdmin && (
-            <li
-              key={ADMIN_ITEM.to}
-              data-gooey-index={PRIMARY_ITEMS.length + SECONDARY_ITEMS.length}
-              data-active={activeIndex === PRIMARY_ITEMS.length + SECONDARY_ITEMS.length ? '' : undefined}
-              className="gooey-nav__item mt-2"
-            >
-              <Link
-                to={ADMIN_ITEM.to}
-                aria-current={activeIndex === PRIMARY_ITEMS.length + SECONDARY_ITEMS.length ? 'page' : undefined}
-                className={`flex items-center gap-3 px-3.5 py-2.5 rounded-2xl text-xs font-bold transition w-full select-none text-slate-600 ${activeIndex === PRIMARY_ITEMS.length + SECONDARY_ITEMS.length ? '' : 'hover:text-[#0e1b33] hover:bg-white/70'
-                  }`}
-              >
-                <ShieldCheck size={17} className="text-blue-600 shrink-0" />
-                <span>{ADMIN_ITEM.label}</span>
-              </Link>
-            </li>
-          )}
+          
         </ul>
 
         {/* 2. Overlay Clipped Active Indicator List */}
@@ -913,14 +886,7 @@ export const SidebarGooeyNav: React.FC<{ isAdmin?: boolean }> = ({ isAdmin = fal
             </li>
           ))}
 
-          {isAdmin && (
-            <li key={ADMIN_ITEM.to} className="gooey-nav__item mt-2">
-              <div className="flex items-center gap-3 px-3.5 py-2.5 rounded-2xl text-xs font-bold w-full select-none text-white">
-                <ShieldCheck size={17} className="text-white shrink-0" />
-                <span className="text-white">{ADMIN_ITEM.label}</span>
-              </div>
-            </li>
-          )}
+          
         </ul>
       </div>
     </nav>

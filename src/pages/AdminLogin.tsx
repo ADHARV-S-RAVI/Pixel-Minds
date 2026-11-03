@@ -74,6 +74,12 @@ export function AdminLogin() {
         throw new Error('Access denied. Administrator privileges required.');
       }
 
+      if (profile.status === 'suspended') {
+        console.warn('[AdminLogin Debug] Admin account suspended');
+        await supabase.auth.signOut();
+        throw new Error('This administrator account is currently suspended.');
+      }
+
       // 3. Refresh context state
       await refreshProfile();
 

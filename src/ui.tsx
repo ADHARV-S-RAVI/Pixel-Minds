@@ -20,7 +20,6 @@ import {
   Send,
   ExternalLink,
   LogOut,
-  ShieldCheck,
   Trash2,
   ArrowRight,
   Sparkles,
@@ -1182,7 +1181,7 @@ export const Layout: FC = () => {
     }
   };
 
-  const displayName = userProfile?.displayName || user?.displayName || 'Nithin N';
+  const displayName = userProfile?.displayName || user?.displayName || 'Pixel Builder';
 
   return (
     <div className="min-h-screen pm-bg-canvas flex flex-col lg:flex-row p-3 sm:p-5 lg:p-6 gap-5 selection:bg-blue-500/20 selection:text-[#0e1b33]">
@@ -1200,7 +1199,7 @@ export const Layout: FC = () => {
           </div>
 
           {/* Navigation Links with GooeyNav liquid animation effect */}
-          <SidebarGooeyNav isAdmin={userProfile?.role === 'admin'} />
+          <SidebarGooeyNav />
         </div>
 
         {/* Bottom User Profile Widget */}
@@ -1320,15 +1319,7 @@ export const Layout: FC = () => {
                         <Trophy size={14} className="text-amber-500" />
                         <span>Leaderboard &amp; Badges</span>
                       </Link>
-                      {userProfile?.role === 'admin' && (
-                        <Link
-                          to="/admin"
-                          className="flex items-center gap-2 rounded-xl px-3 py-2 text-xs font-semibold text-blue-600 hover:bg-blue-50 transition"
-                        >
-                          <ShieldCheck size={14} />
-                          <span>Admin Console</span>
-                        </Link>
-                      )}
+
                     </div>
 
                     <div className="border-t border-slate-200/60 pt-1.5">

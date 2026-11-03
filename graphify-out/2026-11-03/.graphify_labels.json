@@ -7,7 +7,7 @@
   "5": "pixel-minds/src/pages.tsx",
   "6": "dependencies",
   "7": "plugins",
-  "8": "src/ui.tsx",
+  "8": "src/pixels.tsx",
   "9": "tsconfig.json",
   "10": "opportunities.ts",
   "11": "postcss.config.js",
@@ -29,5 +29,6 @@
   "27": "Pixel Minds - Auth & Profile Completion Update Report",
   "28": "devDependencies",
   "29": "audit-test.mjs",
-  "30": "test-playwright.mjs"
+  "30": "GooeyNav.tsx",
+  "31": "2. Features Inspected & Audit Findings"
 }

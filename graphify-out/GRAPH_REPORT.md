@@ -1,16 +1,16 @@
 # Graph Report - Pixel Minds  (2026-11-03)
 
 ## Corpus Check
-- 77 files · ~89,054 words
+- 77 files · ~88,930 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 563 nodes · 1085 edges · 32 communities (29 shown, 3 thin omitted)
+- 562 nodes · 1084 edges · 32 communities (29 shown, 3 thin omitted)
 - Extraction: 99% EXTRACTED · 1% INFERRED · 0% AMBIGUOUS · INFERRED: 8 edges (avg confidence: 0.5)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `1d48e2d9`
+- Built from commit: `e3912cca`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -23,7 +23,7 @@
 - pixel-minds/src/pages.tsx
 - dependencies
 - plugins
-- src/pixels.tsx
+- src/pages.tsx
 - tsconfig.json
 - opportunities.ts
 - devDependencies
@@ -31,7 +31,7 @@
 - React + TypeScript + Vite
 - rules/graphify.md
 - workflows/graphify.md
-- src/pages.tsx
+- admin.ts
 - Pixel Minds Backend Integration Audit
 - Phase 3: Community Posts & Feed Supabase Migration Report
 - Pixel Minds - Auth & Profile Completion Update Report
@@ -53,12 +53,12 @@
 10. `Profile()` - 10 edges
 
 ## Surprising Connections (you probably didn't know these)
-- `AuthContextType` --references--> `User`  [EXTRACTED]
-  src/contexts/AuthContext.tsx → src/types/index.ts
-- `recordReferralSignup()` --calls--> `getRewardConfig()`  [EXTRACTED]
-  src/services/referrals.ts → src/services/pixels.ts
+- `NotificationBell()` --calls--> `useAuth()`  [EXTRACTED]
+  src/components/NotificationBell.tsx → src/contexts/AuthContext.tsx
 - `SubmissionDetailModalProps` --references--> `Opportunity`  [EXTRACTED]
   src/components/SubmissionDetailModal.tsx → src/types/index.ts
+- `AuthContextType` --references--> `User`  [EXTRACTED]
+  src/contexts/AuthContext.tsx → src/types/index.ts
 - `AdminCMS()` --calls--> `useAuth()`  [EXTRACTED]
   src/pages.tsx → src/contexts/AuthContext.tsx
 - `AdminOpportunityForm()` --calls--> `useAuth()`  [EXTRACTED]
@@ -70,8 +70,8 @@
 ## Communities (32 total, 3 thin omitted)
 
 ### Community 0 - "useAuth"
-Cohesion: 0.08
-Nodes (40): react, App(), AdminRoute(), ErrorBoundary, Props, State, Footer(), Navbar() (+32 more)
+Cohesion: 0.09
+Nodes (34): react, App(), AdminRoute(), ErrorBoundary, Props, State, Footer(), Navbar() (+26 more)
 
 ### Community 1 - "compilerOptions"
 Cohesion: 0.08
@@ -101,13 +101,13 @@ Nodes (24): firebase, dependencies, firebase, lucide-react, react, react-dom, re
 Cohesion: 0.22
 Nodes (8): plugins, rules, react/only-export-components, react/rules-of-hooks, $schema, oxc, typescript, warn
 
-### Community 8 - "src/pixels.tsx"
-Cohesion: 0.09
-Nodes (24): cats, FeedPost, initialOpps, initialPosts, LeaderboardUser, moves, Opp, opps (+16 more)
+### Community 8 - "src/pages.tsx"
+Cohesion: 0.06
+Nodes (49): cats, FeedPost, initialOpps, initialPosts, LeaderboardUser, moves, Opp, opps (+41 more)
 
 ### Community 10 - "opportunities.ts"
 Cohesion: 0.09
-Nodes (36): SubmissionDetailModal(), SubmissionDetailModalProps, Admin(), AdminTab, STATUS_OPTIONS, AdminCMS(), AdminOpportunityForm(), MySubmissions() (+28 more)
+Nodes (38): SubmissionDetailModal(), SubmissionDetailModalProps, Admin(), AdminTab, STATUS_OPTIONS, AdminCMS(), AdminOpportunityForm(), MySubmissions() (+30 more)
 
 ### Community 15 - "devDependencies"
 Cohesion: 0.06
@@ -121,9 +121,9 @@ Nodes (13): compilerOptions, jsx, lib, module, moduleResolution, noEmit, skipLib
 Cohesion: 0.50
 Nodes (3): Expanding the Oxlint configuration, React Compiler, React + TypeScript + Vite
 
-### Community 24 - "src/pages.tsx"
-Cohesion: 0.06
-Nodes (68): AnnouncementModal(), adminTabs, Landing(), Admin(), AdminMetrics, createAdminCommunityPost(), deleteCommunityPost(), getAuditLogs() (+60 more)
+### Community 24 - "admin.ts"
+Cohesion: 0.08
+Nodes (47): AnnouncementModal(), NotificationBell(), supabase, Admin(), AdminMetrics, createAdminCommunityPost(), deleteCommunityPost(), getAuditLogs() (+39 more)
 
 ### Community 25 - "Pixel Minds Backend Integration Audit"
 Cohesion: 0.08
@@ -146,31 +146,31 @@ Cohesion: 0.43
 Nodes (6): fail(), manual(), pass(), results, runAudit(), supabase
 
 ### Community 30 - "GooeyNav.tsx"
-Cohesion: 0.16
-Nodes (18): ADMIN_ITEM, bezier(), build(), clamp01(), compile(), DropState, getSidebarActiveIndex(), NavItemDef (+10 more)
+Cohesion: 0.17
+Nodes (17): bezier(), build(), clamp01(), compile(), DropState, getSidebarActiveIndex(), NavItemDef, parse() (+9 more)
 
 ### Community 31 - "2. Features Inspected & Audit Findings"
 Cohesion: 0.12
 Nodes (15): 1. Executive Summary, 2. Features Inspected & Audit Findings, 3. Bugs Identified & Fixes Applied, 4. Security Audit Matrix, 5. Automated Build & Test Results, 6. Features Requiring Manual Verification (Multi-Account Scenarios), 7. Remaining Known Issues & Supabase Recommendations, A. User Management (`Users & Pixels` Tab) (+7 more)
 
 ## Knowledge Gaps
-- **208 isolated node(s):** `$schema`, `typescript`, `oxc`, `react/rules-of-hooks`, `warn` (+203 more)
+- **207 isolated node(s):** `$schema`, `typescript`, `oxc`, `react/rules-of-hooks`, `warn` (+202 more)
   These have ≤1 connection - possible missing edges or undocumented components.
 - **3 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `react` connect `useAuth` to `pixel-minds/src/pages.tsx`, `plugins`, `src/pixels.tsx`, `opportunities.ts`, `src/pages.tsx`, `GooeyNav.tsx`?**
-  _High betweenness centrality (0.144) - this node is a cross-community bridge._
-- **Why does `useAuth()` connect `useAuth` to `src/pages.tsx`, `src/pixels.tsx`, `opportunities.ts`?**
+- **Why does `react` connect `useAuth` to `pixel-minds/src/pages.tsx`, `plugins`, `src/pages.tsx`, `opportunities.ts`, `admin.ts`, `GooeyNav.tsx`?**
+  _High betweenness centrality (0.143) - this node is a cross-community bridge._
+- **Why does `useAuth()` connect `useAuth` to `admin.ts`, `src/pages.tsx`, `opportunities.ts`?**
   _High betweenness centrality (0.019) - this node is a cross-community bridge._
 - **Why does `plugins` connect `plugins` to `useAuth`?**
   _High betweenness centrality (0.016) - this node is a cross-community bridge._
 - **What connects `$schema`, `typescript`, `oxc` to the rest of the system?**
-  _208 weakly-connected nodes found - possible documentation gaps or missing edges._
+  _207 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `useAuth` be split into smaller, more focused modules?**
-  _Cohesion score 0.0798611111111111 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.08956228956228957 - nodes in this community are weakly interconnected._
 - **Should `compilerOptions` be split into smaller, more focused modules?**
   _Cohesion score 0.08333333333333333 - nodes in this community are weakly interconnected._
 - **Should `compilerOptions` be split into smaller, more focused modules?**
