@@ -301,7 +301,7 @@ export const NotificationBell: React.FC<{ className?: string }> = ({ className =
 
       {/* Pop-up Toast Banner when notification arrives or unread */}
       {showPopup && popupNotification && !isOpen && (
-        <div className="absolute right-0 top-12 z-50 w-72 sm:w-80 rounded-2xl bg-[#0B1628]/95 backdrop-blur-xl text-white p-3.5 shadow-2xl border border-sky-400/40 animate-in fade-in slide-in-from-top-2 duration-300">
+        <div className="absolute right-0 top-12 z-50 w-72 sm:w-80 max-w-[calc(100vw-2rem)] rounded-2xl bg-[#0B1628]/95 backdrop-blur-xl text-white p-3.5 shadow-2xl border border-sky-400/40 animate-in fade-in slide-in-from-top-2 duration-300">
           <div className="flex items-start gap-2.5">
             <div className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-blue-500/20 text-sky-400 mt-0.5">
               <Bell size={15} />
@@ -352,7 +352,7 @@ export const NotificationBell: React.FC<{ className?: string }> = ({ className =
 
       {/* Dropdown Panel in Professional Dark Navy */}
       {isOpen && (
-        <div className="absolute right-0 mt-3 w-80 sm:w-96 rounded-3xl border border-sky-500/20 bg-[#0B1628]/95 backdrop-blur-2xl shadow-2xl z-50 overflow-hidden text-white pm-in">
+        <div className="absolute right-0 mt-3 w-[calc(100vw-2rem)] sm:w-96 max-w-[384px] rounded-3xl border border-sky-500/20 bg-[#0B1628]/95 backdrop-blur-2xl shadow-2xl z-50 overflow-hidden text-white pm-in">
           {/* Header */}
           <div className="flex items-center justify-between border-b border-white/10 px-4 py-3 bg-white/5">
             <div className="flex items-center gap-2">

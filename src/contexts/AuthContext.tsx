@@ -17,7 +17,7 @@ export interface AuthContextType {
   user: AuthUser | null;
   userProfile: User | null;
   loading: boolean;
-  loginWithGoogle: () => Promise<void>;
+  loginWithGoogle: (targetRedirect?: string) => Promise<void>;
   loginWithEmail: (email: string, pass: string) => Promise<void>;
   signupWithEmail: (
     email: string,
@@ -42,7 +42,7 @@ const AuthContext = createContext<AuthContextType>({
   user: null,
   userProfile: null,
   loading: true,
-  loginWithGoogle: async () => {},
+  loginWithGoogle: async (_targetRedirect?: string) => {},
   loginWithEmail: async () => {},
   signupWithEmail: async () => {},
   resetPasswordForEmail: async () => {},
@@ -87,52 +87,120 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   useEffect(() => {
-    // 1. Check active session on initial load
+    let isMounted = true;
+
+    // Check if current URL contains OAuth parameters
+    const checkOAuthParams = () => {
+      if (typeof window === 'undefined') return { hasCode: false };
+      try {
+        const url = new URL(window.location.href);
+        const hasCode = url.searchParams.has('code');
+        const hasTokenInHash = url.hash.includes('access_token=');
+        const hasError = url.searchParams.has('error') || url.hash.includes('error=');
+
+        if (hasError) {
+          const errorDesc = url.searchParams.get('error_description') || url.searchParams.get('error') || 'Authentication failed or was cancelled.';
+          console.warn('[AuthContext] OAuth error in URL:', errorDesc);
+          url.searchParams.delete('error');
+          url.searchParams.delete('error_code');
+          url.searchParams.delete('error_description');
+          window.history.replaceState(null, '', url.pathname + (url.search ? url.search : '') + url.hash);
+        }
+        return { hasCode: hasCode || hasTokenInHash };
+      } catch {
+        return { hasCode: false };
+      }
+    };
+
+    const { hasCode } = checkOAuthParams();
+
+    // 1. Listen to Supabase auth state changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      if (!isMounted) return;
+
+      if (session?.user) {
+        const authUser = formatAuthUser(session.user);
+        setCurrentUser(authUser);
+        await fetchProfile(session.user.id, session.user);
+        if (isMounted) {
+          setLoading(false);
+        }
+      } else {
+        // If an OAuth exchange is actively taking place in URL, don't clear until exchange completes or times out
+        const stillHasCode = typeof window !== 'undefined' && (
+          new URL(window.location.href).searchParams.has('code') || 
+          window.location.hash.includes('access_token=')
+        );
+        if (!stillHasCode) {
+          setCurrentUser(null);
+          setUserData(null);
+          if (isMounted) {
+            setLoading(false);
+          }
+        }
+      }
+    });
+
+    // 2. Also check active session in storage
     const initSession = async () => {
       try {
         const { data: { session }, error } = await supabase.auth.getSession();
         if (error) throw error;
 
+        if (!isMounted) return;
+
         if (session?.user) {
           const authUser = formatAuthUser(session.user);
           setCurrentUser(authUser);
           await fetchProfile(session.user.id, session.user);
-        } else {
+          if (isMounted) {
+            setLoading(false);
+          }
+        } else if (!hasCode) {
           setCurrentUser(null);
           setUserData(null);
+          if (isMounted) {
+            setLoading(false);
+          }
         }
       } catch (err) {
         console.error('Error initializing auth session:', err);
-      } finally {
-        setLoading(false);
+        if (isMounted && !hasCode) {
+          setLoading(false);
+        }
       }
     };
 
     initSession();
 
-    // 2. Listen to Supabase auth state changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      if (session?.user) {
-        const authUser = formatAuthUser(session.user);
-        setCurrentUser(authUser);
-        await fetchProfile(session.user.id, session.user);
-      } else {
-        setCurrentUser(null);
-        setUserData(null);
-      }
-      setLoading(false);
-    });
+    // Safety fallback: if OAuth code was in URL but exchange somehow stalled, ensure loading unblocks
+    let fallbackTimer: ReturnType<typeof setTimeout> | null = null;
+    if (hasCode) {
+      fallbackTimer = setTimeout(() => {
+        if (isMounted) {
+          console.warn('[AuthContext] OAuth callback resolution safety timeout reached');
+          setLoading(false);
+        }
+      }, 6000);
+    }
 
     return () => {
+      isMounted = false;
+      if (fallbackTimer) clearTimeout(fallbackTimer);
       subscription.unsubscribe();
     };
   }, []);
 
-  const loginWithGoogle = async () => {
+  const loginWithGoogle = async (targetRedirect?: string) => {
+    if (targetRedirect) {
+      sessionStorage.setItem('pm_auth_redirect', targetRedirect);
+      localStorage.setItem('pm_auth_redirect', targetRedirect);
+    }
+    const redirectUrl = `${window.location.origin}/`;
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: window.location.origin
+        redirectTo: redirectUrl
       }
     });
     if (error) throw error;

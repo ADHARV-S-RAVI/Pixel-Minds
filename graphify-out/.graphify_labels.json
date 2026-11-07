@@ -29,9 +29,8 @@
   "27": "Pixel Minds - Auth & Profile Completion Update Report",
   "28": "1. Verified Opportunities Directory (By Category)",
   "29": "audit-test.mjs",
-  "30": "GooeyNav.tsx",
+  "30": "src/store.tsx",
   "31": "2. Features Inspected & Audit Findings",
   "32": "vercel.json",
-  "33": "SubmitOpportunity.tsx",
-  "34": "src/data.ts"
+  "34": "src/pixels.tsx"
 }

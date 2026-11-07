@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, useLocation, useSearchParams, Link } from 'react-router-dom';
 import {
   Eye,
@@ -44,13 +44,23 @@ export function Signup() {
   const [successMsg, setSuccessMsg] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const { signupWithEmail, loginWithGoogle, user } = useAuth();
+  const { signupWithEmail, loginWithGoogle, user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams] = useSearchParams();
 
   const redirect = searchParams.get('redirect') || (location.state as any)?.from?.pathname || '/';
   const infoMsg = searchParams.get('msg') || ((searchParams.get('redirect') || (location.state as any)?.from) ? 'Please sign up or log in to continue.' : '');
+
+  // Automatically redirect if user is already authenticated
+  useEffect(() => {
+    if (!authLoading && user) {
+      const target = sessionStorage.getItem('pm_auth_redirect') || localStorage.getItem('pm_auth_redirect') || redirect || '/';
+      sessionStorage.removeItem('pm_auth_redirect');
+      localStorage.removeItem('pm_auth_redirect');
+      navigate(target, { replace: true });
+    }
+  }, [user, authLoading, navigate, redirect]);
 
   const handleVerifyReferral = async () => {
     if (!referralCode.trim()) {
@@ -166,25 +176,24 @@ export function Signup() {
     try {
       setError('');
       setLoading(true);
-      if (redirect && redirect !== '/') {
-        sessionStorage.setItem('pm_auth_redirect', redirect);
-      }
+      const target = redirect || '/';
+      sessionStorage.setItem('pm_auth_redirect', target);
+      localStorage.setItem('pm_auth_redirect', target);
       if (referralCode.trim()) {
         const clean = referralCode.trim().toUpperCase();
         localStorage.setItem('pm_ref_code', clean);
         sessionStorage.setItem('pm_ref_code', clean);
       }
-      await loginWithGoogle();
-      navigate(redirect);
+      await loginWithGoogle(target);
+      // OAuth redirects browser to Google; do not navigate client-side
     } catch {
       setError('Unable to sign in with Google. Please try again.');
-    } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-[85vh] flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8 relative">
+    <div className="min-h-[85vh] flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8 relative overflow-hidden max-w-full">
       {/* Background Sky-Blue Glow Orb */}
       <div className="pointer-events-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-[600px] w-[600px] rounded-full bg-gradient-to-tr from-sky-500/15 via-blue-600/10 to-transparent blur-3xl -z-10" />
 

@@ -129,13 +129,13 @@ export const Avatar: FC<{ name?: string; size?: number; photoURL?: string; class
 };
 
 export const Logo: FC<{ light?: boolean }> = ({ light = false }) => (
-  <Link to="/" className="flex items-center gap-2.5 font-bold tracking-tight group shrink-0">
+  <Link to="/" className="flex items-center gap-2 font-bold tracking-tight group shrink-0 min-w-0">
     <img
       src="/logo.png"
       alt="Pixel Minds"
-      className="h-8 w-auto max-h-8 object-contain transition-transform group-hover:scale-105 shrink-0"
+      className="h-7 w-auto sm:h-8 max-h-8 object-contain transition-transform group-hover:scale-105 shrink-0"
     />
-    <span className={`text-base font-extrabold tracking-tight ${light ? 'text-white' : 'text-[#0e1b33]'}`}>
+    <span className={`text-sm sm:text-base font-extrabold tracking-tight truncate ${light ? 'text-white' : 'text-[#0e1b33]'}`}>
       Pixel Minds
     </span>
   </Link>
@@ -201,17 +201,17 @@ export const OppCard: FC<{ o: Opp; variant?: 'light' | 'dark' }> = ({ o, variant
   // Dark variant matching reference "Featured Opportunity"
   if (variant === 'dark') {
     return (
-      <div className="group relative flex flex-col justify-between rounded-[28px] pm-glass-card border-2 border-blue-400/40 bg-white/85 backdrop-blur-2xl p-5 sm:p-6 text-[#0e1b33] shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden min-h-[310px]">
+      <div className="group relative flex flex-col justify-between rounded-[28px] pm-glass-card border-2 border-blue-400/40 bg-white/85 backdrop-blur-2xl p-5 sm:p-6 text-[#0e1b33] shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden min-h-[310px] h-full max-w-full">
         {/* Soft Ambient Sky-Blue Glow in Corner */}
-        <div className="pointer-events-none absolute -right-16 -top-16 h-40 w-40 rounded-full bg-blue-500/10 blur-2xl" />
+        <div className="pointer-events-none absolute right-0 top-0 h-40 w-40 rounded-full bg-blue-500/10 blur-2xl max-w-full" />
 
         {/* Top Header */}
         <div className="flex items-center justify-between gap-2 mb-3 relative z-10">
           <span className="inline-flex items-center gap-1.5 rounded-full bg-blue-100/90 border border-blue-200/80 px-3 py-1 text-xs font-bold text-blue-700 shadow-2xs">
-            <Code2 size={13} className="text-blue-600" />
-            <span>Featured · {o.cat}</span>
+            <Code2 size={13} className="text-blue-600 shrink-0" />
+            <span className="truncate">Featured · {o.cat}</span>
           </span>
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1.5 shrink-0">
             <button
               aria-label="Report"
               title="Report Opportunity"
@@ -220,7 +220,7 @@ export const OppCard: FC<{ o: Opp; variant?: 'light' | 'dark' }> = ({ o, variant
                 e.stopPropagation();
                 setShowReport(true);
               }}
-              className="grid h-8 w-8 place-items-center rounded-full bg-white/80 hover:bg-rose-50 border border-slate-200/80 text-slate-400 hover:text-rose-600 transition shadow-2xs cursor-pointer"
+              className="grid h-8 w-8 place-items-center rounded-full bg-white/80 hover:bg-rose-50 border border-slate-200/80 text-slate-400 hover:text-rose-600 transition-colors shadow-2xs cursor-pointer shrink-0"
             >
               <Flag size={13} />
             </button>
@@ -231,7 +231,7 @@ export const OppCard: FC<{ o: Opp; variant?: 'light' | 'dark' }> = ({ o, variant
                 e.stopPropagation();
                 toggle(String(o.id));
               }}
-              className="grid h-8 w-8 place-items-center rounded-full bg-white/80 hover:bg-white border border-slate-200/80 text-slate-500 hover:text-blue-600 transition shadow-2xs cursor-pointer"
+              className="grid h-8 w-8 place-items-center rounded-full bg-white/80 hover:bg-white border border-slate-200/80 text-slate-500 hover:text-blue-600 transition-colors shadow-2xs cursor-pointer shrink-0"
             >
               <Bookmark size={15} fill={on ? '#2563eb' : 'none'} className={on ? 'text-blue-600' : 'text-slate-500'} />
             </button>
@@ -241,7 +241,7 @@ export const OppCard: FC<{ o: Opp; variant?: 'light' | 'dark' }> = ({ o, variant
         {/* Title & Organization */}
         <div className="mb-3 relative z-10">
           <Link to={'/opportunities/' + o.id}>
-            <h3 className="font-extrabold text-lg sm:text-xl text-[#0e1b33] tracking-tight leading-snug line-clamp-1 group-hover:text-blue-600 transition">
+            <h3 className="font-extrabold text-lg sm:text-xl text-[#0e1b33] tracking-tight leading-snug line-clamp-2 group-hover:text-blue-600 transition">
               {o.title}
             </h3>
           </Link>
@@ -250,18 +250,18 @@ export const OppCard: FC<{ o: Opp; variant?: 'light' | 'dark' }> = ({ o, variant
 
         {/* Metadata */}
         <div className="flex flex-wrap items-center gap-x-3.5 gap-y-1.5 text-xs text-slate-600 mb-3.5 relative z-10">
-          <span className="flex items-center gap-1.5">
+          <span className="flex items-center gap-1.5 shrink-0">
             <Calendar size={13} className="text-blue-600" />
             <span>{o.deadline} {o.days ? `· ${o.days}d left` : ''}</span>
           </span>
-          <span className="flex items-center gap-1.5">
+          <span className="flex items-center gap-1.5 shrink-0">
             <MapPin size={13} className="text-blue-600" />
             <span>{o.mode}</span>
           </span>
           {o.prize && (
-            <span className="flex items-center gap-1.5 font-bold text-amber-600">
+            <span className="flex items-center gap-1.5 font-bold text-amber-600 shrink-0">
               <Trophy size={13} className="text-amber-500" />
-              <span>{o.prize}</span>
+              <span className="truncate max-w-[150px]">{o.prize}</span>
             </span>
           )}
         </div>
@@ -281,10 +281,10 @@ export const OppCard: FC<{ o: Opp; variant?: 'light' | 'dark' }> = ({ o, variant
         </div>
 
         {/* Action Buttons */}
-        <div className="grid grid-cols-2 gap-2 pt-3 border-t border-slate-200/60 mt-auto relative z-10">
+        <div className="flex flex-col sm:flex-row gap-2 pt-3 border-t border-slate-200/60 mt-auto relative z-10">
           <Link
             to={'/opportunities/' + o.id}
-            className="inline-flex min-h-9 items-center justify-center gap-1.5 rounded-xl bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-400 hover:to-blue-500 text-white shadow-md shadow-blue-500/20 px-3 py-2 text-xs font-bold transition active:scale-[0.98]"
+            className="flex-1 inline-flex min-h-9 items-center justify-center gap-1.5 rounded-xl bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-400 hover:to-blue-500 text-white shadow-md shadow-blue-500/20 px-3 py-2 text-xs font-bold transition active:scale-[0.98]"
           >
             <span>View Details</span>
             <ArrowRight size={13} />
@@ -297,11 +297,11 @@ export const OppCard: FC<{ o: Opp; variant?: 'light' | 'dark' }> = ({ o, variant
                 navigator.clipboard.writeText(window.location.origin + '/opportunities/' + o.id);
               }
             }}
-            className="inline-flex min-h-9 items-center justify-center gap-1.5 rounded-xl bg-white/80 hover:bg-white border border-slate-200/80 px-3 py-2 text-xs font-bold text-[#0e1b33] hover:text-blue-600 transition active:scale-[0.98] shadow-2xs cursor-pointer"
+            className="flex-1 inline-flex min-h-9 items-center justify-center gap-1.5 rounded-xl bg-white/80 hover:bg-white border border-slate-200/80 px-3 py-2 text-xs font-bold text-[#0e1b33] hover:text-blue-600 transition active:scale-[0.98] shadow-2xs cursor-pointer"
           >
-            <Share2 size={13} className="text-blue-600" />
+            <Share2 size={13} className="text-blue-600 shrink-0" />
             <span>Refer &amp; Earn</span>
-            <span className="rounded-md bg-blue-100 px-1 py-0.2 text-[10px] font-extrabold text-blue-700">+25</span>
+            <span className="rounded-md bg-blue-100 px-1 py-0.2 text-[10px] font-extrabold text-blue-700 shrink-0">+25</span>
           </button>
         </div>
 
@@ -323,23 +323,23 @@ export const OppCard: FC<{ o: Opp; variant?: 'light' | 'dark' }> = ({ o, variant
   const isScholarship = o.cat.toLowerCase().includes('scholarship');
 
   return (
-    <div className="group relative flex flex-col justify-between rounded-[22px] pm-glass-card p-4 sm:p-5 transition-all duration-300 hover:-translate-y-1 hover:shadow-lg border border-white/85 text-[#0e1b33] overflow-hidden min-h-[220px]">
+    <div className="group relative flex flex-col justify-between rounded-[22px] pm-glass-card p-4 sm:p-5 transition-all duration-300 hover:-translate-y-1 hover:shadow-lg border border-white/85 text-[#0e1b33] overflow-hidden min-h-[220px] h-full max-w-full">
       <div>
         {/* Top Header: Category Tag & Save Bookmark */}
         <div className="flex items-center justify-between gap-2 mb-2.5">
           {isHackathon ? (
             <span className="inline-flex items-center gap-1.5 rounded-full bg-blue-100/90 border border-blue-200/80 px-2.5 py-0.5 text-xs font-bold text-blue-700">
-              <Code2 size={12} className="text-blue-600" />
+              <Code2 size={12} className="text-blue-600 shrink-0" />
               <span>Hackathon</span>
             </span>
           ) : isInternship ? (
             <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-100/90 border border-emerald-200/80 px-2.5 py-0.5 text-xs font-bold text-emerald-700">
-              <Briefcase size={12} className="text-emerald-600" />
+              <Briefcase size={12} className="text-emerald-600 shrink-0" />
               <span>Internship</span>
             </span>
           ) : isScholarship ? (
             <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-100/90 border border-amber-200/80 px-2.5 py-0.5 text-xs font-bold text-amber-700">
-              <GraduationCap size={12} className="text-amber-600" />
+              <GraduationCap size={12} className="text-amber-600 shrink-0" />
               <span>Scholarship</span>
             </span>
           ) : (
@@ -348,7 +348,7 @@ export const OppCard: FC<{ o: Opp; variant?: 'light' | 'dark' }> = ({ o, variant
             </span>
           )}
 
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1.5 shrink-0">
             <button
               aria-label="Report"
               title="Report Opportunity"
@@ -357,7 +357,7 @@ export const OppCard: FC<{ o: Opp; variant?: 'light' | 'dark' }> = ({ o, variant
                 e.stopPropagation();
                 setShowReport(true);
               }}
-              className="grid h-7 w-7 place-items-center rounded-full bg-white/70 hover:bg-rose-50 border border-white/80 text-slate-400 hover:text-rose-600 transition shadow-2xs cursor-pointer"
+              className="grid h-7 w-7 place-items-center rounded-full bg-white/70 hover:bg-rose-50 border border-white/80 text-slate-400 hover:text-rose-600 transition-colors shadow-2xs cursor-pointer shrink-0"
             >
               <Flag size={12} />
             </button>
@@ -368,7 +368,7 @@ export const OppCard: FC<{ o: Opp; variant?: 'light' | 'dark' }> = ({ o, variant
                 e.stopPropagation();
                 toggle(String(o.id));
               }}
-              className="grid h-7 w-7 place-items-center rounded-full bg-white/70 hover:bg-white border border-white/80 text-slate-500 hover:text-blue-600 transition shadow-2xs cursor-pointer"
+              className="grid h-7 w-7 place-items-center rounded-full bg-white/70 hover:bg-white border border-white/80 text-slate-500 hover:text-blue-600 transition-colors shadow-2xs cursor-pointer shrink-0"
             >
               <Bookmark size={14} fill={on ? '#2563eb' : 'none'} className={on ? 'text-blue-600' : 'text-slate-500'} />
             </button>
@@ -378,7 +378,7 @@ export const OppCard: FC<{ o: Opp; variant?: 'light' | 'dark' }> = ({ o, variant
         {/* Title & Organization */}
         <div className="mb-2">
           <Link to={'/opportunities/' + o.id}>
-            <h3 className="font-extrabold text-sm sm:text-base text-[#0e1b33] tracking-tight leading-snug line-clamp-1 group-hover:text-blue-600 transition">
+            <h3 className="font-extrabold text-sm sm:text-base text-[#0e1b33] tracking-tight leading-snug line-clamp-2 group-hover:text-blue-600 transition">
               {o.title}
             </h3>
           </Link>
@@ -387,11 +387,11 @@ export const OppCard: FC<{ o: Opp; variant?: 'light' | 'dark' }> = ({ o, variant
 
         {/* Metadata */}
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-600 mt-2">
-          <span className="flex items-center gap-1.5">
+          <span className="flex items-center gap-1.5 shrink-0">
             <Calendar size={13} className="text-slate-400" />
             <span>{o.deadline} {o.days ? `· ${o.days}d left` : ''}</span>
           </span>
-          <span className="flex items-center gap-1.5">
+          <span className="flex items-center gap-1.5 shrink-0">
             <MapPin size={13} className="text-slate-400" />
             <span>{o.mode}</span>
           </span>
@@ -1264,14 +1264,14 @@ export const Layout: FC = () => {
   const isAdmin = userProfile?.role === 'admin' || user?.email === 'admin@pixelminds.org';
 
   return (
-    <div className="min-h-screen pm-bg-canvas flex flex-col lg:flex-row p-3 sm:p-5 lg:p-6 gap-5 selection:bg-blue-500/20 selection:text-[#0e1b33]">
+    <div className="min-h-screen pm-bg-canvas flex flex-col lg:flex-row p-2.5 sm:p-4 lg:p-6 gap-3 sm:gap-5 selection:bg-blue-500/20 selection:text-[#0e1b33] overflow-x-hidden max-w-full">
       {/* Active Announcement Popup Modal */}
       <AnnouncementModal />
 
       {/* ============================================================ */}
       {/* 1. LEFT VERTICAL SIDEBAR (Desktop matching reference image) */}
       {/* ============================================================ */}
-      <aside className="hidden lg:flex w-60 xl:w-64 shrink-0 flex-col justify-between pm-glass rounded-[28px] p-5 sticky top-6 self-start min-h-[calc(100vh-3rem)] shadow-lg shadow-blue-900/5">
+      <aside className="hidden lg:flex w-56 xl:w-64 shrink-0 flex-col justify-between pm-glass rounded-[28px] p-4 xl:p-5 sticky top-6 self-start min-h-[calc(100vh-3rem)] shadow-lg shadow-blue-900/5">
         <div>
           {/* Logo */}
           <div className="px-2 pt-1 pb-6">
@@ -1325,11 +1325,11 @@ export const Layout: FC = () => {
       {/* ============================================================ */}
       {/* 2. RIGHT SECTION: TOP NAV BAR + MAIN CONTENT */}
       {/* ============================================================ */}
-      <div className="flex-1 min-w-0 flex flex-col gap-5 pb-20 lg:pb-0">
+      <div className="flex-1 min-w-0 flex flex-col gap-4 sm:gap-5 pb-20 lg:pb-0 max-w-full">
         {/* Top Navigation Bar */}
-        <header className="pm-glass rounded-[24px] sm:rounded-full px-4 sm:px-6 py-2.5 sm:py-3 flex items-center justify-between gap-3 sm:gap-4 shadow-sm relative z-30">
+        <header className="pm-glass rounded-[20px] sm:rounded-full px-3 sm:px-6 py-2 sm:py-3 flex items-center justify-between gap-2 sm:gap-4 shadow-sm relative z-30 max-w-full">
           {/* Mobile Logo on left */}
-          <div className="flex items-center gap-2 lg:hidden">
+          <div className="flex items-center gap-2 lg:hidden min-w-0 shrink">
             <Logo />
           </div>
 
@@ -1347,44 +1347,43 @@ export const Layout: FC = () => {
             </span>
           </form>
 
-          {/* Right Controls matching reference: Sun toggle, + Share Opportunity, NotificationBell */}
-          <div className="flex items-center gap-2 sm:gap-3 shrink-0 ml-auto">
+          {/* Right Controls: Sun toggle, + Share Opportunity (desktop/tablet only), NotificationBell, User Menu */}
+          <div className="flex items-center gap-1.5 sm:gap-3 shrink-0 ml-auto">
             {/* Sun / Moon Theme Toggle */}
             <button
               aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
               onClick={toggleTheme}
-              className={`grid h-10 w-10 place-items-center rounded-full transition cursor-pointer shadow-xs ${
+              className={`grid h-8 w-8 sm:h-10 sm:w-10 place-items-center rounded-full transition cursor-pointer shadow-xs shrink-0 ${
                 theme === 'dark'
                   ? 'bg-[#162B45] text-amber-400 border border-white/10 hover:text-amber-300 hover:bg-[#1c3656]'
                   : 'bg-white text-slate-800 border-2 border-slate-200/90 hover:text-blue-600 hover:bg-slate-50 shadow-sm'
               }`}
             >
               {theme === 'dark' ? (
-                <Sun size={18} className="text-amber-400 transition-transform duration-200 hover:rotate-45" />
+                <Sun size={16} className="text-amber-400 transition-transform duration-200 hover:rotate-45" />
               ) : (
-                <Moon size={18} className="text-slate-800 transition-transform duration-200 hover:-rotate-12" />
+                <Moon size={16} className="text-slate-800 transition-transform duration-200 hover:-rotate-12" />
               )}
             </button>
 
-            {/* Admin Console Quick Button (Visible when logged in as Admin) */}
+            {/* Admin Console Quick Button (Tablet/Desktop only when logged in as Admin) */}
             {isAdmin && (
               <Link
                 to="/admin"
-                className="inline-flex items-center gap-1.5 rounded-full bg-[#16171D] hover:bg-[#20222a] text-[#DFB76C] border border-[#C5A059]/40 hover:border-[#DFB76C] px-3 sm:px-4 py-2 sm:py-2.5 text-xs font-bold shadow-md shadow-black/10 transition active:scale-[0.98] cursor-pointer"
+                className="hidden sm:inline-flex items-center gap-1.5 rounded-full bg-[#16171D] hover:bg-[#20222a] text-[#DFB76C] border border-[#C5A059]/40 hover:border-[#DFB76C] px-3 sm:px-4 py-2 sm:py-2.5 text-xs font-bold shadow-md shadow-black/10 transition active:scale-[0.98] cursor-pointer shrink-0"
                 title="Admin Console"
               >
                 <ShieldCheck size={14} className="text-[#C5A059]" />
-                <span className="hidden sm:inline">Admin Console</span>
-                <span className="sm:hidden">Admin</span>
+                <span className="hidden md:inline">Admin Console</span>
+                <span className="md:hidden">Admin</span>
               </Link>
             )}
 
-            {/* + Share Opportunity (Navy Blue Button) */}
-            <Link to="/submit">
+            {/* + Share Opportunity - Hidden on mobile screens to keep header compact; accessible via bottom bar */}
+            <Link to="/submit" className="hidden md:inline-flex shrink-0">
               <button className="inline-flex items-center gap-1.5 rounded-full bg-[#112240] hover:bg-[#1a335e] text-white px-4 sm:px-5 py-2.5 text-xs font-bold shadow-md shadow-slate-900/10 transition active:scale-[0.98] cursor-pointer">
                 <span className="text-sm font-black leading-none">+</span>
-                <span className="hidden sm:inline">Share Opportunity</span>
-                <span className="sm:hidden">Share</span>
+                <span>Share Opportunity</span>
               </button>
             </Link>
 
@@ -1464,16 +1463,16 @@ export const Layout: FC = () => {
                 )}
               </div>
             ) : (
-              <div className="flex items-center gap-1.5 sm:gap-2">
+              <div className="flex items-center gap-1 sm:gap-2 shrink-0">
                 <Link
                   to="/login"
-                  className="inline-flex items-center justify-center rounded-full bg-white/80 hover:bg-white text-[#0e1b33] font-bold text-xs px-3 sm:px-4 py-2 border border-slate-200/80 shadow-xs transition active:scale-[0.98]"
+                  className="inline-flex items-center justify-center rounded-full bg-white/80 hover:bg-white text-[#0e1b33] font-bold text-[11px] sm:text-xs px-2.5 sm:px-4 py-1.5 sm:py-2 border border-slate-200/80 shadow-xs transition active:scale-[0.98] shrink-0"
                 >
                   Log In
                 </Link>
                 <Link
                   to="/signup"
-                  className="inline-flex items-center justify-center rounded-full bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-400 hover:to-blue-500 text-white font-bold text-xs px-3 sm:px-4 py-2 shadow-md shadow-sky-500/20 transition active:scale-[0.98]"
+                  className="inline-flex items-center justify-center rounded-full bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-400 hover:to-blue-500 text-white font-bold text-[11px] sm:text-xs px-2.5 sm:px-4 py-1.5 sm:py-2 shadow-md shadow-sky-500/20 transition active:scale-[0.98] shrink-0 whitespace-nowrap"
                 >
                   Sign Up
                 </Link>

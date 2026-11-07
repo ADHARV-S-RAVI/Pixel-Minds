@@ -8,7 +8,11 @@ export const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ childr
   const location = useLocation();
 
   if (loading) {
-    return null;
+    return (
+      <div className="min-h-[70vh] flex items-center justify-center bg-white">
+        <div className="animate-spin rounded-full h-8 w-8 border-2 border-slate-200 border-t-sky-500"></div>
+      </div>
+    );
   }
 
   if (!currentUser) {

@@ -6,7 +6,8 @@ export const AdminRoute: React.FC<{ children: React.ReactNode }> = ({ children }
   const { currentUser, userProfile, loading } = useAuth();
   const location = useLocation();
 
-  if (loading) {
+  // Show spinner while initializing auth or while user is authenticated but profile is still loading
+  if (loading || (currentUser && userProfile === null)) {
     return (
       <div className="min-h-[70vh] flex items-center justify-center bg-white">
         <div className="animate-spin rounded-full h-8 w-8 border-2 border-slate-200 border-t-sky-500"></div>

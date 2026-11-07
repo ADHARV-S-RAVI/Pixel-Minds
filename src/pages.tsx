@@ -254,25 +254,25 @@ export function Landing() {
       {/* ============================================================ */}
       {/* DASHBOARD GRID: CENTER CONTENT (Hero + Trending) + RIGHT (Featured + Recent) */}
       {/* ============================================================ */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+      <div className="grid grid-cols-1 xl:grid-cols-12 gap-5 items-start">
         {/* CENTER COLUMN (Hero Section + Trending Opportunities) */}
-        <div className="lg:col-span-8 space-y-6">
+        <div className="xl:col-span-8 space-y-6 min-w-0">
           {/* Hero Section Card matching reference */}
-          <div className="pm-glass rounded-[28px] p-6 sm:p-8 relative overflow-hidden border border-white/90 shadow-sm flex flex-col justify-between">
+          <div className="pm-glass rounded-[28px] p-5 sm:p-8 relative overflow-hidden border border-white/90 shadow-sm flex flex-col justify-between max-w-full">
             {/* Ambient subtle light-blue glow */}
-            <div className="pointer-events-none absolute -top-16 -right-16 w-80 h-80 rounded-full bg-blue-400/15 blur-3xl" />
+            <div className="pointer-events-none absolute -top-16 -right-16 w-72 sm:w-80 h-72 sm:h-80 rounded-full bg-blue-400/15 blur-3xl max-w-full" />
 
             {/* Pill badge at top */}
-            <div className="inline-flex items-center gap-1.5 rounded-full bg-amber-100/90 border border-amber-300/80 px-3.5 py-1 text-xs font-semibold text-amber-900 shadow-2xs mb-5 self-start">
-              <Zap size={13} className="text-amber-600 fill-amber-500" />
-              <span>Pixel Minds Tech Ecosystem · 800+ Members</span>
+            <div className="inline-flex items-center gap-1.5 rounded-full bg-amber-100/90 border border-amber-300/80 px-3.5 py-1 text-xs font-semibold text-amber-900 shadow-2xs mb-5 self-start max-w-full">
+              <Zap size={13} className="text-amber-600 fill-amber-500 shrink-0" />
+              <span className="truncate">Pixel Minds Tech Ecosystem · 800+ Members</span>
             </div>
 
             {/* Flex container between Text & 3D Crystal Orb */}
             <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-              <div className="max-w-md">
+              <div className="max-w-md w-full">
                 {/* Headline matching image */}
-                <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-[#0e1b33] tracking-tight leading-[1.12]">
+                <h1 className="text-2xl sm:text-4xl lg:text-5xl font-black text-[#0e1b33] tracking-tight leading-[1.12]">
                   Discover. Share.<br />
                   <span className="text-[#2563eb]">Earn Pixels.</span>
                 </h1>
@@ -283,15 +283,15 @@ export function Landing() {
                 </p>
 
                 {/* CTA Buttons */}
-                <div className="mt-6 flex flex-wrap items-center gap-3">
-                  <Link to="/opportunities">
-                    <button className="inline-flex items-center gap-2 rounded-full bg-[#112240] hover:bg-[#1a335e] text-white px-5 sm:px-6 py-3 text-xs font-bold shadow-md shadow-slate-900/10 transition active:scale-[0.98] cursor-pointer">
+                <div className="mt-6 flex flex-wrap items-center gap-2.5 sm:gap-3">
+                  <Link to="/opportunities" className="w-full sm:w-auto">
+                    <button className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-full bg-[#112240] hover:bg-[#1a335e] text-white px-5 sm:px-6 py-3 text-xs font-bold shadow-md shadow-slate-900/10 transition active:scale-[0.98] cursor-pointer">
                       <span>Explore Opportunities</span>
                       <ArrowRight size={14} />
                     </button>
                   </Link>
-                  <Link to="/submit">
-                    <button className="inline-flex items-center gap-2 rounded-full bg-white/80 hover:bg-white text-[#0e1b33] border border-white/90 px-5 sm:px-6 py-3 text-xs font-bold shadow-xs transition active:scale-[0.98] cursor-pointer">
+                  <Link to="/submit" className="w-full sm:w-auto">
+                    <button className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-full bg-white/80 hover:bg-white text-[#0e1b33] border border-white/90 px-5 sm:px-6 py-3 text-xs font-bold shadow-xs transition active:scale-[0.98] cursor-pointer">
                       <Upload size={14} className="text-[#2563eb]" />
                       <span>Share an Opportunity</span>
                     </button>
@@ -299,26 +299,26 @@ export function Landing() {
                 </div>
 
                 {/* Stats Row with vertical dividers matching reference */}
-                <div className="mt-8 flex items-center gap-5 sm:gap-7 pt-5 border-t border-slate-200/60">
+                <div className="mt-8 flex items-center justify-between sm:justify-start gap-3 sm:gap-7 pt-5 border-t border-slate-200/60">
                   <div>
-                    <p className="text-xl sm:text-2xl font-black text-[#0e1b33] tracking-tight">2,400+</p>
-                    <p className="text-xs text-slate-500 font-medium">opportunities</p>
+                    <p className="text-lg sm:text-2xl font-black text-[#0e1b33] tracking-tight">2,400+</p>
+                    <p className="text-[11px] sm:text-xs text-slate-500 font-medium">opportunities</p>
                   </div>
                   <div className="h-8 w-px bg-slate-300/60" />
                   <div>
-                    <p className="text-xl sm:text-2xl font-black text-[#0e1b33] tracking-tight">18k</p>
-                    <p className="text-xs text-slate-500 font-medium">builders</p>
+                    <p className="text-lg sm:text-2xl font-black text-[#0e1b33] tracking-tight">18k</p>
+                    <p className="text-[11px] sm:text-xs text-slate-500 font-medium">builders</p>
                   </div>
                   <div className="h-8 w-px bg-slate-300/60" />
                   <div>
-                    <p className="text-xl sm:text-2xl font-black text-[#0e1b33] tracking-tight">1.2M</p>
-                    <p className="text-xs text-slate-500 font-medium">Pixels awarded</p>
+                    <p className="text-lg sm:text-2xl font-black text-[#0e1b33] tracking-tight">1.2M</p>
+                    <p className="text-[11px] sm:text-xs text-slate-500 font-medium">Pixels awarded</p>
                   </div>
                 </div>
               </div>
 
               {/* 3D Crystal Blue Orb matching reference */}
-              <div className="relative hidden md:flex items-center justify-center shrink-0 w-60 h-60 lg:w-72 lg:h-72 my-auto ml-auto">
+              <div className="relative hidden md:flex items-center justify-center shrink-0 w-52 h-52 lg:w-72 lg:h-72 my-auto ml-auto">
                 <img
                   src="/hero-orb.jpg"
                   alt="Pixel Minds Tech Orb"
@@ -351,7 +351,7 @@ export function Landing() {
               </Link>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
               {trending.slice(0, 3).map((o) => (
                 <OppCard key={o.id} o={o} variant="light" />
               ))}
@@ -360,7 +360,7 @@ export function Landing() {
         </div>
 
         {/* RIGHT COLUMN (Featured Opportunity Card + Recent Activity) */}
-        <div className="lg:col-span-4 space-y-6">
+        <div className="xl:col-span-4 space-y-6 w-full grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-1 gap-5 xl:gap-6">
           {/* Featured Opportunity Section */}
           <div className="space-y-3.5">
             <div className="flex items-center justify-between">
@@ -498,27 +498,75 @@ export function Landing() {
           </div>
         </section>
 
-        {/* Upcoming Hackathons */}
+        {/* Upcoming Hackathons & Competitions */}
         <section>
-          <SectionTitle t="Upcoming Hackathons & Competitions" to="/opportunities?cat=Hackathons" />
-          <div className="grid gap-3 md:grid-cols-2">
+          <SectionTitle t="Upcoming Hackathons & Competitions" to="/opportunities?cat=Hackathons" subtitle="High-impact hackathons and tech contests closing soon" />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 sm:gap-4">
             {hackathons.slice(0, 4).map((o) => {
               const metaInfo = getCategoryMeta(o.cat);
               const I = metaInfo.Icon;
               return (
-                <div key={o.id} className="flex items-center gap-4 rounded-2xl pm-glass-card border border-white/90 p-4 hover:border-blue-300 transition shadow-2xs">
-                  <div className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-[#112240] text-white shadow-2xs">
-                    <I size={18} />
+                <div
+                  key={o.id}
+                  className="group relative flex flex-col justify-between rounded-2xl pm-glass-card border border-white/90 p-4 sm:p-5 hover:border-blue-400/60 hover:shadow-md transition-all duration-200 text-[#0e1b33] min-h-[160px] h-full"
+                >
+                  <div>
+                    {/* Top Badges Row */}
+                    <div className="flex flex-wrap items-center justify-between gap-2 mb-2.5">
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <span className="inline-flex items-center gap-1 rounded-full bg-blue-100/90 border border-blue-200/80 px-2.5 py-0.5 text-[11px] font-bold text-blue-700">
+                          <I size={12} className="text-blue-600 shrink-0" />
+                          <span className="truncate">{o.cat || 'Hackathon'}</span>
+                        </span>
+                        <span className="inline-flex items-center rounded-full bg-slate-100/90 border border-slate-200/80 px-2 py-0.5 text-[10px] font-semibold text-slate-600">
+                          {o.mode}
+                        </span>
+                      </div>
+                      {o.days && o.days <= 14 && (
+                        <span className="inline-flex items-center gap-1 text-[10px] font-extrabold text-amber-700 bg-amber-50 border border-amber-200/80 px-2 py-0.5 rounded-full shrink-0">
+                          <Clock size={10} className="text-amber-600" />
+                          <span>{o.days}d left</span>
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Title & Organization */}
+                    <Link to={'/opportunities/' + o.id} className="block group-hover:text-blue-600 transition">
+                      <h3 className="font-extrabold text-sm sm:text-base text-[#0e1b33] tracking-tight leading-snug line-clamp-2">
+                        {o.title}
+                      </h3>
+                    </Link>
+                    {o.org && (
+                      <p className="text-xs text-slate-500 font-medium mt-1 truncate">
+                        by {o.org}
+                      </p>
+                    )}
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-bold text-[#0e1b33] text-sm truncate">{o.title}</p>
-                    <p className="text-xs text-slate-500 mt-0.5">
-                      {o.deadline} · {o.mode} · <span className="font-semibold text-[#0e1b33]">{o.prize}</span>
-                    </p>
+
+                  {/* Bottom Footer: Deadline, Prize & View Button */}
+                  <div className="mt-3.5 pt-3 border-t border-slate-200/50 flex items-center justify-between gap-2">
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-600 min-w-0">
+                      <span className="flex items-center gap-1 shrink-0">
+                        <Calendar size={12} className="text-slate-400" />
+                        <span className="text-[11px] font-medium text-slate-600">{o.deadline}</span>
+                      </span>
+                      {o.prize && (
+                        <span className="flex items-center gap-1 font-bold text-amber-600 shrink-0">
+                          <Trophy size={12} className="text-amber-500" />
+                          <span className="text-[11px] truncate max-w-[120px] sm:max-w-[140px]">{o.prize}</span>
+                        </span>
+                      )}
+                    </div>
+
+                    <BtnLink
+                      to={'/opportunities/' + o.id}
+                      v="outline"
+                      className="!py-1.5 !px-3.5 !text-xs !min-h-8 shrink-0 !rounded-full hover:!border-blue-400 hover:!text-blue-600"
+                    >
+                      <span>View</span>
+                      <ArrowRight size={12} />
+                    </BtnLink>
                   </div>
-                  <BtnLink to={'/opportunities/' + o.id} v="outline" className="!py-1.5 !px-3 !text-xs !min-h-8 shrink-0">
-                    View
-                  </BtnLink>
                 </div>
               );
             })}
@@ -528,7 +576,7 @@ export function Landing() {
         {/* Internships & Fellowships */}
         <section>
           <SectionTitle t="Internships & Fellowships" to="/opportunities?cat=Internships" subtitle="Fast-track your developer career" />
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
             {internships.slice(0, 3).map((o) => (
               <OppCard key={o.id} o={o} variant="light" />
             ))}
@@ -538,7 +586,7 @@ export function Landing() {
         {/* Tech Events & Workshops */}
         <section>
           <SectionTitle t="Tech Events & Workshops" to="/opportunities?cat=Events" subtitle="Learn new frameworks and meet builders" />
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
             {events.slice(0, 3).map((o) => (
               <OppCard key={o.id} o={o} variant="light" />
             ))}
@@ -799,13 +847,13 @@ export function Opportunities() {
 
       {/* Grid List */}
       {loading ? (
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-5">
           {[1, 2, 3, 4, 5, 6].map((i) => (
             <div key={i} className="h-64 rounded-3xl bg-stone-200/50 animate-pulse border border-black/5" />
           ))}
         </div>
       ) : (
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-5">
           {list.map((o) => (
             <OppCard key={o.id} o={o} />
           ))}
@@ -1061,22 +1109,22 @@ export function OppDetail() {
 
             <ReferBtn title={o.title} path={'/opportunities/' + o.id} className="w-full !py-3 !rounded-full" />
 
-            <div className="flex gap-2">
+            <div className="flex items-center gap-2">
               <Btn
                 v="outline"
-                className="flex-1 !py-2.5 !text-xs !rounded-full"
+                className="flex-1 min-w-0 !py-2.5 !text-xs !rounded-full !min-h-10"
                 onClick={() => toggle(String(o.id))}
               >
-                <Bookmark size={15} fill={isSaved ? '#38BDF8' : 'none'} className={isSaved ? 'text-sky-400' : ''} />
-                {isSaved ? 'Saved in Bookmarks' : 'Save Bookmark'}
+                <Bookmark size={15} fill={isSaved ? '#38BDF8' : 'none'} className={`shrink-0 ${isSaved ? 'text-sky-400' : ''}`} />
+                <span className="truncate">{isSaved ? 'Saved in Bookmarks' : 'Save Bookmark'}</span>
               </Btn>
               <button
                 type="button"
                 onClick={() => setShowReportModal(true)}
                 title="Report Opportunity"
-                className="px-3.5 py-2.5 rounded-full border border-slate-200 hover:border-rose-300 hover:bg-rose-50/70 text-slate-500 hover:text-rose-600 transition flex items-center gap-1.5 text-xs font-semibold cursor-pointer"
+                className="inline-flex items-center justify-center gap-1.5 min-h-10 px-4 py-2.5 rounded-full border border-slate-200 bg-white/80 hover:bg-rose-50 hover:border-rose-300 text-slate-500 hover:text-rose-600 transition-colors text-xs font-bold cursor-pointer shrink-0 shadow-2xs select-none active:scale-[0.98]"
               >
-                <Flag size={14} />
+                <Flag size={14} className="shrink-0" />
                 <span>Report</span>
               </button>
             </div>

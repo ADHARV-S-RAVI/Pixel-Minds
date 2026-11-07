@@ -18,9 +18,10 @@ export default function App() {
 
   useEffect(() => {
     if (user) {
-      const pendingRedirect = sessionStorage.getItem('pm_auth_redirect');
+      const pendingRedirect = sessionStorage.getItem('pm_auth_redirect') || localStorage.getItem('pm_auth_redirect');
       if (pendingRedirect) {
         sessionStorage.removeItem('pm_auth_redirect');
+        localStorage.removeItem('pm_auth_redirect');
         navigate(pendingRedirect, { replace: true });
       }
     }

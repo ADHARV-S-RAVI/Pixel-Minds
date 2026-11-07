@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, useLocation, useSearchParams, Link } from 'react-router-dom';
 import { Eye, EyeOff, Info, ArrowRight } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
@@ -10,13 +10,23 @@ export function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const { loginWithEmail, loginWithGoogle } = useAuth();
+  const { loginWithEmail, loginWithGoogle, currentUser, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams] = useSearchParams();
 
   const redirect = searchParams.get('redirect') || (location.state as any)?.from?.pathname || '/';
   const infoMsg = searchParams.get('msg') || ((searchParams.get('redirect') || (location.state as any)?.from) ? 'Please sign up or log in to continue.' : '');
+
+  // Automatically redirect if user is already authenticated
+  useEffect(() => {
+    if (!authLoading && currentUser) {
+      const target = sessionStorage.getItem('pm_auth_redirect') || localStorage.getItem('pm_auth_redirect') || redirect || '/';
+      sessionStorage.removeItem('pm_auth_redirect');
+      localStorage.removeItem('pm_auth_redirect');
+      navigate(target, { replace: true });
+    }
+  }, [currentUser, authLoading, navigate, redirect]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -47,20 +57,19 @@ export function Login() {
     try {
       setError('');
       setLoading(true);
-      if (redirect && redirect !== '/') {
-        sessionStorage.setItem('pm_auth_redirect', redirect);
-      }
-      await loginWithGoogle();
-      navigate(redirect);
+      const target = redirect || '/';
+      sessionStorage.setItem('pm_auth_redirect', target);
+      localStorage.setItem('pm_auth_redirect', target);
+      await loginWithGoogle(target);
+      // OAuth redirects browser to Google; do not navigate client-side
     } catch {
       setError('Unable to sign in with Google. Please try again.');
-    } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-[85vh] flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8 relative">
+    <div className="min-h-[85vh] flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8 relative overflow-hidden max-w-full">
       {/* Background Sky-Blue Glow Orb */}
       <div className="pointer-events-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-[500px] w-[500px] rounded-full bg-gradient-to-tr from-sky-500/15 via-blue-600/10 to-transparent blur-3xl -z-10" />
 
