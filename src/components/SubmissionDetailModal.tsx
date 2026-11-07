@@ -14,6 +14,7 @@ import {
   Mail
 } from 'lucide-react';
 import type { Opportunity } from '../types';
+import { parseOpportunityImages } from '../services/storage';
 
 interface SubmissionDetailModalProps {
   submission: Opportunity | null;
@@ -35,6 +36,7 @@ export const SubmissionDetailModal: React.FC<SubmissionDetailModalProps> = ({
   const [rejecting, setRejecting] = useState(false);
   const [rejectionReason, setRejectionReason] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [selectedImgIdx, setSelectedImgIdx] = useState(0);
 
   if (!isOpen || !submission) return null;
 
@@ -170,16 +172,38 @@ export const SubmissionDetailModal: React.FC<SubmissionDetailModalProps> = ({
             </div>
           )}
 
-          {/* Banner Image if uploaded */}
-          {submission.imageUrl && (
-            <div className="rounded-2xl overflow-hidden border border-white/10 max-h-64 bg-zinc-900">
-              <img
-                src={submission.imageUrl}
-                alt={submission.title}
-                className="w-full h-full object-cover"
-              />
-            </div>
-          )}
+          {/* Banner Images if uploaded */}
+          {(() => {
+            const images = parseOpportunityImages(submission.imageUrl);
+            if (images.length === 0) return null;
+            return (
+              <div className="space-y-2">
+                <div className="rounded-2xl overflow-hidden border border-white/10 max-h-64 bg-zinc-900">
+                  <img
+                    src={images[selectedImgIdx] || images[0]}
+                    alt={submission.title}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+                {images.length > 1 && (
+                  <div className="flex items-center gap-2 overflow-x-auto pb-1">
+                    {images.map((imgUrl, idx) => (
+                      <button
+                        key={idx}
+                        type="button"
+                        onClick={() => setSelectedImgIdx(idx)}
+                        className={`relative w-16 h-12 rounded-lg overflow-hidden border transition-all shrink-0 cursor-pointer ${
+                          selectedImgIdx === idx ? 'border-[#DFB76C] ring-1 ring-[#DFB76C]' : 'border-white/20 opacity-60 hover:opacity-100'
+                        }`}
+                      >
+                        <img src={imgUrl} alt={`Thumbnail ${idx + 1}`} className="w-full h-full object-cover" />
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })()}
 
           {/* Key Facts Grid */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { getPublishedOpportunities } from '../services/opportunities';
+import { getPrimaryImageUrl } from '../services/storage';
 import type { Opportunity } from '../types';
 import { Search, MapPin, Calendar, Trophy, ArrowRight } from 'lucide-react';
 
@@ -144,8 +145,8 @@ export function Opportunities() {
                 >
                   {/* Image */}
                   <div className="h-44 bg-slate-100 relative overflow-hidden">
-                    {opp.imageUrl ? (
-                      <img src={opp.imageUrl} alt={opp.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                    {getPrimaryImageUrl(opp.imageUrl) ? (
+                      <img src={getPrimaryImageUrl(opp.imageUrl)} alt={opp.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-sky-50 to-slate-100">
                         <span className="text-sky-300 text-sm font-medium">{opp.category}</span>

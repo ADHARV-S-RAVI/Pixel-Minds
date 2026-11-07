@@ -160,14 +160,21 @@ export interface LeaderboardUserEntry {
   role: string;
 }
 
+export interface LeaderboardResponse {
+  users: LeaderboardUserEntry[];
+  totalCount: number;
+}
+
 /**
- * Fetch top users for the real-time community leaderboard from Supabase public.profiles
+ * Fetch top users for the community leaderboard from Supabase public.profiles.
+ * Strictly limits to top 20, using consistent tie-breaking (pixels DESC, created_at ASC).
+ * Returns both the top entries and the exact total eligible count.
  */
-export const getLeaderboardUsers = async (limitCount = 50): Promise<LeaderboardUserEntry[]> => {
+export const getLeaderboardUsers = async (limitCount = 20): Promise<LeaderboardResponse> => {
   try {
-    const { data, error } = await supabase
+    const { data, count, error } = await supabase
       .from('profiles')
-      .select('id, full_name, email, pixels, avatar_url, role, contributions')
+      .select('id, full_name, email, pixels, avatar_url, role, contributions', { count: 'exact' })
       .eq('is_suspended', false)
       .order('pixels', { ascending: false })
       .order('created_at', { ascending: true })
@@ -175,24 +182,74 @@ export const getLeaderboardUsers = async (limitCount = 50): Promise<LeaderboardU
 
     if (error) {
       console.error('[getLeaderboardUsers] Error querying profiles:', error.message);
-      return [];
+      return { users: [], totalCount: 0 };
     }
 
-    if (!data || data.length === 0) {
-      return [];
-    }
+    const totalCount = count ?? (data?.length || 0);
 
-    return data.map((p, idx) => ({
+    const users: LeaderboardUserEntry[] = (data || []).map((p, idx) => ({
       id: p.id,
       rank: idx + 1,
-      name: p.full_name || p.email?.split('@')[0] || 'Pixel Builder',
+      name: p.full_name?.trim() || (p.email ? p.email.split('@')[0] : 'Pixel Builder'),
       pixels: p.pixels || 0,
       contribs: p.contributions || 0,
       avatarUrl: p.avatar_url || undefined,
       role: p.role || 'user'
     }));
+
+    return { users, totalCount };
   } catch (err) {
     console.error('[getLeaderboardUsers] Exception:', err);
-    return [];
+    return { users: [], totalCount: 0 };
+  }
+};
+
+/**
+ * Calculate the user's exact global ranking on the leaderboard.
+ * Uses consistent tie-breaking with leaderboard (pixels DESC, created_at ASC).
+ * Head query ensures minimal network bandwidth.
+ */
+export const getUserGlobalRank = async (
+  userId: string
+): Promise<{ rank: number | null; totalUsers: number }> => {
+  if (!userId) return { rank: null, totalUsers: 0 };
+
+  try {
+    const { data: userProfile, error: profileErr } = await supabase
+      .from('profiles')
+      .select('pixels, created_at, is_suspended')
+      .eq('id', userId)
+      .maybeSingle();
+
+    if (profileErr || !userProfile || userProfile.is_suspended) {
+      return { rank: null, totalUsers: 0 };
+    }
+
+    const userPixels = userProfile.pixels || 0;
+    const userCreatedAt = userProfile.created_at;
+
+    // Count how many eligible non-suspended users rank strictly ahead:
+    // (higher pixels) OR (same pixels AND earlier registration created_at)
+    const { count: higherCount, error: countErr } = await supabase
+      .from('profiles')
+      .select('id', { count: 'exact', head: true })
+      .eq('is_suspended', false)
+      .or(`pixels.gt.${userPixels},and(pixels.eq.${userPixels},created_at.lt.${userCreatedAt})`);
+
+    const { count: totalCount } = await supabase
+      .from('profiles')
+      .select('id', { count: 'exact', head: true })
+      .eq('is_suspended', false);
+
+    if (countErr) {
+      console.warn('[getUserGlobalRank] Count query note:', countErr.message);
+      return { rank: null, totalUsers: totalCount ?? 0 };
+    }
+
+    const rank = (higherCount ?? 0) + 1;
+    return { rank, totalUsers: totalCount ?? 0 };
+  } catch (err) {
+    console.error('[getUserGlobalRank] Exception:', err);
+    return { rank: null, totalUsers: 0 };
   }
 };

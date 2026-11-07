@@ -4,8 +4,6 @@ import {
   Eye,
   EyeOff,
   Info,
-  ChevronDown,
-  ChevronUp,
   Tag,
   CheckCircle2,
   AlertCircle,
@@ -14,6 +12,7 @@ import {
 import { useAuth } from '../contexts/AuthContext';
 import { PixelMark } from '../components/PixelMark';
 import { validateReferralCode, recordReferralSignup } from '../services/referrals';
+import { COURSE_OPTIONS, getBranchesForCourse } from '../data/academicOptions';
 
 export function Signup() {
   const [name, setName] = useState('');
@@ -25,12 +24,13 @@ export function Signup() {
 
   // Academic details
   const [college, setCollege] = useState('');
-  const [course, setCourse] = useState('');
+  const [selectedCourse, setSelectedCourse] = useState('');
+  const [customCourse, setCustomCourse] = useState('');
   const [yearOfStudy, setYearOfStudy] = useState('');
-  const [branch, setBranch] = useState('');
+  const [selectedBranch, setSelectedBranch] = useState('');
+  const [customBranch, setCustomBranch] = useState('');
 
-  // Referral / Coupon code expandable
-  const [showReferralInput, setShowReferralInput] = useState(false);
+  // Referral code
   const [referralCode, setReferralCode] = useState('');
   const [referralStatus, setReferralStatus] = useState<{
     checked: boolean;
@@ -131,11 +131,16 @@ export function Signup() {
 
     try {
       setLoading(true);
+      const finalCourse = selectedCourse === 'Other' ? customCourse.trim() : selectedCourse.trim();
+      const finalBranch = (selectedCourse === 'Other' || selectedBranch === 'Other')
+        ? customBranch.trim()
+        : selectedBranch.trim();
+
       await signupWithEmail(email, password, name, {
         college: college.trim(),
-        course: course.trim(),
+        course: finalCourse,
         yearOfStudy: yearOfStudy.trim(),
-        branch: branch.trim()
+        branch: finalBranch
       });
 
       // If user session was immediately established and referral was verified, record it
@@ -362,15 +367,39 @@ export function Signup() {
                     <label htmlFor="course" className="block text-xs font-semibold text-slate-300 mb-1.5 uppercase tracking-wider">
                       Course / Degree
                     </label>
-                    <input
+                    <select
                       id="course"
                       name="course"
-                      type="text"
-                      value={course}
-                      onChange={(e) => setCourse(e.target.value)}
-                      className="block w-full px-4 py-2.5 bg-[#0B1628]/70 border border-slate-700/80 rounded-xl text-xs sm:text-sm text-white placeholder-slate-400 focus:outline-none focus:border-sky-400 focus:ring-1 focus:ring-sky-400 transition-all"
-                      placeholder="e.g. B.Tech / BCA / B.Sc"
-                    />
+                      value={selectedCourse}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setSelectedCourse(val);
+                        setSelectedBranch('');
+                        if (val !== 'Other') {
+                          setCustomCourse('');
+                        }
+                      }}
+                      className="block w-full px-4 py-2.5 bg-[#0B1628] border border-slate-700/80 rounded-xl text-xs sm:text-sm text-white placeholder-slate-400 focus:outline-none focus:border-sky-400 focus:ring-1 focus:ring-sky-400 transition-all cursor-pointer"
+                    >
+                      <option value="" className="bg-[#0B1628] text-slate-400">Select Course</option>
+                      {COURSE_OPTIONS.map((c) => (
+                        <option key={c} value={c} className="bg-[#0B1628] text-white">
+                          {c}
+                        </option>
+                      ))}
+                    </select>
+
+                    {selectedCourse === 'Other' && (
+                      <div className="mt-2">
+                        <input
+                          type="text"
+                          value={customCourse}
+                          onChange={(e) => setCustomCourse(e.target.value)}
+                          placeholder="Enter your course name"
+                          className="block w-full px-4 py-2 bg-[#0B1628]/70 border border-sky-500/50 rounded-xl text-xs sm:text-sm text-white placeholder-slate-400 focus:outline-none focus:border-sky-400 transition-all"
+                        />
+                      </div>
+                    )}
                   </div>
 
                   {/* 6. Current Year (Year of Study) */}
@@ -383,7 +412,7 @@ export function Signup() {
                       name="yearOfStudy"
                       value={yearOfStudy}
                       onChange={(e) => setYearOfStudy(e.target.value)}
-                      className="block w-full px-4 py-2.5 bg-[#0B1628] border border-slate-700/80 rounded-xl text-xs sm:text-sm text-white placeholder-slate-400 focus:outline-none focus:border-sky-400 focus:ring-1 focus:ring-sky-400 transition-all"
+                      className="block w-full px-4 py-2.5 bg-[#0B1628] border border-slate-700/80 rounded-xl text-xs sm:text-sm text-white placeholder-slate-400 focus:outline-none focus:border-sky-400 focus:ring-1 focus:ring-sky-400 transition-all cursor-pointer"
                     >
                       <option value="" className="bg-[#0B1628] text-slate-400">Select Year</option>
                       <option value="1st Year" className="bg-[#0B1628] text-white">1st Year</option>
@@ -401,78 +430,110 @@ export function Signup() {
                   <label htmlFor="branch" className="block text-xs font-semibold text-slate-300 mb-1.5 uppercase tracking-wider">
                     Branch / Department
                   </label>
-                  <input
-                    id="branch"
-                    name="branch"
-                    type="text"
-                    value={branch}
-                    onChange={(e) => setBranch(e.target.value)}
-                    className="block w-full px-4 py-2.5 bg-[#0B1628]/70 border border-slate-700/80 rounded-xl text-xs sm:text-sm text-white placeholder-slate-400 focus:outline-none focus:border-sky-400 focus:ring-1 focus:ring-sky-400 transition-all"
-                    placeholder="e.g. Computer Science & Engineering"
-                  />
+                  {selectedCourse && selectedCourse !== 'Other' ? (
+                    <>
+                      <select
+                        id="branch"
+                        name="branch"
+                        value={selectedBranch}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setSelectedBranch(val);
+                          if (val !== 'Other') {
+                            setCustomBranch('');
+                          }
+                        }}
+                        className="block w-full px-4 py-2.5 bg-[#0B1628] border border-slate-700/80 rounded-xl text-xs sm:text-sm text-white placeholder-slate-400 focus:outline-none focus:border-sky-400 focus:ring-1 focus:ring-sky-400 transition-all cursor-pointer"
+                      >
+                        <option value="" className="bg-[#0B1628] text-slate-400">Select Branch</option>
+                        {getBranchesForCourse(selectedCourse).map((b) => (
+                          <option key={b} value={b} className="bg-[#0B1628] text-white">
+                            {b}
+                          </option>
+                        ))}
+                      </select>
+
+                      {selectedBranch === 'Other' && (
+                        <div className="mt-2">
+                          <input
+                            type="text"
+                            value={customBranch}
+                            onChange={(e) => setCustomBranch(e.target.value)}
+                            placeholder="Enter your branch / specialization"
+                            className="block w-full px-4 py-2 bg-[#0B1628]/70 border border-sky-500/50 rounded-xl text-xs sm:text-sm text-white placeholder-slate-400 focus:outline-none focus:border-sky-400 transition-all"
+                          />
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <input
+                      id="branch"
+                      name="branch"
+                      type="text"
+                      value={customBranch}
+                      onChange={(e) => setCustomBranch(e.target.value)}
+                      className="block w-full px-4 py-2.5 bg-[#0B1628]/70 border border-slate-700/80 rounded-xl text-xs sm:text-sm text-white placeholder-slate-400 focus:outline-none focus:border-sky-400 focus:ring-1 focus:ring-sky-400 transition-all"
+                      placeholder={selectedCourse === 'Other' ? "Enter your branch / specialization" : "Select course first or enter branch"}
+                    />
+                  )}
                 </div>
               </div>
             </div>
 
-            {/* Expandable Coupon Code / Referral Code Section */}
-            <div className="pt-3 border-t border-slate-700/60">
-              <button
-                type="button"
-                onClick={() => setShowReferralInput(!showReferralInput)}
-                className="flex items-center justify-between w-full text-left text-xs font-semibold text-slate-300 hover:text-sky-300 transition-colors py-1 cursor-pointer"
-              >
-                <span className="flex items-center gap-1.5">
-                  <Tag size={14} className="text-sky-400" />
-                  Have a Coupon Code or Referral Code?
-                </span>
-                {showReferralInput ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-              </button>
-
-              {showReferralInput && (
-                <div className="mt-3 space-y-2 p-3.5 rounded-2xl bg-[#0B1628]/50 border border-slate-700/70">
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      value={referralCode}
-                      onChange={(e) => {
-                        setReferralCode(e.target.value.toUpperCase());
-                        setReferralStatus(null);
-                      }}
-                      placeholder="e.g. PM-XXXXXX"
-                      className="flex-1 px-3.5 py-2 bg-[#0B1628] border border-slate-700 rounded-xl text-xs font-mono uppercase text-white placeholder-slate-500 focus:outline-none focus:border-sky-400"
-                    />
-                    <button
-                      type="button"
-                      onClick={handleVerifyReferral}
-                      disabled={verifyingCode || !referralCode.trim()}
-                      className="px-4 py-2 rounded-xl text-xs font-bold bg-sky-500 hover:bg-sky-400 text-white disabled:opacity-50 transition cursor-pointer shrink-0"
-                    >
-                      {verifyingCode ? 'Checking...' : 'Apply'}
-                    </button>
-                  </div>
-
-                  {referralStatus && (
-                    <div
-                      className={`text-xs p-2.5 rounded-xl flex items-start gap-2 ${
-                        referralStatus.valid
-                          ? 'bg-emerald-500/15 border border-emerald-500/30 text-emerald-300'
-                          : 'bg-rose-500/10 border border-rose-500/25 text-rose-300'
-                      }`}
-                    >
-                      {referralStatus.valid ? (
-                        <CheckCircle2 size={15} className="text-emerald-400 shrink-0 mt-0.5" />
-                      ) : (
-                        <AlertCircle size={15} className="text-rose-400 shrink-0 mt-0.5" />
-                      )}
-                      <span>{referralStatus.message}</span>
+            {/* Have a Referral Code? Section */}
+            <div className="pt-4 border-t border-slate-700/60">
+              <div className="rounded-2xl bg-[#0B1628]/70 border border-sky-500/20 p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="grid h-7 w-7 place-items-center rounded-lg bg-sky-500/20 text-sky-400">
+                      <Tag size={14} />
                     </div>
-                  )}
-
-                  <p className="text-[11px] text-slate-400 leading-relaxed">
-                    Referral codes reward your friend with Pixels when you join. Promotional coupon codes will be enabled in upcoming releases.
-                  </p>
+                    <div>
+                      <h4 className="text-xs font-bold text-white">Have a Referral Code?</h4>
+                      <p className="text-[11px] text-slate-400">Optional · Enter an invitation code to reward your friend (+25 Pixels)</p>
+                    </div>
+                  </div>
+                  <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 bg-white/5 px-2 py-0.5 rounded-md border border-white/10">Optional</span>
                 </div>
-              )}
+
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={referralCode}
+                    onChange={(e) => {
+                      setReferralCode(e.target.value.toUpperCase());
+                      setReferralStatus(null);
+                    }}
+                    placeholder="e.g. PM-XXXXXX"
+                    className="flex-1 px-3.5 py-2.5 bg-[#0B1628] border border-slate-700 rounded-xl text-xs font-mono uppercase text-white placeholder-slate-500 focus:outline-none focus:border-sky-400"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleVerifyReferral}
+                    disabled={verifyingCode || !referralCode.trim()}
+                    className="px-4 py-2.5 rounded-xl text-xs font-bold bg-sky-500 hover:bg-sky-400 text-white disabled:opacity-50 transition cursor-pointer shrink-0 shadow-sm"
+                  >
+                    {verifyingCode ? 'Checking...' : 'Apply Code'}
+                  </button>
+                </div>
+
+                {referralStatus && (
+                  <div
+                    className={`text-xs p-2.5 rounded-xl flex items-start gap-2 ${
+                      referralStatus.valid
+                        ? 'bg-emerald-500/15 border border-emerald-500/30 text-emerald-300'
+                        : 'bg-rose-500/10 border border-rose-500/25 text-rose-300'
+                    }`}
+                  >
+                    {referralStatus.valid ? (
+                      <CheckCircle2 size={15} className="text-emerald-400 shrink-0 mt-0.5" />
+                    ) : (
+                      <AlertCircle size={15} className="text-rose-400 shrink-0 mt-0.5" />
+                    )}
+                    <span>{referralStatus.message}</span>
+                  </div>
+                )}
+              </div>
             </div>
 
             <button

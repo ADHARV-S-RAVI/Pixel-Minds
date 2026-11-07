@@ -4,6 +4,7 @@ import { Copy, Check, X, MessageCircle, Send, MoreHorizontal, Share2 } from 'luc
 import { PixelMark } from './components/PixelMark';
 import { useAuth } from './contexts/AuthContext';
 import { recordOpportunityApplication } from './services/applications';
+import { recordOpportunityShare } from './services/opportunities';
 
 const ld = <T,>(k: string, d: T): T => {
   try {
@@ -214,7 +215,13 @@ export const AppProvider: FC<{ children: ReactNode }> = ({ children }) => {
         link,
         copy,
         say,
-        share: (title: string, path: string) => setSh({ title, path })
+        share: (title: string, path: string) => {
+          setSh({ title, path });
+          if (user?.uid && path.includes('/opportunities/')) {
+            const oppId = path.split('/opportunities/')[1]?.split('?')[0];
+            if (oppId) recordOpportunityShare(user.uid, oppId);
+          }
+        }
       }}
     >
       {children}

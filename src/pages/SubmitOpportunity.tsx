@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { submitOpportunity } from '../services/opportunities';
-import { uploadOpportunityImage } from '../services/storage';
+import { uploadOpportunityImage, validateOpportunityImageFile } from '../services/storage';
+import { parseDateInputToTimestamp, validateOpportunityDates } from '../utils/dateUtils';
 import { Upload, CheckCircle } from 'lucide-react';
 
 const CATEGORIES = ['Hackathon', 'Tech Event', 'Workshop', 'Internship', 'Competition', 'Scholarship', 'Course', 'Startup Program', 'Conference', 'Other'];
@@ -52,21 +53,38 @@ export function SubmitOpportunity() {
       setError('You must be logged in to submit an opportunity.');
       return;
     }
+
+    const dateVal = validateOpportunityDates({
+      startDate: formData.startDate,
+      endDate: formData.endDate,
+      deadline: formData.deadline
+    });
+    if (!dateVal.valid) {
+      setError(dateVal.error || 'Please provide valid dates.');
+      return;
+    }
+
     setLoading(true);
     setError('');
 
     try {
       let finalImageUrl = formData.imageUrl;
       if (imageFile) {
+        const fileVal = validateOpportunityImageFile(imageFile);
+        if (!fileVal.valid) {
+          setError(fileVal.error || 'Invalid image file.');
+          setLoading(false);
+          return;
+        }
         finalImageUrl = await uploadOpportunityImage(imageFile, currentUser.uid);
       }
 
       await submitOpportunity(currentUser.uid, {
         ...formData,
         imageUrl: finalImageUrl,
-        deadline: new Date(formData.deadline).getTime(),
-        startDate: formData.startDate ? new Date(formData.startDate).getTime() : Date.now(),
-        endDate: formData.endDate ? new Date(formData.endDate).getTime() : Date.now(),
+        deadline: parseDateInputToTimestamp(formData.deadline),
+        startDate: formData.startDate ? parseDateInputToTimestamp(formData.startDate) : Date.now(),
+        endDate: formData.endDate ? parseDateInputToTimestamp(formData.endDate) : Date.now() + 86400000,
         skills: formData.skills.split(',').map(s => s.trim()).filter(Boolean)
       });
 

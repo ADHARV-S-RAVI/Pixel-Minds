@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { getOpportunityById, incrementOpportunityViews, incrementApplyClicks } from '../services/opportunities';
+import { getOpportunityById, incrementOpportunityViews, incrementApplyClicks, recordOpportunityShare } from '../services/opportunities';
+import { parseOpportunityImages } from '../services/storage';
 import type { Opportunity } from '../types';
 import { Calendar, MapPin, Trophy, Users, ArrowUpRight, Share2, Eye, ArrowLeft, Clock, Globe } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
@@ -13,6 +14,7 @@ export function OpportunityDetails() {
   const [opportunity, setOpportunity] = useState<Opportunity | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [selectedImgIdx, setSelectedImgIdx] = useState(0);
 
   useEffect(() => {
     const fetchOpp = async () => {
@@ -43,16 +45,34 @@ export function OpportunityDetails() {
     }
   };
 
-  const handleShare = () => {
+  const handleShare = async () => {
+    if (currentUser?.uid && opportunity?.id) {
+      await recordOpportunityShare(currentUser.uid, opportunity.id);
+    }
+    const shareUrl = window.location.href;
+    const shareData = {
+      title: opportunity?.title || 'Pixel Minds Opportunity',
+      text: `Check out this ${opportunity?.category || 'opportunity'} on Pixel Minds!`,
+      url: shareUrl,
+    };
+
     if (navigator.share) {
-      navigator.share({
-        title: opportunity?.title,
-        text: `Check out this ${opportunity?.category} on Pixel Minds!`,
-        url: window.location.href,
-      }).catch(console.error);
+      navigator.share(shareData).catch((err) => {
+        if (err.name !== 'AbortError') console.warn('Share error:', err);
+      });
     } else {
-      navigator.clipboard.writeText(window.location.href);
-      alert('Link copied to clipboard!');
+      try {
+        await navigator.clipboard.writeText(shareUrl);
+        alert('Opportunity link copied to clipboard!');
+      } catch {
+        const textarea = document.createElement('textarea');
+        textarea.value = shareUrl;
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+        alert('Opportunity link copied to clipboard!');
+      }
     }
   };
 
@@ -101,16 +121,39 @@ export function OpportunityDetails() {
           Back to Opportunities
         </Link>
 
-        {/* Banner */}
-        <div className="w-full h-56 sm:h-72 lg:h-80 bg-slate-100 rounded-2xl overflow-hidden relative mb-8">
-          {opportunity.imageUrl ? (
-            <img src={opportunity.imageUrl} alt={opportunity.title} className="w-full h-full object-cover" />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-sky-50 to-slate-100">
-              <span className="text-sky-200 text-5xl font-bold">{opportunity.category}</span>
+        {/* Banner & Multiple Images */}
+        {(() => {
+          const images = parseOpportunityImages(opportunity.imageUrl);
+          return (
+            <div className="mb-8">
+              <div className="w-full h-56 sm:h-72 lg:h-80 bg-slate-100 rounded-2xl overflow-hidden relative">
+                {images.length > 0 ? (
+                  <img src={images[selectedImgIdx] || images[0]} alt={opportunity.title} className="w-full h-full object-cover transition-all duration-300" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-sky-50 to-slate-100">
+                    <span className="text-sky-200 text-5xl font-bold">{opportunity.category}</span>
+                  </div>
+                )}
+              </div>
+              {images.length > 1 && (
+                <div className="flex items-center gap-2.5 mt-3 overflow-x-auto pb-1">
+                  {images.map((imgUrl, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => setSelectedImgIdx(idx)}
+                      className={`relative w-20 h-14 sm:w-24 sm:h-16 rounded-xl overflow-hidden border-2 transition-all shrink-0 cursor-pointer ${
+                        selectedImgIdx === idx ? 'border-sky-500 shadow-md ring-2 ring-sky-500/30' : 'border-slate-200 opacity-70 hover:opacity-100'
+                      }`}
+                    >
+                      <img src={imgUrl} alt={`Thumbnail ${idx + 1}`} className="w-full h-full object-cover" />
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
-          )}
-        </div>
+          );
+        })()}
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
           {/* Main Content */}

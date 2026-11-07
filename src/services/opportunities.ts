@@ -315,33 +315,56 @@ export const incrementApplyClicks = async (id: string) => {
  */
 export const submitOpportunity = async (userId: string, data: Partial<Opportunity>) => {
   // Verify active session user from Supabase client to guarantee matching auth.uid() in RLS
-  const { data: authData } = await supabase.auth.getUser();
-  const authUser = authData?.user;
+  const { data: sessionData } = await supabase.auth.getSession();
+  let authUserId = sessionData?.session?.user?.id;
 
-  const actualUserId = authUser?.id || userId;
+  if (!authUserId) {
+    const { data: authData } = await supabase.auth.getUser();
+    authUserId = authData?.user?.id;
+  }
+
+  const actualUserId = authUserId || userId;
 
   if (!actualUserId || actualUserId === 'anonymous-user') {
     throw new Error('You must be signed in to submit an opportunity. Please sign in and try again.');
   }
 
+  // Validate required fields
+  if (!data.title?.trim()) {
+    throw new Error('Opportunity title is required.');
+  }
+  if (!data.organizer?.trim()) {
+    throw new Error('Organizer name is required.');
+  }
+  if (!data.officialUrl?.trim()) {
+    throw new Error('Official application URL is required.');
+  }
+  if (!data.description?.trim()) {
+    throw new Error('Description is required.');
+  }
+  if (!data.deadline) {
+    throw new Error('Application deadline is required.');
+  }
+
   const payload = {
     user_id: actualUserId,
-    title: data.title || '',
-    description: data.description || '',
+    title: data.title.trim(),
+    description: data.description.trim(),
     category: data.category || 'Other',
-    organizer: data.organizer || '',
-    deadline: data.deadline ? new Date(data.deadline).toISOString() : new Date(Date.now() + 86400000 * 7).toISOString(),
+    organizer: data.organizer.trim(),
+    deadline: new Date(data.deadline).toISOString(),
     start_date: data.startDate ? new Date(data.startDate).toISOString() : new Date().toISOString(),
     end_date: data.endDate ? new Date(data.endDate).toISOString() : new Date(Date.now() + 86400000).toISOString(),
-    location: data.location || '',
+    location: data.location?.trim() || '',
     mode: data.mode || 'online',
-    prize: data.prize || '',
-    eligibility: data.eligibility || '',
-    team_size: data.teamSize || '',
+    prize: data.prize?.trim() || '',
+    stipend: data.stipend?.trim() || '',
+    eligibility: data.eligibility?.trim() || '',
+    team_size: data.teamSize?.trim() || '',
     skills: data.skills || [],
     image_url: data.imageUrl || '',
-    official_url: data.officialUrl || '',
-    additional_info: data.additionalInfo || '',
+    official_url: data.officialUrl.trim(),
+    additional_info: data.additionalInfo?.trim() || '',
     status: 'pending' as const
   };
 
@@ -378,6 +401,156 @@ export const getUserSubmissions = async (userId: string) => {
   }
 
   return (data || []).map(mapSubmissionRow);
+};
+
+/**
+ * Record when a user shares an opportunity
+ */
+export const recordOpportunityShare = async (userId: string, opportunityId: string) => {
+  if (!userId || !opportunityId) return;
+
+  // 1. Client-side tracking per user for immediate and resilient UI updates
+  try {
+    const key = `pm_shared_opps_${userId}`;
+    const raw = localStorage.getItem(key);
+    const list: string[] = raw ? JSON.parse(raw) : [];
+    if (!list.includes(String(opportunityId))) {
+      list.unshift(String(opportunityId));
+      localStorage.setItem(key, JSON.stringify(list.slice(0, 50)));
+    }
+  } catch (e) {
+    console.warn('[recordOpportunityShare] LocalStorage note:', e);
+  }
+
+  // 2. Safe analytics event insert
+  try {
+    await supabase.from('analytics_events').insert({
+      user_id: userId,
+      event_name: 'opportunity_share',
+      target_type: 'opportunity',
+      target_id: String(opportunityId),
+      metadata: { shared_at: new Date().toISOString() }
+    });
+  } catch (err) {
+    console.warn('[recordOpportunityShare] Analytics insert note:', err);
+  }
+
+  // 3. Increment opportunity share counter if feasible
+  try {
+    const { data: opp } = await supabase
+      .from('opportunities')
+      .select('shares')
+      .eq('id', opportunityId)
+      .maybeSingle();
+    if (opp) {
+      await supabase
+        .from('opportunities')
+        .update({ shares: (opp.shares || 0) + 1 })
+        .eq('id', opportunityId);
+    }
+  } catch {}
+};
+
+/**
+ * Fetch genuine opportunities shared by the logged-in user.
+ * Verified using referral records (referrals table) and genuine user share actions.
+ */
+export const getSharedOpportunities = async (userId: string): Promise<Opportunity[]> => {
+  if (!userId) return [];
+
+  const oppIdsToFetch = new Set<string>();
+
+  // 1. Check genuine referrals made by this user that link to an opportunity
+  try {
+    const { data: referrals, error } = await supabase
+      .from('referrals')
+      .select('opportunity_id')
+      .eq('referrer_id', userId)
+      .not('opportunity_id', 'is', null);
+
+    if (!error && referrals) {
+      referrals.forEach((r) => {
+        if (r.opportunity_id) oppIdsToFetch.add(String(r.opportunity_id));
+      });
+    }
+  } catch (err) {
+    console.warn('[getSharedOpportunities] Referrals query note:', err);
+  }
+
+  // 2. Check locally tracked shared opportunity IDs for this user
+  try {
+    const key = `pm_shared_opps_${userId}`;
+    const raw = localStorage.getItem(key);
+    if (raw) {
+      const list: string[] = JSON.parse(raw);
+      list.forEach((id) => {
+        if (id) oppIdsToFetch.add(String(id));
+      });
+    }
+  } catch {}
+
+  if (oppIdsToFetch.size === 0) {
+    return [];
+  }
+
+  const idsArray = Array.from(oppIdsToFetch);
+
+  // Fetch the actual opportunities
+  try {
+    const { data: opps, error: oppsErr } = await supabase
+      .from('opportunities')
+      .select('*')
+      .in('id', idsArray);
+
+    const result: Opportunity[] = [];
+    if (!oppsErr && opps) {
+      result.push(...opps.map(mapRow));
+    }
+
+    // Also check verified opportunities in case static/verified opp IDs were shared
+    const foundIds = new Set(result.map((o) => o.id));
+    for (const id of idsArray) {
+      if (!foundIds.has(id)) {
+        const verified = VERIFIED_OPPORTUNITIES.find((v) => v.id === id);
+        if (verified) {
+          result.push({
+            id: verified.id,
+            title: verified.title,
+            description: verified.description,
+            category: verified.category,
+            organizer: verified.organizer,
+            deadline: new Date(verified.deadline).getTime(),
+            startDate: verified.startDate ? new Date(verified.startDate).getTime() : Date.now(),
+            endDate: verified.endDate ? new Date(verified.endDate).getTime() : Date.now(),
+            location: verified.location,
+            mode: verified.mode,
+            prize: verified.prize,
+            stipend: verified.stipend,
+            eligibility: verified.eligibility,
+            teamSize: verified.whoCanParticipate || '1-4 Members',
+            skills: verified.skills,
+            officialUrl: verified.applyUrl,
+            imageUrl: verified.imageUrl,
+            status: 'published',
+            source: 'admin',
+            createdBy: 'admin',
+            featured: Boolean(verified.featured),
+            additionalInfo: verified.benefits || '',
+            views: 0,
+            applyClicks: 0,
+            shares: 0,
+            createdAt: new Date(verified.registrationStartDate || Date.now()).getTime(),
+            updatedAt: Date.now()
+          });
+        }
+      }
+    }
+
+    return result;
+  } catch (err) {
+    console.error('[getSharedOpportunities] Exception fetching shared opportunities:', err);
+    return [];
+  }
 };
 
 // ==========================================================================

@@ -42,7 +42,6 @@ import {
   ChevronRight,
   Code2,
   ArrowRight,
-  Link2,
   Share2,
   Flag
 } from 'lucide-react';
@@ -64,6 +63,12 @@ import {
 } from './ui';
 import { opps as initialOpps, cats, rankOf } from './data';
 import type { Opp } from './data';
+import {
+  COURSE_OPTIONS,
+  getBranchesForCourse,
+  isPredefinedCourse,
+  isPredefinedBranch
+} from './data/academicOptions';
 import type { 
   User as UserType, 
   RewardConfig, 
@@ -86,11 +91,20 @@ import {
   incrementOpportunityViews,
   incrementApplyClicks,
   getUserSubmissions,
+  getSharedOpportunities,
+  recordOpportunityShare,
   submitOpportunityAdmin,
   deleteOpportunityAdmin
 } from './services/opportunities';
-import { uploadImage } from './services/storage';
-import { updateUserProfile, getUserProfile, getLeaderboardUsers, type LeaderboardUserEntry } from './services/users';
+import { uploadImage, deleteStorageFile, validateOpportunityImageFile, parseOpportunityImages } from './services/storage';
+import {
+  formatTimestampToDateInput,
+  parseDateInputToTimestamp,
+  getTodayInputString,
+  validateOpportunityDates
+} from './utils/dateUtils';
+import { updateUserProfile, getUserProfile, getLeaderboardUsers, getUserGlobalRank, type LeaderboardUserEntry } from './services/users';
+import { getRecentPlatformActivities, type RecentActivityItem } from './services/activity';
 import { getUserCommunityPosts } from './services/community';
 import {
   DEFAULT_REWARD_CONFIG,
@@ -127,7 +141,7 @@ const Mini: FC<{ title?: string }> = ({ title = 'Top Contributors' }) => {
     let mounted = true;
     getLeaderboardUsers(4)
       .then((data) => {
-        if (mounted) setTopUsers(data);
+        if (mounted) setTopUsers(data.users || []);
       })
       .catch((err) => console.error('Failed to load top users:', err));
     return () => {
@@ -169,6 +183,25 @@ const Mini: FC<{ title?: string }> = ({ title = 'Top Contributors' }) => {
 export function Landing() {
   const [firestoreOpps, setFirestoreOpps] = useState<Opp[]>([]);
   const [communityPosts, setCommunityPosts] = useState<CommunityPost[]>([]);
+  const [recentActivities, setRecentActivities] = useState<RecentActivityItem[]>([]);
+  const [activitiesLoading, setActivitiesLoading] = useState(true);
+
+  useEffect(() => {
+    let mounted = true;
+    getRecentPlatformActivities(4)
+      .then((acts) => {
+        if (mounted) {
+          setRecentActivities(acts);
+          setActivitiesLoading(false);
+        }
+      })
+      .catch(() => {
+        if (mounted) setActivitiesLoading(false);
+      });
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   useEffect(() => {
     getPublishedOpportunities(undefined, 50)
@@ -396,76 +429,42 @@ export function Landing() {
               </Link>
             </div>
 
-            <div className="pm-glass-card rounded-[24px] p-4 sm:p-5 space-y-4 border border-white/90 shadow-sm">
-              {/* Activity Item 1 */}
-              <div className="flex items-center gap-3">
-                <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-indigo-100 text-indigo-700 font-bold text-xs">
-                  A
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs text-[#0e1b33] truncate">
-                    <span className="font-bold">Adharv</span> posted in <span className="font-semibold text-slate-700">Community</span>
-                  </p>
-                  <p className="text-[11px] text-slate-500 flex items-center gap-1 mt-0.5">
-                    <MessageSquare size={11} className="text-slate-400" />
-                    <span>2 hours ago</span>
+            <div className="pm-glass-card rounded-[24px] p-4 sm:p-5 space-y-3.5 border border-white/90 shadow-sm">
+              {activitiesLoading ? (
+                <div className="py-6 text-center text-xs text-slate-400">Loading recent activities...</div>
+              ) : recentActivities.length === 0 ? (
+                <div className="py-6 px-4 text-center">
+                  <div className="mx-auto w-10 h-10 rounded-full bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600 mb-2">
+                    <Sparkles size={16} />
+                  </div>
+                  <p className="text-xs font-semibold text-slate-700">No recent activity yet</p>
+                  <p className="text-[11px] text-slate-500 mt-0.5 max-w-[200px] mx-auto">
+                    Platform activities will appear as members join and share opportunities.
                   </p>
                 </div>
-              </div>
-
-              {/* Activity Item 2 */}
-              <div className="flex items-center gap-3">
-                <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-amber-100 text-amber-700 font-bold text-xs">
-                  🏆
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs text-[#0e1b33] truncate">
-                    <span className="font-bold">New Hackathon</span> added
-                  </p>
-                  <p className="text-[11px] text-slate-700 font-medium truncate">
-                    Smart India Hackathon 2026
-                  </p>
-                  <p className="text-[10px] text-slate-500 flex items-center gap-1 mt-0.5">
-                    <Clock size={10} className="text-slate-400" />
-                    <span>4 hours ago</span>
-                  </p>
-                </div>
-              </div>
-
-              {/* Activity Item 3 */}
-              <div className="flex items-center gap-3">
-                <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-blue-100 text-blue-700 font-bold text-xs">
-                  R
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs text-[#0e1b33] truncate">
-                    <span className="font-bold">Rahul</span> earned <span className="font-bold text-blue-600">50 Pixels</span>
-                  </p>
-                  <p className="text-[11px] text-slate-500 flex items-center gap-1 mt-0.5">
-                    <Sparkles size={11} className="text-amber-500" />
-                    <span>6 hours ago</span>
-                  </p>
-                </div>
-              </div>
-
-              {/* Activity Item 4 */}
-              <div className="flex items-center gap-3">
-                <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-sky-100 text-sky-700 font-bold text-xs">
-                  <Share2 size={13} className="text-sky-600" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs text-[#0e1b33] truncate">
-                    <span className="font-bold">New opportunity</span> shared
-                  </p>
-                  <p className="text-[11px] text-slate-700 font-medium truncate">
-                    Google Cloud Internship 2026
-                  </p>
-                  <p className="text-[10px] text-slate-500 flex items-center gap-1 mt-0.5">
-                    <Link2 size={10} className="text-slate-400" />
-                    <span>8 hours ago</span>
-                  </p>
-                </div>
-              </div>
+              ) : (
+                recentActivities.map((act) => (
+                  <div key={act.id} className="flex items-center gap-3">
+                    <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-blue-50 border border-blue-100 text-sm shadow-2xs">
+                      {act.badge}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs text-[#0e1b33] font-bold truncate">
+                        {act.title}
+                      </p>
+                      {act.subtitle && (
+                        <p className="text-[11px] text-slate-600 font-medium truncate mt-0.5">
+                          {act.subtitle}
+                        </p>
+                      )}
+                      <p className="text-[10px] text-slate-400 flex items-center gap-1 mt-0.5">
+                        <Clock size={10} className="text-slate-400 shrink-0" />
+                        <span>{act.timeAgo}</span>
+                      </p>
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
           </div>
         </div>
@@ -955,6 +954,8 @@ export function OppDetail() {
   const isSaved = saved.includes(String(o.id));
   const isDone = applied.includes(o.id);
   const ref = link('/opportunities/' + o.id);
+  const images = parseOpportunityImages(o.imageUrl);
+  const [selectedImgIdx, setSelectedImgIdx] = useState(0);
 
   const handleApply = () => {
     if (!user) {
@@ -1034,9 +1035,27 @@ export function OppDetail() {
           </div>
 
           {/* Banner Media if uploaded */}
-          {o.imageUrl && (
-            <div className="rounded-3xl overflow-hidden border border-black/10 shadow-sm">
-              <img src={o.imageUrl} alt={o.title} className="w-full max-h-80 object-cover" />
+          {images.length > 0 && (
+            <div className="space-y-3">
+              <div className="rounded-3xl overflow-hidden border border-black/10 shadow-sm max-h-96 bg-slate-100">
+                <img src={images[selectedImgIdx] || images[0]} alt={o.title} className="w-full max-h-96 object-cover transition-all duration-300" />
+              </div>
+              {images.length > 1 && (
+                <div className="flex items-center gap-2.5 overflow-x-auto pb-1">
+                  {images.map((imgUrl, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => setSelectedImgIdx(idx)}
+                      className={`relative w-20 h-14 rounded-xl overflow-hidden border-2 transition-all shrink-0 cursor-pointer ${
+                        selectedImgIdx === idx ? 'border-sky-500 shadow-md ring-2 ring-sky-500/30' : 'border-black/10 opacity-70 hover:opacity-100'
+                      }`}
+                    >
+                      <img src={imgUrl} alt={`Thumbnail ${idx + 1}`} className="w-full h-full object-cover" />
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 
@@ -1142,7 +1161,17 @@ export function OppDetail() {
                 onFocus={(e) => e.target.select()}
                 className="min-w-0 flex-1 rounded-xl border border-black/10 bg-white/80 px-3 py-2 text-xs font-mono text-[#2D2A26] outline-none"
               />
-              <Btn v="outline" aria-label="Copy link" onClick={() => copy(ref)} className="!min-h-9 !px-3 !rounded-xl">
+              <Btn
+                v="outline"
+                aria-label="Copy link"
+                onClick={() => {
+                  copy(ref);
+                  if (user?.uid && o?.id) {
+                    recordOpportunityShare(user.uid, String(o.id));
+                  }
+                }}
+                className="!min-h-9 !px-3 !rounded-xl"
+              >
                 <Copy size={14} />
               </Btn>
             </div>
@@ -1185,6 +1214,19 @@ export function Feed() {
   const [refreshing, setRefreshing] = useState(false);
   const userName = userProfile?.displayName || user?.displayName || (user ? 'Pixel Builder' : 'Guest Builder');
   const pixels = userProfile?.pixels ?? 0;
+  const [globalRank, setGlobalRank] = useState<number | null>(null);
+
+  useEffect(() => {
+    let mounted = true;
+    if (user?.uid) {
+      getUserGlobalRank(user.uid).then((res) => {
+        if (mounted) setGlobalRank(res.rank);
+      }).catch(() => {});
+    }
+    return () => {
+      mounted = false;
+    };
+  }, [user?.uid, pixels]);
 
   const loadFeed = async () => {
     setRefreshing(true);
@@ -1264,7 +1306,7 @@ export function Feed() {
         </div>
         <div className="mt-2 flex justify-between text-xs">
           <span className="text-slate-500">Global Rank</span>
-          <b className="text-[#0e1b33] font-bold">{user && pixels > 0 ? '#1' : '—'}</b>
+          <b className="text-[#0e1b33] font-bold">{globalRank ? `#${globalRank}` : (user ? 'Not ranked yet' : '—')}</b>
         </div>
       </div>
     </Card>
@@ -1506,8 +1548,10 @@ export function Profile() {
   const [nameInput, setNameInput] = useState(userProfile?.displayName || '');
   const [collegeInput, setCollegeInput] = useState(userProfile?.college || '');
   const [courseInput, setCourseInput] = useState(userProfile?.course || '');
+  const [customCourseInput, setCustomCourseInput] = useState('');
   const [yearInput, setYearInput] = useState(userProfile?.yearOfStudy || '');
   const [branchInput, setBranchInput] = useState(userProfile?.branch || '');
+  const [customBranchInput, setCustomBranchInput] = useState('');
   const [savingSettings, setSavingSettings] = useState(false);
 
   // Change password state
@@ -1523,9 +1567,31 @@ export function Profile() {
       setNameInput(userProfile.displayName || '');
       setBioInput(userProfile.bio || 'Tech builder & hackathon enthusiast on Pixel Minds.');
       setCollegeInput(userProfile.college || '');
-      setCourseInput(userProfile.course || '');
       setYearInput(userProfile.yearOfStudy || '');
-      setBranchInput(userProfile.branch || '');
+
+      const existingCourse = userProfile.course || '';
+      if (isPredefinedCourse(existingCourse)) {
+        setCourseInput(existingCourse);
+        setCustomCourseInput('');
+      } else if (existingCourse) {
+        setCourseInput('Other');
+        setCustomCourseInput(existingCourse);
+      } else {
+        setCourseInput('');
+        setCustomCourseInput('');
+      }
+
+      const existingBranch = userProfile.branch || '';
+      if (existingCourse && isPredefinedBranch(existingCourse, existingBranch)) {
+        setBranchInput(existingBranch);
+        setCustomBranchInput('');
+      } else if (existingBranch) {
+        setBranchInput('Other');
+        setCustomBranchInput(existingBranch);
+      } else {
+        setBranchInput('');
+        setCustomBranchInput('');
+      }
     }
   }, [userProfile]);
 
@@ -1534,9 +1600,19 @@ export function Profile() {
 
   const [userPosts, setUserPosts] = useState<CommunityPost[]>([]);
   const [userTransactions, setUserTransactions] = useState<PixelTransaction[]>([]);
+  const [sharedOpps, setSharedOpps] = useState<Opp[]>([]);
+  const [globalRank, setGlobalRank] = useState<number | null>(null);
+  const [rankLoading, setRankLoading] = useState(true);
 
   useEffect(() => {
     if (user?.uid) {
+      getUserGlobalRank(user.uid).then((res) => {
+        setGlobalRank(res.rank);
+        setRankLoading(false);
+      }).catch(() => {
+        setRankLoading(false);
+      });
+
       getUserSubmissions(user.uid).then((subs) => {
         setRawSubmissions(subs);
         const subIdParam = searchParams.get('id') || searchParams.get('sub');
@@ -1567,6 +1643,24 @@ export function Profile() {
       getPixelTransactions(user.uid).then((txs) => {
         setUserTransactions(txs);
       }).catch(() => {});
+
+      getSharedOpportunities(user.uid).then((shared) => {
+        const mapped: Opp[] = shared.map((o) => ({
+          id: o.id,
+          title: o.title,
+          org: o.organizer,
+          cat: o.category,
+          mode: o.mode ? o.mode.charAt(0).toUpperCase() + o.mode.slice(1) : 'Online',
+          deadline: new Date(o.deadline).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+          days: Math.max(1, Math.ceil((o.deadline - Date.now()) / (1000 * 60 * 60 * 24))),
+          prize: o.prize || 'Certificate',
+          skills: o.skills || ['Tech'],
+          description: o.description,
+          officialUrl: o.officialUrl,
+          imageUrl: o.imageUrl
+        }));
+        setSharedOpps(mapped);
+      }).catch(() => {});
     }
   }, [user, searchParams]);
 
@@ -1590,13 +1684,18 @@ export function Profile() {
     if (!user?.uid) return;
     setSavingSettings(true);
     try {
+      const finalCourse = courseInput === 'Other' ? customCourseInput.trim() : courseInput.trim();
+      const finalBranch = (courseInput === 'Other' || branchInput === 'Other')
+        ? customBranchInput.trim()
+        : branchInput.trim();
+
       await updateUserProfile(user.uid, {
         displayName: nameInput.trim(),
         bio: bioInput.trim(),
         college: collegeInput.trim(),
-        course: courseInput.trim(),
+        course: finalCourse,
         yearOfStudy: yearInput.trim(),
-        branch: branchInput.trim()
+        branch: finalBranch
       });
       if (refreshProfile) await refreshProfile();
       say('Profile details updated successfully');
@@ -1877,7 +1976,7 @@ export function Profile() {
           <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
             {[
               ['Pixels Balance', `${userPixels} Pixels`],
-              ['Global Rank', '#1'],
+              ['Global Rank', rankLoading ? '...' : (globalRank ? `#${globalRank}` : 'Not ranked yet')],
               ['Contributions', rawSubmissions.length || userSubs.length || 0],
               ['Builder Level', rankOf(userPixels)]
             ].map(([l, v]) => (
@@ -2206,10 +2305,29 @@ export function Profile() {
         )}
 
         {tab === 'Shared Opportunities' && (
-          <div className="grid gap-5 sm:grid-cols-2">
-            {(userSubs.length > 0 ? userSubs : initialOpps.slice(0, 2)).map((o) => (
-              <OppCard key={o.id} o={o} />
-            ))}
+          <div>
+            {sharedOpps.length > 0 ? (
+              <div className="grid gap-5 sm:grid-cols-2">
+                {sharedOpps.map((o) => (
+                  <OppCard key={o.id} o={o} />
+                ))}
+              </div>
+            ) : (
+              <Card className="p-10 text-center pm-glass-card bg-white/85 backdrop-blur-xl border border-white/90 shadow-sm text-[#0e1b33]">
+                <div className="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-blue-50 text-blue-600 mb-3">
+                  <Share2 size={22} />
+                </div>
+                <h3 className="text-sm font-bold text-[#16171D]">No Shared Opportunities Yet</h3>
+                <p className="mt-1 text-xs text-[#7D756C] max-w-sm mx-auto leading-relaxed">
+                  You haven&apos;t shared any opportunities yet. Share hackathons, internships, or events with your friends to earn Pixels when they join!
+                </p>
+                <div className="mt-4">
+                  <BtnLink to="/opportunities" className="!text-xs !rounded-full !px-5">
+                    Browse Opportunities
+                  </BtnLink>
+                </div>
+              </Card>
+            )}
           </div>
         )}
 
@@ -2332,13 +2450,37 @@ export function Profile() {
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <div>
                     <label className="block text-xs font-bold text-[#2D2A26] mb-1">Course / Degree</label>
-                    <input
-                      type="text"
+                    <select
                       value={courseInput}
-                      onChange={(e) => setCourseInput(e.target.value)}
-                      className="w-full rounded-xl border border-black/10 bg-white/80 px-3.5 py-2.5 text-xs outline-none focus:border-[#C5A059] text-[#16171D]"
-                      placeholder="e.g. B.Tech / BCA"
-                    />
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setCourseInput(val);
+                        setBranchInput('');
+                        if (val !== 'Other') {
+                          setCustomCourseInput('');
+                        }
+                      }}
+                      className="w-full rounded-xl border border-black/10 bg-white/80 px-3.5 py-2.5 text-xs outline-none focus:border-[#C5A059] text-[#16171D] cursor-pointer"
+                    >
+                      <option value="">Select Course</option>
+                      {COURSE_OPTIONS.map((c) => (
+                        <option key={c} value={c}>
+                          {c}
+                        </option>
+                      ))}
+                    </select>
+
+                    {courseInput === 'Other' && (
+                      <div className="mt-2">
+                        <input
+                          type="text"
+                          value={customCourseInput}
+                          onChange={(e) => setCustomCourseInput(e.target.value)}
+                          placeholder="Enter your course name"
+                          className="w-full rounded-xl border border-[#C5A059]/60 bg-white px-3 py-2 text-xs outline-none focus:border-[#C5A059] text-[#16171D]"
+                        />
+                      </div>
+                    )}
                   </div>
 
                   <div>
@@ -2346,7 +2488,7 @@ export function Profile() {
                     <select
                       value={yearInput}
                       onChange={(e) => setYearInput(e.target.value)}
-                      className="w-full rounded-xl border border-black/10 bg-white/80 px-3.5 py-2.5 text-xs outline-none focus:border-[#C5A059] text-[#16171D]"
+                      className="w-full rounded-xl border border-black/10 bg-white/80 px-3.5 py-2.5 text-xs outline-none focus:border-[#C5A059] text-[#16171D] cursor-pointer"
                     >
                       <option value="">Select Year</option>
                       <option value="1st Year">1st Year</option>
@@ -2360,13 +2502,48 @@ export function Profile() {
 
                   <div>
                     <label className="block text-xs font-bold text-[#2D2A26] mb-1">Branch / Department</label>
-                    <input
-                      type="text"
-                      value={branchInput}
-                      onChange={(e) => setBranchInput(e.target.value)}
-                      className="w-full rounded-xl border border-black/10 bg-white/80 px-3.5 py-2.5 text-xs outline-none focus:border-[#C5A059] text-[#16171D]"
-                      placeholder="e.g. Computer Science"
-                    />
+                    {courseInput && courseInput !== 'Other' ? (
+                      <>
+                        <select
+                          value={branchInput}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setBranchInput(val);
+                            if (val !== 'Other') {
+                              setCustomBranchInput('');
+                            }
+                          }}
+                          className="w-full rounded-xl border border-black/10 bg-white/80 px-3.5 py-2.5 text-xs outline-none focus:border-[#C5A059] text-[#16171D] cursor-pointer"
+                        >
+                          <option value="">Select Branch</option>
+                          {getBranchesForCourse(courseInput).map((b) => (
+                            <option key={b} value={b}>
+                              {b}
+                            </option>
+                          ))}
+                        </select>
+
+                        {branchInput === 'Other' && (
+                          <div className="mt-2">
+                            <input
+                              type="text"
+                              value={customBranchInput}
+                              onChange={(e) => setCustomBranchInput(e.target.value)}
+                              placeholder="Enter your branch / specialization"
+                              className="w-full rounded-xl border border-[#C5A059]/60 bg-white px-3 py-2 text-xs outline-none focus:border-[#C5A059] text-[#16171D]"
+                            />
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      <input
+                        type="text"
+                        value={customBranchInput}
+                        onChange={(e) => setCustomBranchInput(e.target.value)}
+                        className="w-full rounded-xl border border-black/10 bg-white/80 px-3.5 py-2.5 text-xs outline-none focus:border-[#C5A059] text-[#16171D]"
+                        placeholder={courseInput === 'Other' ? "Enter your branch / specialization" : "Select course first or enter branch"}
+                      />
+                    )}
                   </div>
                 </div>
 
@@ -2485,28 +2662,73 @@ export function Submit() {
   const [eligibility, setEligibility] = useState('');
   const [skills, setSkills] = useState('');
   const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
   const [deadline, setDeadline] = useState('');
   const [prize, setPrize] = useState('');
   const [officialUrl, setOfficialUrl] = useState('');
-  const [imageUrl, setImageUrl] = useState('');
+  const [imageUrls, setImageUrls] = useState<string[]>([]);
   const [uploadingImage, setUploadingImage] = useState(false);
 
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const handleImagesUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files ? Array.from(e.target.files) : [];
+    if (files.length === 0) return;
+
+    if (imageUrls.length >= 3) {
+      say('Maximum 3 images allowed per opportunity.');
+      e.target.value = '';
+      return;
+    }
+
+    if (imageUrls.length + files.length > 3) {
+      say(`You can only upload up to 3 images in total. You can select ${3 - imageUrls.length} more.`);
+      e.target.value = '';
+      return;
+    }
+
+    // Validate all files first (format and size)
+    for (const f of files) {
+      const v = validateOpportunityImageFile(f);
+      if (!v.valid) {
+        say(v.error || 'Invalid file.');
+        e.target.value = '';
+        return;
+      }
+    }
+
     setUploadingImage(true);
+    const uploadedBatch: string[] = [];
+
     try {
-      const url = await uploadImage(file, 'opportunities');
-      setImageUrl(url);
-      say('Banner uploaded successfully');
+      for (const f of files) {
+        const url = await uploadImage(f, 'opportunity-banners');
+        uploadedBatch.push(url);
+      }
+      setImageUrls((prev) => [...prev, ...uploadedBatch]);
+      say(`${files.length} image${files.length > 1 ? 's' : ''} uploaded successfully`);
     } catch (err: any) {
-      say(err.message || 'Banner upload failed. You can paste a direct image URL.');
+      // Clean up orphaned uploads from this failed batch
+      for (const url of uploadedBatch) {
+        await deleteStorageFile(url);
+      }
+      say(err.message || 'Image upload failed. Please try again.');
     } finally {
       setUploadingImage(false);
+      e.target.value = '';
+    }
+  };
+
+  const handleRemoveImage = async (indexToRemove: number) => {
+    const urlToRemove = imageUrls[indexToRemove];
+    setImageUrls((prev) => prev.filter((_, idx) => idx !== indexToRemove));
+    if (urlToRemove) {
+      await deleteStorageFile(urlToRemove);
+      say('Image removed');
     }
   };
 
   const handleSubmit = async () => {
+    if (submitting) return;
+
     if (!user?.uid) {
       setError('You must be signed in to submit an opportunity. Please sign in and try again.');
       return;
@@ -2517,8 +2739,19 @@ export function Submit() {
       return;
     }
 
+    if (!deadline.trim()) {
+      setError('Application deadline is required.');
+      return;
+    }
+
     if (!officialUrl.startsWith('http://') && !officialUrl.startsWith('https://')) {
       setError('Official URL must begin with http:// or https://');
+      return;
+    }
+
+    const dateVal = validateOpportunityDates({ startDate, endDate, deadline });
+    if (!dateVal.valid) {
+      setError(dateVal.error || 'Please provide valid dates.');
       return;
     }
 
@@ -2534,11 +2767,12 @@ export function Submit() {
         description: description.trim(),
         eligibility: eligibility.trim() || 'Open to all students & builders',
         skills: skills.split(',').map((s) => s.trim()).filter(Boolean),
-        startDate: startDate ? new Date(startDate).getTime() : Date.now(),
-        deadline: deadline ? new Date(deadline).getTime() : Date.now() + 86400000 * 14,
+        startDate: startDate ? parseDateInputToTimestamp(startDate) : Date.now(),
+        endDate: endDate ? parseDateInputToTimestamp(endDate) : (startDate ? parseDateInputToTimestamp(startDate) + 86400000 : Date.now() + 86400000),
+        deadline: parseDateInputToTimestamp(deadline),
         prize: prize.trim(),
         officialUrl: officialUrl.trim(),
-        imageUrl
+        imageUrl: imageUrls.length > 0 ? imageUrls.join(',') : ''
       });
 
       setDone(true);
@@ -2668,18 +2902,32 @@ export function Submit() {
           <input
             type="date"
             value={startDate}
+            min={getTodayInputString()}
             onChange={(e) => setStartDate(e.target.value)}
             className={inpStyle}
           />
         </FormField>
-        <FormField label="Application Deadline" required>
+        <FormField label="End Date">
           <input
             type="date"
-            value={deadline}
-            onChange={(e) => setDeadline(e.target.value)}
+            value={endDate}
+            min={startDate || getTodayInputString()}
+            onChange={(e) => setEndDate(e.target.value)}
             className={inpStyle}
           />
         </FormField>
+        <div className="sm:col-span-2">
+          <FormField label="Application Deadline" required>
+            <input
+              type="date"
+              value={deadline}
+              min={getTodayInputString()}
+              max={endDate || undefined}
+              onChange={(e) => setDeadline(e.target.value)}
+              className={inpStyle}
+            />
+          </FormField>
+        </div>
       </SectionCard>
 
       <SectionCard title="Rewards &amp; Official Link">
@@ -2702,26 +2950,46 @@ export function Submit() {
         </FormField>
       </SectionCard>
 
-      <SectionCard title="Banner Media">
-        <div className="sm:col-span-2">
-          <label className="flex flex-col items-center justify-center h-32 rounded-2xl border-2 border-dashed border-black/15 bg-white/50 p-4 text-center cursor-pointer hover:bg-white hover:border-[#C5A059]/50 transition">
-            <Upload size={22} className="text-[#C5A059] mb-2" />
-            <span className="text-xs font-semibold text-[#2D2A26]">
-              {uploadingImage ? 'Uploading image...' : imageUrl ? 'Image uploaded (Click to replace)' : 'Upload banner image (16:9 ratio recommended)'}
-            </span>
-            <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" disabled={uploadingImage} />
-          </label>
-          {imageUrl && (
-            <div className="relative mt-3 rounded-2xl overflow-hidden border border-black/10 aspect-video max-h-48 bg-stone-100 shadow-sm">
-              <img src={imageUrl} alt="Banner Preview" className="w-full h-full object-cover" />
-              <button
-                type="button"
-                onClick={() => setImageUrl('')}
-                className="absolute top-2 right-2 p-1.5 rounded-full bg-black/70 text-white hover:bg-black/90 transition cursor-pointer"
-                title="Remove banner image"
-              >
-                <X size={14} />
-              </button>
+      <SectionCard title="Opportunity Images (Max 3, up to 2 MB each)">
+        <div className="sm:col-span-2 space-y-3">
+          {imageUrls.length < 3 && (
+            <label className="flex flex-col items-center justify-center h-28 rounded-2xl border-2 border-dashed border-black/15 bg-white/50 p-4 text-center cursor-pointer hover:bg-white hover:border-[#C5A059]/50 transition">
+              <Upload size={22} className="text-[#C5A059] mb-1.5" />
+              <span className="text-xs font-semibold text-[#2D2A26]">
+                {uploadingImage ? 'Uploading image...' : `Add images (${imageUrls.length}/3) · JPEG, PNG, or WebP up to 2 MB`}
+              </span>
+              <span className="text-[11px] text-[#8C827A] mt-0.5">
+                First image will serve as the primary cover banner
+              </span>
+              <input
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                multiple
+                onChange={handleImagesUpload}
+                className="hidden"
+                disabled={uploadingImage}
+              />
+            </label>
+          )}
+
+          {imageUrls.length > 0 && (
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              {imageUrls.map((url, idx) => (
+                <div key={url + idx} className="relative rounded-2xl overflow-hidden border border-black/10 aspect-video bg-stone-100 shadow-sm group">
+                  <img src={url} alt={`Upload ${idx + 1}`} className="w-full h-full object-cover" />
+                  <div className="absolute top-2 left-2 px-2 py-0.5 rounded-md bg-black/60 text-white text-[10px] font-bold">
+                    {idx === 0 ? 'Primary Banner' : `Image ${idx + 1}`}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveImage(idx)}
+                    className="absolute top-2 right-2 p-1.5 rounded-full bg-black/70 text-white hover:bg-rose-600 transition cursor-pointer shadow-sm"
+                    title="Remove image"
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+              ))}
             </div>
           )}
         </div>
@@ -2765,9 +3033,9 @@ const AdminOpportunityForm = ({ opp, onBack }: any) => {
   const [description, setDescription] = useState(opp?.description || '');
   const [organizer, setOrganizer] = useState(opp?.organizer || '');
   const [category, setCategory] = useState(opp?.category || cats[0]);
-  const [deadline, setDeadline] = useState(opp?.deadline ? new Date(opp.deadline).toISOString().split('T')[0] : '');
-  const [startDate, setStartDate] = useState(opp?.startDate ? new Date(opp.startDate).toISOString().split('T')[0] : '');
-  const [endDate, setEndDate] = useState(opp?.endDate ? new Date(opp.endDate).toISOString().split('T')[0] : '');
+  const [deadline, setDeadline] = useState(formatTimestampToDateInput(opp?.deadline));
+  const [startDate, setStartDate] = useState(formatTimestampToDateInput(opp?.startDate));
+  const [endDate, setEndDate] = useState(formatTimestampToDateInput(opp?.endDate));
   const [mode, setMode] = useState(opp?.mode || 'online');
   const [location, setLocation] = useState(opp?.location || '');
   const [eligibility, setEligibility] = useState(opp?.eligibility || '');
@@ -2777,35 +3045,110 @@ const AdminOpportunityForm = ({ opp, onBack }: any) => {
   const [teamSize, setTeamSize] = useState(opp?.teamSize || '');
   const [officialUrl, setOfficialUrl] = useState(opp?.officialUrl || '');
   const [imageUrl, setImageUrl] = useState(opp?.imageUrl || '');
+  const [imageUrls, setImageUrls] = useState<string[]>(parseOpportunityImages(opp?.imageUrl));
   const [featured, setFeatured] = useState(opp?.featured || false);
   const [additionalInfo, setAdditionalInfo] = useState(opp?.additionalInfo || '');
   const [uploadingImage, setUploadingImage] = useState(false);
 
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const handleImagesUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files ? Array.from(e.target.files) : [];
+    if (files.length === 0) return;
+
+    if (imageUrls.length >= 3) {
+      say('Maximum 3 images allowed per opportunity.');
+      e.target.value = '';
+      return;
+    }
+
+    if (imageUrls.length + files.length > 3) {
+      say(`Maximum 3 images allowed. You can select ${3 - imageUrls.length} more.`);
+      e.target.value = '';
+      return;
+    }
+
+    for (const f of files) {
+      const v = validateOpportunityImageFile(f);
+      if (!v.valid) {
+        say(v.error || 'Invalid file.');
+        e.target.value = '';
+        return;
+      }
+    }
+
     setUploadingImage(true);
+    const uploadedBatch: string[] = [];
     try {
-      const url = await uploadImage(file, 'opportunities');
-      setImageUrl(url);
-      say('Banner uploaded successfully');
+      for (const f of files) {
+        const url = await uploadImage(f, 'opportunity-banners');
+        uploadedBatch.push(url);
+      }
+      setImageUrls((prev) => {
+        const updated = [...prev, ...uploadedBatch];
+        if (!imageUrl && updated.length > 0) setImageUrl(updated[0]);
+        return updated;
+      });
+      say('Images uploaded successfully');
     } catch (err: any) {
-      say(err.message || 'Banner upload failed. You can paste a direct image URL.');
+      for (const url of uploadedBatch) {
+        await deleteStorageFile(url);
+      }
+      say(err.message || 'Image upload failed.');
     } finally {
       setUploadingImage(false);
+      e.target.value = '';
+    }
+  };
+
+  const handleRemoveImage = async (indexToRemove: number) => {
+    const urlToRemove = imageUrls[indexToRemove];
+    setImageUrls((prev) => {
+      const updated = prev.filter((_, idx) => idx !== indexToRemove);
+      setImageUrl(updated[0] || '');
+      return updated;
+    });
+    if (urlToRemove) {
+      await deleteStorageFile(urlToRemove);
+      say('Image removed');
     }
   };
 
   const handleSave = async (status: OpportunityStatus) => {
+    if (!title.trim() || !organizer.trim() || !officialUrl.trim() || !description.trim()) {
+      say('Please fill in all required fields (Title, Organizer, Application Link, Description).');
+      return;
+    }
+
+    if (!deadline.trim()) {
+      say('Application deadline is required.');
+      return;
+    }
+
+    const dateVal = validateOpportunityDates({ startDate, endDate, deadline });
+    if (!dateVal.valid) {
+      say(dateVal.error || 'Please provide valid dates.');
+      return;
+    }
+
     setSubmitting(true);
     const data = {
-      title, description, organizer, category,
-      deadline: deadline ? new Date(deadline).getTime() : Date.now() + 86400000 * 7,
-      startDate: startDate ? new Date(startDate).getTime() : Date.now(),
-      endDate: endDate ? new Date(endDate).getTime() : Date.now() + 86400000,
-      mode, location, eligibility,
+      title: title.trim(),
+      description: description.trim(),
+      organizer: organizer.trim(),
+      category,
+      deadline: parseDateInputToTimestamp(deadline),
+      startDate: startDate ? parseDateInputToTimestamp(startDate) : Date.now(),
+      endDate: endDate ? parseDateInputToTimestamp(endDate) : (startDate ? parseDateInputToTimestamp(startDate) + 86400000 : Date.now() + 86400000),
+      mode,
+      location: location.trim(),
+      eligibility: eligibility.trim(),
       skills: skills.split(',').map((s: string) => s.trim()).filter(Boolean),
-      prize, stipend, teamSize, officialUrl, imageUrl, featured, additionalInfo,
+      prize: prize.trim(),
+      stipend: stipend.trim(),
+      teamSize: teamSize.trim(),
+      officialUrl: officialUrl.trim(),
+      imageUrl: imageUrls.length > 0 ? imageUrls.join(',') : (imageUrl || ''),
+      featured,
+      additionalInfo: additionalInfo.trim(),
       status
     };
 
@@ -2869,13 +3212,24 @@ const AdminOpportunityForm = ({ opp, onBack }: any) => {
   const handleDuplicate = async () => {
     setSubmitting(true);
     const data = {
-      title: title + ' (Copy)', description, organizer, category,
-      deadline: deadline ? new Date(deadline).getTime() : Date.now(),
-      startDate: startDate ? new Date(startDate).getTime() : Date.now(),
-      endDate: endDate ? new Date(endDate).getTime() : Date.now(),
-      mode, location, eligibility,
+      title: title + ' (Copy)',
+      description,
+      organizer,
+      category,
+      deadline: parseDateInputToTimestamp(deadline),
+      startDate: startDate ? parseDateInputToTimestamp(startDate) : Date.now(),
+      endDate: endDate ? parseDateInputToTimestamp(endDate) : Date.now() + 86400000,
+      mode,
+      location,
+      eligibility,
       skills: skills.split(',').map((s: string) => s.trim()).filter(Boolean),
-      prize, stipend, teamSize, officialUrl, imageUrl, featured, additionalInfo,
+      prize,
+      stipend,
+      teamSize,
+      officialUrl,
+      imageUrl: imageUrls[0] || imageUrl || '',
+      featured,
+      additionalInfo,
       status: 'draft' as OpportunityStatus
     };
     try {
@@ -2978,25 +3332,40 @@ const AdminOpportunityForm = ({ opp, onBack }: any) => {
           </FormField>
           <FormField label="Description"><textarea rows={4} value={description} onChange={e=>setDescription(e.target.value)} className={inpStyle} /></FormField>
           <FormField label="Official Website / Apply URL"><input type="url" value={officialUrl} onChange={e=>setOfficialUrl(e.target.value)} className={inpStyle} /></FormField>
-          <FormField label="Banner / Cover Image">
-            <label className="flex flex-col items-center justify-center h-20 rounded-xl border-2 border-dashed border-slate-200 bg-slate-50/60 p-2 text-center cursor-pointer hover:bg-slate-100/60 transition mt-1">
-              <span className="text-[11px] font-semibold text-slate-700">
-                {uploadingImage ? 'Uploading image...' : imageUrl ? 'Image uploaded (Click to replace)' : 'Upload banner image'}
-              </span>
-              <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" disabled={uploadingImage} />
-            </label>
-            <input value={imageUrl} onChange={e=>setImageUrl(e.target.value)} className={`${inpStyle} mt-2`} placeholder="Or paste image URL" />
-            {imageUrl && (
-              <div className="relative mt-2 rounded-xl overflow-hidden border border-slate-200 aspect-video max-h-36 bg-slate-100">
-                <img src={imageUrl} alt="Cover Preview" className="w-full h-full object-cover" />
-                <button
-                  type="button"
-                  onClick={() => setImageUrl('')}
-                  className="absolute top-2 right-2 p-1 rounded-md bg-black/60 text-white hover:bg-black/80 transition"
-                  title="Remove image"
-                >
-                  <X size={13} />
-                </button>
+          <FormField label="Banner / Cover Images (Max 3, up to 2 MB each)">
+            {imageUrls.length < 3 && (
+              <label className="flex flex-col items-center justify-center h-20 rounded-xl border-2 border-dashed border-slate-200 bg-slate-50/60 p-2 text-center cursor-pointer hover:bg-slate-100/60 transition mt-1">
+                <span className="text-[11px] font-semibold text-slate-700">
+                  {uploadingImage ? 'Uploading image...' : `Add image (${imageUrls.length}/3) · JPEG, PNG, or WebP up to 2 MB`}
+                </span>
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  multiple
+                  onChange={handleImagesUpload}
+                  className="hidden"
+                  disabled={uploadingImage}
+                />
+              </label>
+            )}
+            {imageUrls.length > 0 && (
+              <div className="grid grid-cols-3 gap-2 mt-2">
+                {imageUrls.map((url, idx) => (
+                  <div key={url + idx} className="relative rounded-xl overflow-hidden border border-slate-200 aspect-video max-h-28 bg-slate-100 group">
+                    <img src={url} alt={`Cover ${idx + 1}`} className="w-full h-full object-cover" />
+                    <span className="absolute bottom-1 left-1 px-1.5 py-0.2 rounded bg-black/60 text-white text-[9px] font-bold">
+                      {idx === 0 ? 'Primary' : `#${idx + 1}`}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveImage(idx)}
+                      className="absolute top-1 right-1 p-1 rounded-full bg-black/60 text-white hover:bg-rose-600 transition"
+                      title="Remove image"
+                    >
+                      <X size={12} />
+                    </button>
+                  </div>
+                ))}
               </div>
             )}
           </FormField>
@@ -3017,10 +3386,35 @@ const AdminOpportunityForm = ({ opp, onBack }: any) => {
              <FormField label="Location"><input value={location} onChange={e=>setLocation(e.target.value)} className={inpStyle} placeholder="e.g. Bengaluru / Global" /></FormField>
           </div>
           <div className="grid grid-cols-2 gap-3">
-            <FormField label="Start Date"><input type="date" value={startDate} onChange={e=>setStartDate(e.target.value)} className={inpStyle} /></FormField>
-            <FormField label="End Date"><input type="date" value={endDate} onChange={e=>setEndDate(e.target.value)} className={inpStyle} /></FormField>
+            <FormField label="Start Date">
+              <input
+                type="date"
+                value={startDate}
+                min={getTodayInputString()}
+                onChange={e=>setStartDate(e.target.value)}
+                className={inpStyle}
+              />
+            </FormField>
+            <FormField label="End Date">
+              <input
+                type="date"
+                value={endDate}
+                min={startDate || getTodayInputString()}
+                onChange={e=>setEndDate(e.target.value)}
+                className={inpStyle}
+              />
+            </FormField>
           </div>
-          <FormField label="Deadline"><input type="date" value={deadline} onChange={e=>setDeadline(e.target.value)} className={inpStyle} /></FormField>
+          <FormField label="Application Deadline" required>
+            <input
+              type="date"
+              value={deadline}
+              min={getTodayInputString()}
+              max={endDate || undefined}
+              onChange={e=>setDeadline(e.target.value)}
+              className={inpStyle}
+            />
+          </FormField>
           
           <div className="grid grid-cols-2 gap-3">
              <FormField label="Prize"><input value={prize} onChange={e=>setPrize(e.target.value)} className={inpStyle} placeholder="e.g. ₹1,00,000" /></FormField>

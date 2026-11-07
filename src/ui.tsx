@@ -194,7 +194,7 @@ export const ReferBtn: FC<{ title: string; path: string; className?: string }> =
 };
 
 export const OppCard: FC<{ o: Opp; variant?: 'light' | 'dark' }> = ({ o, variant = 'light' }) => {
-  const { saved, toggle } = useApp();
+  const { saved, toggle, share } = useApp();
   const [showReport, setShowReport] = useState(false);
   const on = saved.includes(String(o.id));
 
@@ -290,13 +290,7 @@ export const OppCard: FC<{ o: Opp; variant?: 'light' | 'dark' }> = ({ o, variant
             <ArrowRight size={13} />
           </Link>
           <button
-            onClick={() => {
-              if (navigator.share) {
-                navigator.share({ title: o.title, url: window.location.origin + '/opportunities/' + o.id }).catch(() => {});
-              } else {
-                navigator.clipboard.writeText(window.location.origin + '/opportunities/' + o.id);
-              }
-            }}
+            onClick={() => share(o.title, '/opportunities/' + o.id)}
             className="flex-1 inline-flex min-h-9 items-center justify-center gap-1.5 rounded-xl bg-white/80 hover:bg-white border border-slate-200/80 px-3 py-2 text-xs font-bold text-[#0e1b33] hover:text-blue-600 transition active:scale-[0.98] shadow-2xs cursor-pointer"
           >
             <Share2 size={13} className="text-blue-600 shrink-0" />
@@ -861,14 +855,74 @@ export const PostCard: FC<{ p: any; onPostDeleted?: (id: string) => void }> = ({
     }
   };
 
-  // Handle share link
-  const handleShare = () => {
-    const url = `${window.location.origin}/feed#${p.id}`;
-    if (navigator.clipboard) {
-      navigator.clipboard.writeText(url);
-      say('Post link copied to clipboard!');
-    } else {
-      say('Post link ready to share');
+  // Handle share link with Web Share API and desktop clipboard fallback
+  const handleShare = async () => {
+    if (!p?.id || String(p.id).trim() === '' || String(p.id) === 'undefined') {
+      say('Unable to share: Post ID is missing or invalid.');
+      return;
+    }
+
+    // Determine production / current domain cleanly
+    let baseOrigin = 'https://pixelmindss.vercel.app';
+    if (typeof window !== 'undefined' && window.location?.origin) {
+      const locOrigin = window.location.origin;
+      if (locOrigin !== 'null' && !locOrigin.includes('localhost') && !locOrigin.includes('127.0.0.1')) {
+        baseOrigin = locOrigin;
+      } else if (import.meta.env.DEV) {
+        baseOrigin = locOrigin;
+      }
+    }
+
+    const shareUrl = `${baseOrigin}/feed#${encodeURIComponent(String(p.id))}`;
+    const author = p.user || 'Pixel Builder';
+    const postSnippet = p.text ? (p.text.length > 80 ? p.text.substring(0, 77) + '...' : p.text) : 'Check out this post on Pixel Minds';
+
+    const shareData = {
+      title: `${author} on Pixel Minds`,
+      text: postSnippet,
+      url: shareUrl
+    };
+
+    // 1. Try Web Share API (native mobile share sheet)
+    if (typeof navigator !== 'undefined' && navigator.share) {
+      try {
+        await navigator.share(shareData);
+        say('Post shared successfully!');
+        return;
+      } catch (err: any) {
+        if (err.name === 'AbortError') {
+          return;
+        }
+        console.warn('[handleShare] Web Share API notice, attempting clipboard fallback:', err);
+      }
+    }
+
+    // 2. Clipboard fallback (Desktop or unsupported browsers)
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(shareUrl);
+        say('Post link copied to clipboard!');
+        return;
+      }
+
+      // Legacy fallback
+      const textArea = document.createElement('textarea');
+      textArea.value = shareUrl;
+      textArea.style.position = 'fixed';
+      textArea.style.opacity = '0';
+      document.body.appendChild(textArea);
+      textArea.focus();
+      textArea.select();
+      const success = document.execCommand('copy');
+      document.body.removeChild(textArea);
+      if (success) {
+        say('Post link copied to clipboard!');
+      } else {
+        throw new Error('Fallback copy command failed.');
+      }
+    } catch (clipErr) {
+      console.error('[handleShare] Clipboard copy failure:', clipErr);
+      say('Unable to copy link automatically. Please copy the URL from your address bar.');
     }
   };
 

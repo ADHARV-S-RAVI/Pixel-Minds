@@ -10,6 +10,7 @@ import { AdminLogin } from './pages/AdminLogin';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { AdminRoute } from './components/AdminRoute';
 import { ErrorBoundary } from './components/ErrorBoundary';
+import { ReferralOnboardingModal } from './components/ReferralOnboardingModal';
 import { useAuth } from './contexts/AuthContext';
 
 export default function App() {
@@ -29,6 +30,7 @@ export default function App() {
 
   return (
     <ErrorBoundary>
+      <ReferralOnboardingModal />
       <Routes>
         <Route element={<Layout />}>
           {/* Public Routes */}
