@@ -96,10 +96,18 @@ export interface Referral {
 
 export interface Report {
   id: string;
-  opportunityId: string;
+  opportunityId?: string;
+  targetType?: 'opportunity' | 'post';
+  targetId?: string;
+  targetTitle?: string;
+  targetContent?: string;
   reporterId: string;
+  reporterName?: string;
+  reporterEmail?: string;
   reason: string;
   status: 'pending' | 'resolved' | 'dismissed';
+  adminNotes?: string;
+  resolvedBy?: string;
   createdAt: number;
 }
 

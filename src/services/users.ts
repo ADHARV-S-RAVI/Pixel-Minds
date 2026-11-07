@@ -149,3 +149,50 @@ export const updateUserProfile = async (uid: string, data: Partial<User>): Promi
     throw error;
   }
 };
+
+export interface LeaderboardUserEntry {
+  id: string;
+  rank: number;
+  name: string;
+  pixels: number;
+  contribs: number;
+  avatarUrl?: string;
+  role: string;
+}
+
+/**
+ * Fetch top users for the real-time community leaderboard from Supabase public.profiles
+ */
+export const getLeaderboardUsers = async (limitCount = 50): Promise<LeaderboardUserEntry[]> => {
+  try {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('id, full_name, email, pixels, avatar_url, role, contributions')
+      .eq('is_suspended', false)
+      .order('pixels', { ascending: false })
+      .order('created_at', { ascending: true })
+      .limit(limitCount);
+
+    if (error) {
+      console.error('[getLeaderboardUsers] Error querying profiles:', error.message);
+      return [];
+    }
+
+    if (!data || data.length === 0) {
+      return [];
+    }
+
+    return data.map((p, idx) => ({
+      id: p.id,
+      rank: idx + 1,
+      name: p.full_name || p.email?.split('@')[0] || 'Pixel Builder',
+      pixels: p.pixels || 0,
+      contribs: p.contributions || 0,
+      avatarUrl: p.avatar_url || undefined,
+      role: p.role || 'user'
+    }));
+  } catch (err) {
+    console.error('[getLeaderboardUsers] Exception:', err);
+    return [];
+  }
+};

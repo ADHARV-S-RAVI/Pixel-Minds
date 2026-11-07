@@ -77,7 +77,7 @@ export const SubmissionDetailModal: React.FC<SubmissionDetailModalProps> = ({
         );
       default:
         return (
-          <span className="inline-flex items-center gap-1 rounded-full bg-[#DFB76C]/15 px-3 py-1 text-xs font-bold text-[#DFB76C] border border-[#DFB76C]/30">
+          <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/15 px-3 py-1 text-xs font-bold text-amber-300 border border-amber-500/30">
             <Clock size={13} />
             Pending Review
           </span>
@@ -115,7 +115,7 @@ export const SubmissionDetailModal: React.FC<SubmissionDetailModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-md overflow-y-auto animate-in fade-in duration-150">
-      <div className="relative w-full max-w-2xl my-8 bg-[#141418]/95 backdrop-blur-2xl text-white rounded-3xl shadow-2xl border border-white/15 overflow-hidden flex flex-col max-h-[90vh]">
+      <div className="relative w-full max-w-2xl my-8 bg-[#11243D]/95 backdrop-blur-2xl text-white rounded-3xl shadow-2xl border border-sky-500/20 overflow-hidden flex flex-col max-h-[90vh]">
         {/* Header */}
         <div className="flex items-start justify-between p-6 border-b border-white/10 bg-white/5">
           <div className="space-y-1.5 pr-6 min-w-0">

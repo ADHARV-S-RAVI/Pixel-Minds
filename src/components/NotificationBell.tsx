@@ -9,7 +9,8 @@ import {
   Inbox,
   AlertCircle,
   FileCheck2,
-  X
+  X,
+  ChevronRight
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
@@ -27,13 +28,35 @@ export const NotificationBell: React.FC<{ className?: string }> = ({ className =
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [isOpen, setIsOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [showPopup, setShowPopup] = useState(false);
+  const [popupNotification, setPopupNotification] = useState<AppNotification | null>(null);
   const panelRef = useRef<HTMLDivElement>(null);
+  const popupTimeoutRef = useRef<any>(null);
 
   const fetchNotifications = async () => {
     if (!user?.uid) return;
     try {
       const data = await getUserNotifications(user.uid);
-      setNotifications(data);
+
+      // If user has zero notifications in database, provide a friendly welcome notification
+      if (data.length === 0) {
+        const welcomeKey = `pm_notif_read_welcome_${user.uid}`;
+        const isWelcomeRead = localStorage.getItem(welcomeKey) === 'true';
+        const welcomeNotif: AppNotification = {
+          id: `welcome_${user.uid}`,
+          notificationId: 'welcome',
+          title: 'Welcome to Pixel Minds! 🚀',
+          message: 'Explore hackathons, earn Pixels, and climb the global builder leaderboard.',
+          type: 'pixel',
+          link: '/opportunities',
+          isRead: isWelcomeRead,
+          readAt: isWelcomeRead ? Date.now() : null,
+          createdAt: Date.now()
+        };
+        setNotifications([welcomeNotif]);
+      } else {
+        setNotifications(data);
+      }
       setFetchError(null);
     } catch (err: any) {
       console.error('[NotificationBell] Failed to fetch notifications:', err);
@@ -45,6 +68,8 @@ export const NotificationBell: React.FC<{ className?: string }> = ({ className =
     if (!user?.uid) {
       setNotifications([]);
       setFetchError(null);
+      setShowPopup(false);
+      setPopupNotification(null);
       return;
     }
 
@@ -89,15 +114,26 @@ export const NotificationBell: React.FC<{ className?: string }> = ({ className =
     const handleWindowFocus = () => fetchNotifications();
     const handleNotificationUpdateEvent = () => fetchNotifications();
 
+    // 4. Custom event for immediate notification trigger & popup
+    const handleNewNotificationEvent = (e: any) => {
+      fetchNotifications();
+      if (e.detail) {
+        triggerNotificationPopup(e.detail);
+      }
+    };
+
     document.addEventListener('visibilitychange', handleVisibilityChange);
     window.addEventListener('focus', handleWindowFocus);
     window.addEventListener('pm:notification-update', handleNotificationUpdateEvent);
+    window.addEventListener('pm:new-notification', handleNewNotificationEvent);
 
     return () => {
       clearInterval(interval);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('focus', handleWindowFocus);
       window.removeEventListener('pm:notification-update', handleNotificationUpdateEvent);
+      window.removeEventListener('pm:new-notification', handleNewNotificationEvent);
+      if (popupTimeoutRef.current) clearTimeout(popupTimeoutRef.current);
       if (channel) {
         try {
           supabase.removeChannel(channel);
@@ -107,6 +143,30 @@ export const NotificationBell: React.FC<{ className?: string }> = ({ className =
       }
     };
   }, [user?.uid]);
+
+  // Trigger popup when new unread notification is detected
+  const triggerNotificationPopup = (n: AppNotification) => {
+    setPopupNotification(n);
+    setShowPopup(true);
+    if (popupTimeoutRef.current) clearTimeout(popupTimeoutRef.current);
+    popupTimeoutRef.current = setTimeout(() => {
+      setShowPopup(false);
+    }, 6000);
+  };
+
+  // Check unread notifications and show popup banner if not shown in current session
+  useEffect(() => {
+    if (notifications.length === 0 || !user?.uid) return;
+    const unread = notifications.filter((n) => !n.isRead);
+    if (unread.length > 0) {
+      const latest = unread[0];
+      const sessionKey = `pm_notif_popup_seen_${latest.id}`;
+      if (!sessionStorage.getItem(sessionKey)) {
+        sessionStorage.setItem(sessionKey, 'true');
+        triggerNotificationPopup(latest);
+      }
+    }
+  }, [notifications, user?.uid]);
 
   // Handle clicking outside to close the dropdown
   useEffect(() => {
@@ -127,6 +187,7 @@ export const NotificationBell: React.FC<{ className?: string }> = ({ className =
   const unreadCount = notifications.filter((n) => !n.isRead).length;
 
   const handleToggle = () => {
+    setShowPopup(false);
     setIsOpen(!isOpen);
     if (!isOpen) {
       fetchNotifications();
@@ -137,7 +198,11 @@ export const NotificationBell: React.FC<{ className?: string }> = ({ className =
     e.stopPropagation();
     if (n.isRead) return;
     try {
-      await markNotificationAsRead(n.id);
+      if (n.id.startsWith('welcome_') && user?.uid) {
+        localStorage.setItem(`pm_notif_read_welcome_${user.uid}`, 'true');
+      } else {
+        await markNotificationAsRead(n.id);
+      }
       setNotifications((prev) =>
         prev.map((item) => (item.id === n.id ? { ...item, isRead: true, readAt: Date.now() } : item))
       );
@@ -150,6 +215,7 @@ export const NotificationBell: React.FC<{ className?: string }> = ({ className =
     if (!user?.uid || unreadCount === 0) return;
     setLoading(true);
     try {
+      localStorage.setItem(`pm_notif_read_welcome_${user.uid}`, 'true');
       await markAllNotificationsAsRead(user.uid);
       setNotifications((prev) =>
         prev.map((item) => ({ ...item, isRead: true, readAt: Date.now() }))
@@ -164,7 +230,11 @@ export const NotificationBell: React.FC<{ className?: string }> = ({ className =
   const handleNotificationClick = async (n: AppNotification) => {
     if (!n.isRead) {
       try {
-        await markNotificationAsRead(n.id);
+        if (n.id.startsWith('welcome_') && user?.uid) {
+          localStorage.setItem(`pm_notif_read_welcome_${user.uid}`, 'true');
+        } else {
+          await markNotificationAsRead(n.id);
+        }
         setNotifications((prev) =>
           prev.map((item) => (item.id === n.id ? { ...item, isRead: true, readAt: Date.now() } : item))
         );
@@ -173,6 +243,7 @@ export const NotificationBell: React.FC<{ className?: string }> = ({ className =
       }
     }
     setIsOpen(false);
+    setShowPopup(false);
     if (n.link) {
       if (n.link.startsWith('http://') || n.link.startsWith('https://')) {
         window.open(n.link, '_blank', 'noopener,noreferrer');
@@ -199,27 +270,27 @@ export const NotificationBell: React.FC<{ className?: string }> = ({ className =
   const getIcon = (type: string) => {
     switch (type) {
       case 'opportunity':
-        return <FileCheck2 size={16} className="text-sky-600" />;
+        return <FileCheck2 size={16} className="text-sky-400" />;
       case 'pixel':
-        return <Sparkles size={16} className="text-amber-500" />;
+        return <Sparkles size={16} className="text-amber-400" />;
       case 'announcement':
-        return <AlertCircle size={16} className="text-indigo-500" />;
+        return <AlertCircle size={16} className="text-sky-300" />;
       default:
-        return <Inbox size={16} className="text-slate-500" />;
+        return <Inbox size={16} className="text-sky-400" />;
     }
   };
 
   return (
     <div className={`relative ${className}`} ref={panelRef}>
-      {/* Bell Trigger Button */}
+      {/* Bell Trigger Button - Clean white glass with vibrant badge matching nav */}
       <button
         onClick={handleToggle}
         aria-label="Notifications"
-        className="relative grid h-9 w-9 place-items-center rounded-full text-zinc-300 hover:bg-white/10 hover:text-white transition-colors focus:outline-none cursor-pointer"
+        className="relative grid h-10 w-10 place-items-center rounded-full bg-white/70 hover:bg-white text-slate-700 border border-white/90 shadow-xs transition hover:text-blue-600 focus:outline-none cursor-pointer"
       >
-        <Bell size={18} className={unreadCount > 0 ? 'text-[#DFB76C]' : 'text-zinc-300'} />
+        <Bell size={18} className={unreadCount > 0 ? 'text-blue-600' : 'text-slate-600'} />
         {unreadCount > 0 && (
-          <span className="absolute -top-0.5 -right-0.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-[#DFB76C] px-1 text-[10px] font-extrabold text-zinc-950 shadow-[0_0_8px_rgba(223,183,108,0.5)] animate-in zoom-in-50 duration-200">
+          <span className="absolute -top-1 -right-1 flex h-5 min-w-[20px] items-center justify-center rounded-full bg-gradient-to-r from-red-500 to-rose-600 px-1 text-[10px] font-black text-white shadow-md shadow-red-500/30 ring-2 ring-white">
             {unreadCount > 9 ? '9+' : unreadCount}
           </span>
         )}
@@ -228,15 +299,66 @@ export const NotificationBell: React.FC<{ className?: string }> = ({ className =
         )}
       </button>
 
-      {/* Dropdown Panel in Dark Glassmorphism */}
+      {/* Pop-up Toast Banner when notification arrives or unread */}
+      {showPopup && popupNotification && !isOpen && (
+        <div className="absolute right-0 top-12 z-50 w-72 sm:w-80 rounded-2xl bg-[#0B1628]/95 backdrop-blur-xl text-white p-3.5 shadow-2xl border border-sky-400/40 animate-in fade-in slide-in-from-top-2 duration-300">
+          <div className="flex items-start gap-2.5">
+            <div className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-blue-500/20 text-sky-400 mt-0.5">
+              <Bell size={15} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-extrabold uppercase tracking-wider text-sky-400">
+                  New Notification
+                </span>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowPopup(false);
+                  }}
+                  className="text-slate-400 hover:text-white p-0.5 cursor-pointer"
+                >
+                  <X size={12} />
+                </button>
+              </div>
+              <p className="text-xs font-bold text-white mt-0.5 truncate">
+                {popupNotification.title}
+              </p>
+              <p className="text-[11px] text-slate-300 line-clamp-2 mt-0.5 leading-snug">
+                {popupNotification.message}
+              </p>
+              <div className="mt-2.5 flex items-center justify-between">
+                <button
+                  onClick={() => {
+                    setShowPopup(false);
+                    setIsOpen(true);
+                  }}
+                  className="inline-flex items-center gap-1 text-[11px] font-bold text-sky-400 hover:text-sky-300 underline cursor-pointer"
+                >
+                  <span>View Notifications</span>
+                  <ChevronRight size={11} />
+                </button>
+                <button
+                  onClick={() => setShowPopup(false)}
+                  className="text-[10px] text-slate-400 hover:text-slate-200 cursor-pointer"
+                >
+                  Dismiss
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Dropdown Panel in Professional Dark Navy */}
       {isOpen && (
-        <div className="absolute right-0 mt-3 w-80 sm:w-96 rounded-3xl border border-white/15 bg-[#141418]/95 backdrop-blur-2xl shadow-2xl z-50 overflow-hidden text-white pm-in">
+        <div className="absolute right-0 mt-3 w-80 sm:w-96 rounded-3xl border border-sky-500/20 bg-[#0B1628]/95 backdrop-blur-2xl shadow-2xl z-50 overflow-hidden text-white pm-in">
           {/* Header */}
           <div className="flex items-center justify-between border-b border-white/10 px-4 py-3 bg-white/5">
             <div className="flex items-center gap-2">
               <h3 className="text-sm font-bold text-white">Notifications</h3>
               {unreadCount > 0 && (
-                <span className="rounded-full bg-[#DFB76C]/20 border border-[#DFB76C]/30 px-2 py-0.5 text-[10px] font-bold text-[#DFB76C]">
+                <span className="rounded-full bg-sky-500/20 border border-sky-500/30 px-2 py-0.5 text-[10px] font-bold text-sky-300">
                   {unreadCount} new
                 </span>
               )}
@@ -246,7 +368,7 @@ export const NotificationBell: React.FC<{ className?: string }> = ({ className =
                 <button
                   onClick={handleMarkAll}
                   disabled={loading}
-                  className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#DFB76C] hover:underline disabled:opacity-50 cursor-pointer"
+                  className="inline-flex items-center gap-1 text-[11px] font-semibold text-sky-400 hover:text-sky-300 hover:underline disabled:opacity-50 cursor-pointer"
                   title="Mark all as read"
                 >
                   <CheckCheck size={13} />
@@ -300,11 +422,11 @@ export const NotificationBell: React.FC<{ className?: string }> = ({ className =
                   onClick={() => handleNotificationClick(n)}
                   className={`flex items-start gap-3 p-3.5 transition-colors cursor-pointer text-left ${
                     !n.isRead
-                      ? 'bg-white/8 hover:bg-white/12'
+                      ? 'bg-white/10 hover:bg-white/15'
                       : 'hover:bg-white/5'
                   }`}
                 >
-                  <div className="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-white/10 border border-white/10 shadow-2xs mt-0.5 text-[#DFB76C]">
+                  <div className="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-white/10 border border-white/10 shadow-2xs mt-0.5 text-sky-400">
                     {getIcon(n.type)}
                   </div>
                   <div className="min-w-0 flex-1">
@@ -320,7 +442,7 @@ export const NotificationBell: React.FC<{ className?: string }> = ({ className =
                       {n.message}
                     </p>
                     {n.link && (
-                      <span className="mt-1 inline-flex items-center gap-1 text-[11px] font-semibold text-[#DFB76C] hover:underline">
+                      <span className="mt-1 inline-flex items-center gap-1 text-[11px] font-semibold text-sky-400 hover:underline">
                         <span>View Details</span>
                         <ExternalLink size={10} />
                       </span>
@@ -330,7 +452,7 @@ export const NotificationBell: React.FC<{ className?: string }> = ({ className =
                     <button
                       onClick={(e) => handleMarkOne(e, n)}
                       title="Mark as read"
-                      className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-[#DFB76C]/20 text-[#DFB76C] hover:bg-[#DFB76C]/30 transition cursor-pointer"
+                      className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-sky-500/20 text-sky-400 hover:bg-sky-500/30 transition cursor-pointer"
                     >
                       <Check size={11} strokeWidth={2.5} />
                     </button>

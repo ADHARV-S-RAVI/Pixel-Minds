@@ -209,3 +209,56 @@ export const recordReferralSignup = async (
     return { success: false, message: err.message };
   }
 };
+
+
+/**
+ * Validate a referral or coupon code before signup.
+ * Informs user if they entered a coupon code (since coupons require a dedicated coupon system).
+ */
+export const validateReferralCode = async (
+  code: string
+): Promise<{ valid: boolean; message: string; referrerName?: string }> => {
+  if (!code || !code.trim()) {
+    return { valid: false, message: 'Please enter a referral or coupon code.' };
+  }
+
+  const cleanCode = code.trim().toUpperCase();
+
+  // If input looks like a discount / promo coupon code
+  if (
+    cleanCode.startsWith('CP-') ||
+    cleanCode.startsWith('COUPON') ||
+    cleanCode.includes('DISCOUNT') ||
+    cleanCode.includes('PROMO') ||
+    cleanCode.includes('OFF')
+  ) {
+    return {
+      valid: false,
+      message: 'Coupons are currently unavailable. Please enter a valid Pixel Minds referral code (format: PM-XXXXXX).'
+    };
+  }
+
+  try {
+    const { data: referrer, error } = await supabase
+      .from('profiles')
+      .select('id, full_name, referral_id')
+      .eq('referral_id', cleanCode)
+      .maybeSingle();
+
+    if (error || !referrer) {
+      return {
+        valid: false,
+        message: 'Invalid referral code. Please check the code and try again.'
+      };
+    }
+
+    return {
+      valid: true,
+      message: `Valid referral from ${referrer.full_name || 'Pixel Builder'}!`,
+      referrerName: referrer.full_name || 'Pixel Builder'
+    };
+  } catch (err: any) {
+    console.error('[validateReferralCode] Error:', err);
+    return { valid: false, message: 'Unable to validate code at this time. Please try again.' };
+  }
+};

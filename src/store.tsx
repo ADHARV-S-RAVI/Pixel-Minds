@@ -3,6 +3,7 @@ import type { ReactNode, FC } from 'react';
 import { Copy, Check, X, MessageCircle, Send, MoreHorizontal, Share2 } from 'lucide-react';
 import { PixelMark } from './components/PixelMark';
 import { useAuth } from './contexts/AuthContext';
+import { recordOpportunityApplication } from './services/applications';
 
 const ld = <T,>(k: string, d: T): T => {
   try {
@@ -30,6 +31,15 @@ export interface AppContextType {
   extra: any[];
   toggle: (k: string) => void;
   apply: (id: number | string) => void;
+  trackApplication: (opp: {
+    id: string | number;
+    title: string;
+    organizer?: string;
+    category?: string;
+    mode?: string;
+    deadline?: string;
+    officialUrl?: string;
+  }) => Promise<void>;
   addPost: (p: any) => void;
   link: (path: string) => string;
   copy: (t: string) => Promise<void>;
@@ -48,7 +58,7 @@ export const useApp = () => {
 };
 
 export const AppProvider: FC<{ children: ReactNode }> = ({ children }) => {
-  const { userProfile } = useAuth();
+  const { user, userProfile } = useAuth();
 
   useEffect(() => {
     try {
@@ -96,12 +106,49 @@ export const AppProvider: FC<{ children: ReactNode }> = ({ children }) => {
 
   const apply = (id: number | string) => {
     setApplied((a) => {
-      if (a.includes(id)) return a;
-      const n = [...a, id];
+      const idStr = String(id);
+      if (a.includes(idStr)) return a;
+      const n = [...a, idStr];
       sv('pm_applied', n);
-      say('Marked as registered (+10 Pixels)');
+      say('Registration opened! Complete registration, then confirm in My Applications after 3 mins to claim +10 Pixels.');
       return n;
     });
+  };
+
+  const trackApplication = async (opp: {
+    id: string | number;
+    title: string;
+    organizer?: string;
+    category?: string;
+    mode?: string;
+    deadline?: string;
+    officialUrl?: string;
+  }) => {
+    const oppIdStr = String(opp.id);
+    setApplied((a) => {
+      if (a.includes(oppIdStr)) return a;
+      const n = [...a, oppIdStr];
+      sv('pm_applied', n);
+      return n;
+    });
+
+    if (user?.uid) {
+      try {
+        await recordOpportunityApplication(user.uid, {
+          id: oppIdStr,
+          title: opp.title,
+          organizer: opp.organizer,
+          category: opp.category,
+          mode: opp.mode,
+          deadline: opp.deadline,
+          officialUrl: opp.officialUrl
+        });
+      } catch (err) {
+        console.warn('Could not record application:', err);
+      }
+    }
+
+    say('Registration opened! Complete registration, then confirm in My Applications after 3 mins to claim +10 Pixels.');
   };
 
   const addPost = (p: any) => {
@@ -162,6 +209,7 @@ export const AppProvider: FC<{ children: ReactNode }> = ({ children }) => {
         extra,
         toggle,
         apply,
+        trackApplication,
         addPost,
         link,
         copy,
@@ -182,12 +230,12 @@ export const AppProvider: FC<{ children: ReactNode }> = ({ children }) => {
             onClick={(e) => e.stopPropagation()}
             className="pm-in w-full overflow-hidden rounded-t-3xl bg-[#FAF7F2] shadow-2xl sm:max-w-md sm:rounded-3xl border border-black/10"
           >
-            <div className="relative bg-[#121317] p-6 text-white overflow-hidden border-b border-white/10">
+            <div className="relative bg-gradient-to-br from-[#0B1628] via-[#11243D] to-[#162B45] p-6 text-white overflow-hidden border-b border-sky-500/20">
               {/* Celestial glow & orbital arcs */}
-              <div className="pointer-events-none absolute -right-16 -top-16 h-48 w-48 rounded-full bg-[#DFB76C]/15 blur-2xl" />
+              <div className="pointer-events-none absolute -right-16 -top-16 h-48 w-48 rounded-full bg-sky-400/15 blur-2xl" />
               <svg
                 aria-hidden="true"
-                className="pointer-events-none absolute -right-6 -bottom-6 h-36 w-36 text-[#DFB76C]/20"
+                className="pointer-events-none absolute -right-6 -bottom-6 h-36 w-36 text-sky-400/20"
                 viewBox="0 0 100 100"
                 fill="none"
               >
@@ -203,18 +251,18 @@ export const AppProvider: FC<{ children: ReactNode }> = ({ children }) => {
               >
                 <X size={17} />
               </button>
-              <span className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-[#DFB76C]">
+              <span className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-sky-400">
                 <PixelMark s={6} />
                 Refer &amp; Earn
               </span>
               <h3 className="font-['Outfit',sans-serif] mt-1.5 pr-6 text-xl font-bold leading-snug text-white">{sh.title}</h3>
               <p className="mt-1 text-xs text-white/70">Share this opportunity with your peers and earn Pixels.</p>
 
-              <div className="relative mt-4 inline-flex items-center gap-2 rounded-full bg-white/10 border border-white/15 px-4 py-2 text-[#DFB76C] shadow-md backdrop-blur-md">
+              <div className="relative mt-4 inline-flex items-center gap-2 rounded-full bg-white/10 border border-white/15 px-4 py-2 text-sky-400 shadow-md backdrop-blur-md border-sky-500/20">
                 <PixelMark s={9} />
                 <span className="text-base font-extrabold text-white">+25 Pixels</span>
                 <span className="text-xs font-medium text-white/60">per friend who joins</span>
-                {ok && <span className="pm-rise absolute -top-1 right-2 text-sm font-extrabold text-[#DFB76C]">+25</span>}
+                {ok && <span className="pm-rise absolute -top-1 right-2 text-sm font-extrabold text-sky-400">+25</span>}
               </div>
             </div>
 
@@ -231,7 +279,7 @@ export const AppProvider: FC<{ children: ReactNode }> = ({ children }) => {
                   <button
                     onClick={() => copy(url)}
                     className={`inline-flex min-h-10 shrink-0 items-center gap-1.5 rounded-xl px-4 text-xs font-semibold text-white transition cursor-pointer ${
-                      ok ? 'bg-emerald-600' : 'bg-[#16171D] hover:bg-black text-[#DFB76C] border border-white/10'
+                      ok ? 'bg-emerald-600' : 'bg-[#112240] hover:bg-[#1a335e] text-white border border-transparent shadow-md shadow-slate-900/10'
                     }`}
                   >
                     {ok ? <Check size={15} className="pm-pop text-white" /> : <Copy size={15} />}
@@ -281,7 +329,7 @@ export const AppProvider: FC<{ children: ReactNode }> = ({ children }) => {
 
       {/* Floating Toast Notification */}
       {toast && (
-        <div className="pm-pop fixed bottom-20 left-1/2 z-[60] -translate-x-1/2 rounded-full bg-[#121317]/95 backdrop-blur-xl px-5 py-2.5 text-xs font-semibold text-white shadow-2xl md:bottom-6 border border-white/15 flex items-center gap-2">
+        <div className="pm-pop fixed bottom-20 left-1/2 z-[60] -translate-x-1/2 rounded-full bg-[#0B1628]/95 backdrop-blur-xl px-5 py-2.5 text-xs font-semibold text-white shadow-2xl md:bottom-6 border border-sky-500/25 flex items-center gap-2">
           <PixelMark s={6} />
           <span>{toast}</span>
         </div>

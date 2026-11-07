@@ -1,6 +1,8 @@
 @import "tailwindcss";
 @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800;900&family=Inter:wght@400;500;600;700;800&display=swap');
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme {
   --font-sans: "Plus Jakarta Sans", "Inter", system-ui, -apple-system, sans-serif;
   --font-display: "Outfit", "Plus Jakarta Sans", sans-serif;
@@ -92,11 +94,11 @@ html {
 
 /* Dark Navy Glass Card (for Featured Opportunity) */
 .pm-dark-featured {
-  background: linear-gradient(155deg, rgba(19, 34, 56, 0.96) 0%, rgba(13, 23, 39, 0.98) 100%);
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.92) 0%, rgba(235, 246, 255, 0.88) 100%);
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  box-shadow: 0 24px 50px -12px rgba(10, 24, 48, 0.45);
+  border: 1.5px solid rgba(56, 189, 248, 0.35);
+  box-shadow: 0 16px 40px -10px rgba(37, 99, 235, 0.12);
 }
 
 /* Frosted Input */
@@ -128,19 +130,19 @@ html {
 }
 
 .pm-dark-glass-card {
-  background: linear-gradient(155deg, rgba(19, 34, 56, 0.96) 0%, rgba(13, 23, 39, 0.98) 100%);
+  background: rgba(255, 255, 255, 0.82);
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  box-shadow: 0 20px 45px -10px rgba(10, 24, 48, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  box-shadow: 0 14px 35px -8px rgba(30, 80, 160, 0.08);
 }
 
 .pm-dark-glass {
-  background: rgba(19, 34, 56, 0.92);
+  background: rgba(255, 255, 255, 0.82);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  box-shadow: 0 20px 40px -15px rgba(10, 24, 48, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  box-shadow: 0 14px 35px -8px rgba(30, 80, 160, 0.08);
 }
 
 @media (max-width: 767px) {
@@ -288,3 +290,169 @@ html {
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
+/* Hide scrollbar utility */
+.no-scrollbar::-webkit-scrollbar,
+.scrollbar-none::-webkit-scrollbar {
+  display: none !important;
+}
+.no-scrollbar,
+.scrollbar-none {
+  -ms-overflow-style: none !important;
+  scrollbar-width: none !important;
+}
+
+
+/* ================= DARK MODE OVERRIDES ================= */
+html.dark,
+body.dark {
+  background-color: #0B1628;
+  color: #f1f5f9;
+}
+
+.dark .pm-bg-canvas {
+  background-color: #0B1628;
+  background-image:
+    radial-gradient(at 10% 12%, rgba(17, 36, 61, 0.95) 0px, transparent 50%),
+    radial-gradient(at 90% 15%, rgba(22, 43, 69, 0.9) 0px, transparent 55%),
+    radial-gradient(at 50% 85%, rgba(11, 22, 40, 0.95) 0px, transparent 60%),
+    linear-gradient(135deg, #070e1b 0%, #0B1628 50%, #11243D 100%);
+  background-attachment: fixed;
+}
+
+.dark .pm-glass {
+  background: rgba(17, 36, 61, 0.85);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 16px 40px -10px rgba(0, 0, 0, 0.45);
+}
+
+.dark .pm-glass-hover:hover {
+  background: rgba(22, 43, 69, 0.9);
+  border-color: rgba(56, 189, 248, 0.35);
+  box-shadow: 0 20px 45px -8px rgba(0, 0, 0, 0.55);
+}
+
+.dark .pm-glass-card {
+  background: rgba(22, 43, 69, 0.82);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 14px 35px -8px rgba(0, 0, 0, 0.4);
+  color: #f1f5f9;
+}
+
+.dark .pm-glass-card:hover {
+  background: rgba(26, 52, 84, 0.9);
+  border-color: rgba(56, 189, 248, 0.35);
+  box-shadow: 0 20px 45px -10px rgba(0, 0, 0, 0.55);
+}
+
+.dark .pm-dark-featured {
+  background: linear-gradient(145deg, rgba(22, 43, 69, 0.95) 0%, rgba(17, 36, 61, 0.95) 100%);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1.5px solid rgba(56, 189, 248, 0.4);
+  box-shadow: 0 16px 40px -10px rgba(0, 0, 0, 0.5);
+}
+
+.dark .pm-glass-input {
+  background: rgba(17, 36, 61, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #ffffff;
+}
+
+.dark .pm-glass-input:focus {
+  background: rgba(22, 43, 69, 0.9);
+  border-color: #38bdf8;
+  box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.2);
+}
+
+/* Dark Mode Typography & Container Adaptations */
+.dark h1,
+.dark h2,
+.dark h3,
+.dark h4,
+.dark .text-\[\#0e1b33\],
+.dark .text-\[\#16171D\] {
+  color: #f8fafc !important;
+}
+
+.dark .text-slate-700,
+.dark .text-slate-600,
+.dark .text-\[\#5D574F\],
+.dark .text-\[\#4A453F\] {
+  color: #cbd5e1 !important;
+}
+
+.dark .text-slate-500,
+.dark .text-\[\#7D756C\],
+.dark .text-\[\#8C827A\] {
+  color: #94a3b8 !important;
+}
+
+.dark .text-slate-400 {
+  color: #64748b !important;
+}
+
+.dark .border-white\/90,
+.dark .border-white\/80,
+.dark .border-white\/60,
+.dark .border-black\/8,
+.dark .border-black\/6,
+.dark .border-black\/10 {
+  border-color: rgba(255, 255, 255, 0.12) !important;
+}
+
+.dark .border-slate-200\/60,
+.dark .border-slate-200\/80,
+.dark .border-slate-200 {
+  border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+.dark .bg-white\/85,
+.dark .bg-white\/80,
+.dark .bg-white\/70,
+.dark .bg-white\/60 {
+  background-color: rgba(22, 43, 69, 0.85) !important;
+}
+
+.dark .bg-white\/40,
+.dark .bg-black\/\[0\.04\],
+.dark .bg-black\/\[0\.05\] {
+  background-color: rgba(17, 36, 61, 0.6) !important;
+}
+
+.dark .bg-white\/90,
+.dark .bg-white {
+  background-color: #162B45 !important;
+}
+
+.dark .hover\:bg-white:hover {
+  background-color: #1c3656 !important;
+}
+
+.dark .hover\:bg-blue-50\/70:hover,
+.dark .hover\:bg-blue-50\/50:hover {
+  background-color: rgba(37, 99, 235, 0.2) !important;
+}
+
+.dark .bg-blue-50 {
+  background-color: rgba(37, 99, 235, 0.18) !important;
+}
+
+.dark .text-blue-700,
+.dark .text-blue-600 {
+  color: #38bdf8 !important;
+}
+
+.dark .border-blue-200,
+.dark .border-blue-200\/80,
+.dark .border-blue-200\/60 {
+  border-color: rgba(56, 189, 248, 0.3) !important;
+}
+
+.dark .ring-white {
+  --tw-ring-color: #162B45 !important;
+}
+

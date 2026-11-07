@@ -32,9 +32,7 @@ export const Navbar = () => {
           {/* Logo */}
           <div className="flex items-center space-x-8">
             <Link to="/" className="flex items-center space-x-2.5 group">
-              <div className="w-8 h-8 bg-sky-500 rounded-lg flex items-center justify-center shadow-sm group-hover:bg-sky-600 transition-colors">
-                <span className="text-white font-bold text-lg leading-none">P</span>
-              </div>
+              <img src="/logo.png" alt="Pixel Minds" className="h-8 w-auto object-contain transition-transform group-hover:scale-105" />
               <span className="text-slate-900 font-bold text-xl tracking-tight">Pixel Minds</span>
             </Link>
 

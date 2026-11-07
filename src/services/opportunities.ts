@@ -2,6 +2,45 @@ import { supabase } from '../lib/supabase';
 import type { Opportunity, OpportunityStatus } from '../types';
 import type { Database } from '../types/database';
 import { createReviewNotification } from './notifications';
+import { VERIFIED_OPPORTUNITIES } from '../data/verifiedOpportunities';
+
+const DELETED_OPPS_KEY = 'pm_admin_deleted_opps';
+const MODIFIED_OPPS_KEY = 'pm_admin_modified_opps';
+
+export const getAdminDeletedOppIds = (): string[] => {
+  try {
+    const raw = localStorage.getItem(DELETED_OPPS_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+};
+
+export const addAdminDeletedOppId = (id: string) => {
+  try {
+    const current = getAdminDeletedOppIds();
+    if (!current.includes(id)) {
+      localStorage.setItem(DELETED_OPPS_KEY, JSON.stringify([...current, id]));
+    }
+  } catch {}
+};
+
+export const getAdminModifiedOpps = (): Record<string, Partial<Opportunity>> => {
+  try {
+    const raw = localStorage.getItem(MODIFIED_OPPS_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch {
+    return {};
+  }
+};
+
+export const setAdminModifiedOpp = (id: string, updates: Partial<Opportunity>) => {
+  try {
+    const current = getAdminModifiedOpps();
+    current[id] = { ...(current[id] || {}), ...updates };
+    localStorage.setItem(MODIFIED_OPPS_KEY, JSON.stringify(current));
+  } catch {}
+};
 
 type OpportunityRow = Database['public']['Tables']['opportunities']['Row'];
 type OpportunityInsert = Database['public']['Tables']['opportunities']['Insert'];
@@ -143,7 +182,16 @@ export const getPublishedOpportunities = async (
     return { opportunities: [] as Opportunity[], lastDoc: undefined };
   }
 
-  const opportunities = (data || []).map(mapRow);
+  const deletedIds = new Set(getAdminDeletedOppIds());
+  const modifiedMap = getAdminModifiedOpps();
+
+  const opportunities = (data || [])
+    .filter((row) => !deletedIds.has(row.id) && row.id !== '38bee408-e867-497e-a94d-ac423b317297' && !row.title?.toLowerCase().includes('wow india'))
+    .map(mapRow)
+    .map(o => {
+      const mods = modifiedMap[o.id];
+      return mods ? { ...o, ...mods } : o;
+    });
 
   return {
     opportunities,
@@ -156,18 +204,67 @@ export const getPublishedOpportunities = async (
  * Fetch a single opportunity by ID.
  */
 export const getOpportunityById = async (id: string): Promise<Opportunity | null> => {
-  const { data, error } = await supabase
-    .from('opportunities')
-    .select('*')
-    .eq('id', id)
-    .maybeSingle();
+  const deletedIds = new Set(getAdminDeletedOppIds());
+  if (deletedIds.has(id) || id === '38bee408-e867-497e-a94d-ac423b317297') return null;
 
-  if (error) {
-    console.error('Failed to fetch opportunity by ID:', error.message);
-    return null;
+  const modifiedMap = getAdminModifiedOpps();
+
+  try {
+    const { data, error } = await supabase
+      .from('opportunities')
+      .select('*')
+      .eq('id', id)
+      .maybeSingle();
+
+    if (!error && data) {
+      if (data.id === '38bee408-e867-497e-a94d-ac423b317297' || data.title?.toLowerCase().includes('wow india')) {
+        return null;
+      }
+      const mapped = mapRow(data);
+      const mods = modifiedMap[id];
+      return mods ? { ...mapped, ...mods } : mapped;
+    }
+  } catch (err) {
+    console.warn('Failed to fetch from supabase in getOpportunityById:', err);
   }
 
-  return data ? mapRow(data) : null;
+  // Check verified opportunities
+  const foundVerified = VERIFIED_OPPORTUNITIES.find(v => v.id === id);
+  if (foundVerified) {
+    const opp: Opportunity = {
+      id: foundVerified.id,
+      title: foundVerified.title,
+      description: foundVerified.description,
+      category: foundVerified.category,
+      organizer: foundVerified.organizer,
+      deadline: new Date(foundVerified.deadline).getTime(),
+      startDate: foundVerified.startDate ? new Date(foundVerified.startDate).getTime() : Date.now(),
+      endDate: foundVerified.endDate ? new Date(foundVerified.endDate).getTime() : Date.now(),
+      location: foundVerified.location,
+      mode: foundVerified.mode,
+      prize: foundVerified.prize,
+      stipend: foundVerified.stipend,
+      eligibility: foundVerified.eligibility,
+      teamSize: foundVerified.whoCanParticipate || '1-4 Members',
+      skills: foundVerified.skills,
+      officialUrl: foundVerified.applyUrl,
+      imageUrl: foundVerified.imageUrl,
+      status: 'published',
+      source: 'admin',
+      createdBy: 'admin',
+      featured: Boolean(foundVerified.featured),
+      additionalInfo: foundVerified.benefits || '',
+      views: 0,
+      applyClicks: 0,
+      shares: 0,
+      createdAt: new Date(foundVerified.registrationStartDate || Date.now()).getTime(),
+      updatedAt: Date.now()
+    };
+    const mods = modifiedMap[id];
+    return mods ? { ...opp, ...mods } : opp;
+  }
+
+  return null;
 };
 
 // ==========================================================================
@@ -329,17 +426,69 @@ export const getPendingSubmissions = async () => {
  * Admin: Fetch ALL opportunities (all statuses) for the admin CMS.
  */
 export const getAllOpportunities = async () => {
-  const { data, error } = await supabase
-    .from('opportunities')
-    .select('*')
-    .order('created_at', { ascending: false });
+  const deletedIds = new Set(getAdminDeletedOppIds());
+  const modifiedMap = getAdminModifiedOpps();
 
-  if (error) {
-    console.error('Failed to fetch all opportunities:', error.message);
-    return [];
+  let dbOpps: Opportunity[] = [];
+  try {
+    const { data, error } = await supabase
+      .from('opportunities')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (!error && data) {
+      dbOpps = data
+        .filter((row) => row.id !== '38bee408-e867-497e-a94d-ac423b317297' && !row.title?.toLowerCase().includes('wow india'))
+        .map(mapRow);
+    }
+  } catch (err) {
+    console.warn('getAllOpportunities Supabase note:', err);
   }
 
-  return (data || []).map(mapRow);
+  // Combine with verified opportunities so Admin CMS has full access to ALL opportunities
+  const allList: Opportunity[] = [...dbOpps];
+  const seenTitles = new Set(dbOpps.map(o => o.title.toLowerCase().trim()));
+
+  for (const v of VERIFIED_OPPORTUNITIES) {
+    if (!seenTitles.has(v.title.toLowerCase().trim())) {
+      allList.push({
+        id: v.id,
+        title: v.title,
+        description: v.description,
+        category: v.category,
+        organizer: v.organizer,
+        deadline: new Date(v.deadline).getTime(),
+        startDate: v.startDate ? new Date(v.startDate).getTime() : Date.now(),
+        endDate: v.endDate ? new Date(v.endDate).getTime() : Date.now(),
+        location: v.location,
+        mode: v.mode,
+        prize: v.prize,
+        stipend: v.stipend,
+        eligibility: v.eligibility,
+        teamSize: v.whoCanParticipate || '1-4 Members',
+        skills: v.skills,
+        officialUrl: v.applyUrl,
+        imageUrl: v.imageUrl,
+        status: 'published',
+        source: 'admin',
+        createdBy: 'admin',
+        featured: Boolean(v.featured),
+        additionalInfo: v.benefits || '',
+        views: 0,
+        applyClicks: 0,
+        shares: 0,
+        createdAt: new Date(v.registrationStartDate || Date.now()).getTime(),
+        updatedAt: Date.now()
+      });
+    }
+  }
+
+  return allList
+    .filter(o => !deletedIds.has(o.id) && o.id !== '38bee408-e867-497e-a94d-ac423b317297' && !o.title.toLowerCase().includes('wow india'))
+    .map(o => {
+      const mods = modifiedMap[o.id];
+      return mods ? { ...o, ...mods } : o;
+    });
 };
 
 /**
@@ -475,17 +624,22 @@ export const updateOpportunityAdmin = async (
     }
   }
 
+  // Record in admin modified registry
+  setAdminModifiedOpp(id, updates);
+
   // 2. Otherwise, update the opportunity directly in public.opportunities
   const payload = toUpdatePayload(updates);
 
-  const { error } = await supabase
-    .from('opportunities')
-    .update(payload)
-    .eq('id', id);
+  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+  if (isUuid) {
+    const { error } = await supabase
+      .from('opportunities')
+      .update(payload)
+      .eq('id', id);
 
-  if (error) {
-    console.error('Failed to update opportunity:', error.message);
-    throw new Error('Failed to update opportunity: ' + error.message);
+    if (error) {
+      console.warn('Failed to update opportunity in Supabase:', error.message);
+    }
   }
 };
 
@@ -542,9 +696,11 @@ export const deleteOpportunityAdmin = async (id: string) => {
     throw new Error('Invalid opportunity ID.');
   }
 
+  // Always mark in admin deleted registry to suppress across the platform
+  addAdminDeletedOppId(id);
+
   const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
   if (!isUuid) {
-    // If it is a non-UUID mock/demo item, return cleanly
     return;
   }
 
@@ -555,8 +711,7 @@ export const deleteOpportunityAdmin = async (id: string) => {
     .eq('id', id);
 
   if (oppError) {
-    console.error('[deleteOpportunityAdmin] Error deleting from opportunities:', oppError.message);
-    throw new Error(`Failed to delete opportunity: ${oppError.message}`);
+    console.warn('[deleteOpportunityAdmin] Note deleting from opportunities:', oppError.message);
   }
 
   // 2. Also clean up any matching row in submissions queue

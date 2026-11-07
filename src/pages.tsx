@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import type { FC } from 'react';
-import { Link, useParams, useSearchParams, useNavigate } from 'react-router-dom';
+import { Link, useParams, useSearchParams, useNavigate, useLocation } from 'react-router-dom';
 import {
   Search,
   Zap,
@@ -43,9 +43,11 @@ import {
   Code2,
   ArrowRight,
   Link2,
-  Share2
+  Share2,
+  Flag
 } from 'lucide-react';
 import { SubmissionDetailModal } from './components/SubmissionDetailModal';
+import { ReportModal } from './components/ReportModal';
 import { getCategoryMeta } from './utils/meta';
 import { useApp } from './store';
 import {
@@ -60,7 +62,7 @@ import {
   Composer,
   SectionTitle
 } from './ui';
-import { opps as initialOpps, cats, users, initialPosts, rankOf } from './data';
+import { opps as initialOpps, cats, rankOf } from './data';
 import type { Opp } from './data';
 import type { 
   User as UserType, 
@@ -88,7 +90,7 @@ import {
   deleteOpportunityAdmin
 } from './services/opportunities';
 import { uploadImage } from './services/storage';
-import { updateUserProfile, getUserProfile } from './services/users';
+import { updateUserProfile, getUserProfile, getLeaderboardUsers, type LeaderboardUserEntry } from './services/users';
 import { getUserCommunityPosts } from './services/community';
 import {
   DEFAULT_REWARD_CONFIG,
@@ -111,25 +113,55 @@ import {
   deleteAdminNotification
 } from './services/admin';
 import { uploadAnnouncementImage } from './services/announcements';
+import { getUserApplications, confirmOpportunityRegistration, type UserApplication } from './services/applications';
+import { getAllReports, resolveReport, dismissReport, deleteReportedItem, type ReportItem } from './services/reports';
 
 const W: FC<{ children: any; className?: string }> = ({ children, className = '' }) => (
   <main className={`mx-auto max-w-6xl px-4 ${className}`}>{children}</main>
 );
 
-const Mini: FC<{ title?: string }> = ({ title = 'Top Contributors' }) => (
-  <div className="rounded-3xl bg-[#141418]/90 backdrop-blur-xl border border-white/12 p-5 shadow-xl text-white">
-    <h3 className="mb-3.5 text-xs font-bold uppercase tracking-wider text-[#DFB76C]">{title}</h3>
-    <div className="space-y-3">
-      {users.slice(0, 4).map((u) => (
-        <div key={u.rank} className="flex items-center gap-3">
-          <Avatar name={u.name} size={32} />
-          <div className="flex-1 text-xs font-semibold text-zinc-200 truncate">{u.name}</div>
-          <span className="text-xs font-extrabold text-[#DFB76C]">{u.pixels}</span>
-        </div>
-      ))}
+const Mini: FC<{ title?: string }> = ({ title = 'Top Contributors' }) => {
+  const [topUsers, setTopUsers] = useState<LeaderboardUserEntry[]>([]);
+
+  useEffect(() => {
+    let mounted = true;
+    getLeaderboardUsers(4)
+      .then((data) => {
+        if (mounted) setTopUsers(data);
+      })
+      .catch((err) => console.error('Failed to load top users:', err));
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  return (
+    <div className="rounded-3xl pm-glass-card bg-white/85 backdrop-blur-xl border border-white/90 p-5 shadow-sm text-[#0e1b33]">
+      <div className="flex items-center justify-between mb-3.5 pb-2 border-b border-slate-200/60">
+        <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+          <Trophy size={14} className="text-blue-600" />
+          <span>{title}</span>
+        </h3>
+        <Link to="/leaderboard" className="text-[11px] text-blue-600 hover:text-blue-700 hover:underline font-semibold">
+          View All
+        </Link>
+      </div>
+      <div className="space-y-2.5">
+        {topUsers.length === 0 ? (
+          <p className="text-xs text-slate-400 py-3 text-center">No contributors yet</p>
+        ) : (
+          topUsers.map((u, idx) => (
+            <div key={u.id || idx} className="flex items-center gap-3 p-1.5 -mx-1.5 rounded-xl hover:bg-blue-50/50 transition">
+              <Avatar name={u.name} photoURL={u.avatarUrl} size={30} />
+              <div className="flex-1 text-xs font-semibold text-[#0e1b33] truncate">{u.name}</div>
+              <span className="text-xs font-extrabold text-blue-600">{u.pixels}</span>
+            </div>
+          ))
+        )}
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 // ==========================================
 // LANDING / HOME PAGE
@@ -176,7 +208,21 @@ export function Landing() {
       .catch(() => {});
   }, []);
 
-  const allOpps = firestoreOpps.length > 0 ? [...firestoreOpps, ...initialOpps] : initialOpps;
+  const allOpps = useMemo(() => {
+    const combined = [...firestoreOpps];
+    const seenTitles = new Set(firestoreOpps.map(o => o.title.toLowerCase().trim()));
+    for (const opp of initialOpps) {
+      if (!seenTitles.has(opp.title.toLowerCase().trim())) {
+        combined.push(opp);
+      }
+    }
+    return combined.filter(
+      (o) =>
+        o.days > 0 &&
+        o.id !== '38bee408-e867-497e-a94d-ac423b317297' &&
+        !o.title.toLowerCase().includes('wow india')
+    );
+  }, [firestoreOpps]);
   // If an opportunity is marked featured by admin, prioritize it in featured/trending
   const featuredOpps = allOpps.filter(o => o.featured);
   const [featuredIndex, setFeaturedIndex] = useState(0);
@@ -201,7 +247,7 @@ export function Landing() {
   const hackathons = allOpps.filter((o) => ['Hackathons', 'Competitions'].includes(o.cat));
   const internships = allOpps.filter((o) => ['Internships', 'Fellowships', 'Startup Programs'].includes(o.cat));
   const events = allOpps.filter((o) => ['Events', 'Workshops', 'Conferences'].includes(o.cat));
-  const feedItems = communityPosts.length > 0 ? communityPosts : initialPosts;
+  const feedItems = communityPosts;
 
   return (
     <div className="space-y-8">
@@ -503,9 +549,20 @@ export function Landing() {
         <section className="grid gap-6 md:grid-cols-3">
           <div className="space-y-4 md:col-span-2">
             <SectionTitle t="Community Pulse" to="/feed" subtitle="Real-time discussions from fellow builders" />
-            {feedItems.slice(0, 2).map((p: any) => (
-              <PostCard key={p.id} p={p} />
-            ))}
+            {feedItems.length > 0 ? (
+              feedItems.slice(0, 2).map((p: any) => (
+                <PostCard key={p.id} p={p} />
+              ))
+            ) : (
+              <div className="rounded-2xl pm-glass-card border border-white/90 p-6 text-center text-slate-500 shadow-2xs">
+                <MessageSquare size={28} className="mx-auto text-blue-500/50 mb-2" />
+                <p className="text-xs font-bold text-[#0e1b33]">No community posts yet</p>
+                <p className="text-[11px] text-slate-500 mt-1">Be the first to share your hackathon experience or project ideas in the feed!</p>
+                <Link to="/feed" className="mt-3 inline-flex items-center gap-1.5 text-xs font-semibold text-blue-600 hover:text-blue-700">
+                  <span>Visit Feed</span> &rarr;
+                </Link>
+              </div>
+            )}
           </div>
           <div>
             <SectionTitle t="Top Pixel Holders" to="/leaderboard" />
@@ -539,6 +596,9 @@ export function Landing() {
 // ==========================================
 export function Opportunities() {
   const [sp, setSp] = useSearchParams();
+  const location = useLocation();
+  const { saved } = useApp();
+  const isSavedFilter = location.pathname === '/bookmarks' || sp.get('saved') === 'true';
   const [q, setQ] = useState(sp.get('q') || '');
   const [c, setCat] = useState(sp.get('cat') || 'All');
   const [m, setM] = useState('Any');
@@ -587,11 +647,26 @@ export function Opportunities() {
       .finally(() => setLoading(false));
   }, [c, q]);
 
-  const allOpps = firestoreOpps.length > 0 ? [...firestoreOpps, ...initialOpps] : initialOpps;
+  const allOpps = useMemo(() => {
+    const combined = [...firestoreOpps];
+    const seenTitles = new Set(firestoreOpps.map(o => o.title.toLowerCase().trim()));
+    for (const opp of initialOpps) {
+      if (!seenTitles.has(opp.title.toLowerCase().trim())) {
+        combined.push(opp);
+      }
+    }
+    return combined.filter(
+      (o) =>
+        o.days > 0 &&
+        o.id !== '38bee408-e867-497e-a94d-ac423b317297' &&
+        !o.title.toLowerCase().includes('wow india')
+    );
+  }, [firestoreOpps]);
 
   const list = allOpps
     .filter(
       (o) =>
+        (!isSavedFilter || saved.includes(String(o.id))) &&
         (c === 'All' || o.cat === c) &&
         (m === 'Any' || o.mode.toLowerCase() === m.toLowerCase()) &&
         (d === 'Any' || o.days <= (d === '10' ? 10 : 30)) &&
@@ -600,7 +675,7 @@ export function Opportunities() {
     .sort((a, b) => (s === 'deadline' ? a.days - b.days : Number(b.id) - Number(a.id)));
 
   const sel =
-    'rounded-full border border-black/10 bg-white/80 backdrop-blur-md px-4 py-2 text-xs font-semibold text-[#2D2A26] outline-none focus:border-[#C5A059] shadow-xs cursor-pointer hover:border-black/20 transition';
+    'rounded-full border-2 border-slate-300 dark:border-slate-600 bg-white dark:bg-[#162B45] px-4 py-2 text-xs font-bold text-slate-900 dark:text-white outline-none focus:border-blue-500 shadow-xs cursor-pointer hover:border-blue-400 transition';
 
   return (
     <W className="py-8 space-y-7">
@@ -610,11 +685,20 @@ export function Opportunities() {
             <Sparkles size={12} className="text-[#C5A059]" />
             Curated Tech Programs & Competitions
           </div>
-          <h1 className="font-['Outfit',sans-serif] text-3xl font-extrabold tracking-tight text-[#16171D] sm:text-4xl">
-            Explore Opportunities
+          <h1 className="font-['Outfit',sans-serif] text-3xl font-extrabold tracking-tight text-[#16171D] sm:text-4xl flex items-center gap-2.5">
+            {isSavedFilter ? (
+              <>
+                <Bookmark className="text-sky-500 fill-sky-500" size={28} />
+                <span>Saved Bookmarks</span>
+              </>
+            ) : (
+              <span>Explore Opportunities</span>
+            )}
           </h1>
           <p className="text-xs sm:text-sm text-[#7D756C] mt-1 max-w-xl">
-            Search hackathons, internships, fellowships, and tech conferences worldwide curated for modern builders.
+            {isSavedFilter
+              ? 'All tech programs, hackathons, and internships you have marked for easy tracking.'
+              : 'Search hackathons, internships, fellowships, and tech conferences worldwide curated for modern builders.'}
           </p>
         </div>
 
@@ -627,7 +711,7 @@ export function Opportunities() {
 
       {/* Search Bar */}
       <div className="relative">
-        <Search size={16} className="absolute left-4 top-3.5 text-[#C5A059]" />
+        <Search size={16} className="absolute left-4 top-3.5 text-sky-500" />
         <input
           value={q}
           onChange={(e) => {
@@ -639,12 +723,29 @@ export function Opportunities() {
             });
           }}
           placeholder="Search by title, organizer, or skills (e.g. AI, React, Cloud, Web3)..."
-          className="w-full rounded-2xl border border-black/10 bg-white/80 backdrop-blur-md py-3 pl-11 pr-4 text-xs sm:text-sm text-[#16171D] placeholder-[#9E958C] outline-none focus:border-[#C5A059] focus:ring-1 focus:ring-[#C5A059]/30 shadow-xs transition"
+          className="w-full rounded-2xl border-2 border-slate-300 dark:border-slate-600 bg-white dark:bg-[#162B45] py-3 pl-11 pr-4 text-xs sm:text-sm text-[#0e1b33] dark:text-white placeholder-slate-400 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 shadow-xs transition"
         />
       </div>
 
       {/* Category Filter Chips */}
       <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 scrollbar-hide">
+        <button
+          onClick={() => {
+            setSp((prev) => {
+              if (isSavedFilter) prev.delete('saved');
+              else prev.set('saved', 'true');
+              return prev;
+            });
+          }}
+          className={`shrink-0 rounded-full border-2 px-4 py-2 text-xs font-bold transition duration-200 cursor-pointer flex items-center gap-1.5 ${
+            isSavedFilter
+              ? 'border-sky-500 bg-sky-500 text-white shadow-md shadow-sky-500/25'
+              : 'border-slate-300 dark:border-slate-600 bg-white dark:bg-[#162B45] text-slate-700 dark:text-slate-100 hover:text-sky-500'
+          }`}
+        >
+          <Bookmark size={13} fill={isSavedFilter ? 'currentColor' : 'none'} />
+          <span>Bookmarks ({saved.length})</span>
+        </button>
         {['All', ...cats].map((x) => {
           const isActive = c === x;
           return (
@@ -658,10 +759,10 @@ export function Opportunities() {
                   return prev;
                 });
               }}
-              className={`shrink-0 rounded-full border px-4 py-2 text-xs font-bold transition duration-200 cursor-pointer ${
+              className={`shrink-0 rounded-full border-2 px-4 py-2 text-xs font-bold transition duration-200 cursor-pointer ${
                 isActive
-                  ? 'border-[#C5A059]/80 bg-[#16171D] text-[#DFB76C] shadow-md shadow-black/15 ring-1 ring-[#C5A059]/30'
-                  : 'border-black/8 bg-white/70 backdrop-blur-xs text-[#5D574F] hover:bg-white hover:text-[#16171D] hover:border-black/20'
+                  ? 'border-blue-600 bg-blue-600 text-white shadow-md shadow-blue-500/25'
+                  : 'border-slate-300 dark:border-slate-600 bg-white dark:bg-[#162B45] text-slate-700 dark:text-slate-100 hover:bg-slate-50 dark:hover:bg-[#1c3656] hover:text-blue-600 dark:hover:text-sky-300'
               }`}
             >
               {x}
@@ -674,25 +775,25 @@ export function Opportunities() {
       <div className="flex flex-wrap items-center gap-2.5">
         <select className={sel} value={m} onChange={(e) => setM(e.target.value)}>
           {['Any mode', 'Online', 'Onsite', 'Hybrid', 'Remote'].map((x) => (
-            <option key={x} value={x.startsWith('Any') ? 'Any' : x}>
+            <option key={x} value={x.startsWith('Any') ? 'Any' : x} className="bg-white dark:bg-[#162B45] text-[#0e1b33] dark:text-white">
               {x}
             </option>
           ))}
         </select>
 
         <select className={sel} value={d} onChange={(e) => setD(e.target.value)}>
-          <option value="Any">Any deadline</option>
-          <option value="10">Closing in 10 days</option>
-          <option value="30">Closing in 30 days</option>
+          <option value="Any" className="bg-white dark:bg-[#162B45] text-[#0e1b33] dark:text-white">Any deadline</option>
+          <option value="10" className="bg-white dark:bg-[#162B45] text-[#0e1b33] dark:text-white">Closing in 10 days</option>
+          <option value="30" className="bg-white dark:bg-[#162B45] text-[#0e1b33] dark:text-white">Closing in 30 days</option>
         </select>
 
         <select className={sel} value={s} onChange={(e) => setS(e.target.value)}>
-          <option value="deadline">Sort: Closing soon</option>
-          <option value="new">Sort: Newest</option>
+          <option value="deadline" className="bg-white dark:bg-[#162B45] text-[#0e1b33] dark:text-white">Sort: Closing soon</option>
+          <option value="new" className="bg-white dark:bg-[#162B45] text-[#0e1b33] dark:text-white">Sort: Newest</option>
         </select>
 
-        <span className="ml-auto self-center text-xs font-semibold text-[#8C827A]">
-          <b className="text-[#16171D]">{list.length}</b> opportunities available
+        <span className="ml-auto self-center text-xs font-bold text-slate-800 dark:text-slate-200">
+          <b className="text-blue-600 dark:text-sky-400 font-extrabold">{list.length}</b> opportunities available
         </span>
       </div>
 
@@ -712,12 +813,30 @@ export function Opportunities() {
       )}
 
       {!list.length && !loading && (
-        <Card className="py-16 text-center pm-cream-card">
-          <p className="font-['Outfit',sans-serif] text-base font-bold text-[#16171D]">No opportunities matched your criteria</p>
-          <p className="text-xs text-[#7D756C] mt-1">Try resetting your filters or submit an opportunity you know!</p>
-          <Link to="/submit" className="mt-5 inline-block">
-            <Btn className="!text-xs !py-2.5 !px-5">Share an Opportunity</Btn>
-          </Link>
+        <Card className="py-16 text-center pm-glass-card bg-white/85 backdrop-blur-xl border border-white/90 shadow-sm text-[#0e1b33]">
+          {isSavedFilter ? (
+            <div className="space-y-3">
+              <Bookmark size={40} className="mx-auto text-sky-500/60" />
+              <p className="font-['Outfit',sans-serif] text-base font-bold text-[#16171D]">No bookmarked opportunities yet</p>
+              <p className="text-xs text-[#7D756C] max-w-sm mx-auto">
+                Click the bookmark ribbon on any hackathon, internship, or competition card to save it here for quick reference.
+              </p>
+              <button
+                onClick={() => setSp((prev) => { prev.delete('saved'); return prev; })}
+                className="mt-3 inline-block px-5 py-2.5 rounded-full bg-[#112240] text-xs font-bold text-white hover:bg-[#1a335e] transition cursor-pointer shadow-xs"
+              >
+                Browse All Opportunities
+              </button>
+            </div>
+          ) : (
+            <div>
+              <p className="font-['Outfit',sans-serif] text-base font-bold text-[#16171D]">No opportunities matched your criteria</p>
+              <p className="text-xs text-[#7D756C] mt-1">Try resetting your filters or submit an opportunity you know!</p>
+              <Link to="/submit" className="mt-5 inline-block">
+                <Btn className="!text-xs !py-2.5 !px-5">Share an Opportunity</Btn>
+              </Link>
+            </div>
+          )}
         </Card>
       )}
     </W>
@@ -729,8 +848,11 @@ export function Opportunities() {
 // ==========================================
 export function OppDetail() {
   const { id } = useParams();
+  const navigate = useNavigate();
+  const { user } = useAuth();
   const [firestoreOpp, setFirestoreOpp] = useState<Opp | null>(null);
-  const { saved, toggle, link, copy, applied, apply, code } = useApp();
+  const [showReportModal, setShowReportModal] = useState(false);
+  const { saved, toggle, link, copy, applied, trackApplication, code, say } = useApp();
 
   useEffect(() => {
     if (id) {
@@ -787,8 +909,22 @@ export function OppDetail() {
   const ref = link('/opportunities/' + o.id);
 
   const handleApply = () => {
+    if (!user) {
+      sessionStorage.setItem('pm_auth_redirect', `/opportunities/${o.id}`);
+      navigate('/login');
+      say('Please sign in or register to apply for opportunities.');
+      return;
+    }
     if (id) incrementApplyClicks(id);
-    apply(o.id);
+    trackApplication({
+      id: o.id,
+      title: o.title,
+      organizer: o.org,
+      category: o.cat,
+      mode: o.mode,
+      deadline: o.deadline,
+      officialUrl: o.officialUrl
+    });
     const targetUrl = o.officialUrl || `https://www.google.com/search?q=${encodeURIComponent(o.title + ' ' + o.org + ' apply')}`;
     window.open(targetUrl, '_blank', 'noopener,noreferrer');
   };
@@ -796,12 +932,12 @@ export function OppDetail() {
   return (
     <W className="py-6 space-y-7">
       {/* Banner Header - Celestial Dark Glass */}
-      <div className="relative overflow-hidden rounded-3xl bg-[#121317] p-7 text-white sm:p-10 shadow-2xl border border-white/10">
+      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#112240] via-[#1d3557] to-[#1e40af] p-7 text-white sm:p-10 shadow-xl border border-blue-400/30">
         {/* Subtle warm celestial glow and orbital arc */}
-        <div className="pointer-events-none absolute -right-20 -top-20 h-80 w-80 rounded-full bg-[#DFB76C]/10 blur-3xl" />
+        <div className="pointer-events-none absolute -right-20 -top-20 h-80 w-80 rounded-full bg-sky-500/15 blur-3xl" />
         <svg
           aria-hidden="true"
-          className="pointer-events-none absolute -right-10 -bottom-10 h-72 w-72 text-[#DFB76C]/15"
+          className="pointer-events-none absolute -right-10 -bottom-10 h-72 w-72 text-sky-400/15"
           viewBox="0 0 200 200"
           fill="none"
         >
@@ -816,7 +952,7 @@ export function OppDetail() {
             {o.cat}
           </span>
           <span className="inline-flex items-center gap-1 rounded-full bg-white/5 backdrop-blur-md px-3 py-1 text-xs font-semibold text-white/70 border border-white/10">
-            <MapPin size={11} className="text-[#DFB76C]" />
+            <MapPin size={11} className="text-sky-300" />
             {o.location ? `${o.mode} (${o.location})` : o.mode}
           </span>
         </div>
@@ -825,7 +961,7 @@ export function OppDetail() {
           {o.title}
         </h1>
         <p className="relative z-10 mt-2 text-sm sm:text-base font-medium text-white/75">
-          Organized by <span className="text-[#DFB76C] font-semibold">{o.org}</span>
+          Organized by <span className="text-sky-300 font-semibold">{o.org}</span>
         </p>
       </div>
 
@@ -839,9 +975,9 @@ export function OppDetail() {
               [Trophy, 'Reward / Prize', o.prize || (o.stipend ? `Stipend: ${o.stipend}` : 'Recognition')],
               [Sparkles, 'Category', o.cat]
             ].map(([I, l, v]: any) => (
-              <Card key={l} className="p-4 pm-cream-card">
+              <Card key={l} className="p-4 pm-glass-card bg-white/85 backdrop-blur-xl border border-white/90 shadow-sm text-[#0e1b33]">
                 <div className="flex items-center justify-between">
-                  <I size={17} className="text-[#C5A059]" />
+                  <I size={17} className="text-sky-500" />
                 </div>
                 <p className="mt-3 text-[10px] font-bold text-[#8C827A] uppercase tracking-wider">{l}</p>
                 <p className="text-xs font-extrabold text-[#16171D] mt-0.5 truncate">{v}</p>
@@ -856,7 +992,7 @@ export function OppDetail() {
             </div>
           )}
 
-          <Card className="p-6 sm:p-7 pm-cream-card space-y-6">
+          <Card className="p-6 sm:p-7 pm-glass-card bg-white/85 backdrop-blur-xl border border-white/90 shadow-sm text-[#0e1b33] space-y-6">
             <div>
               <h2 className="font-['Outfit',sans-serif] text-lg font-bold text-[#16171D]">About the Opportunity</h2>
               <p className="mt-3 text-sm leading-relaxed text-[#4A453F] whitespace-pre-line">
@@ -908,7 +1044,7 @@ export function OppDetail() {
 
         {/* Sidebar Actions */}
         <aside className="space-y-4 lg:sticky lg:top-24 lg:self-start">
-          <Card className="space-y-3.5 p-5 pm-cream-card">
+          <Card className="space-y-3.5 p-5 pm-glass-card bg-white/85 backdrop-blur-xl border border-white/90 shadow-sm text-[#0e1b33]">
             <Btn onClick={handleApply} className="w-full !py-3 !rounded-full">
               {isDone ? (
                 <>
@@ -931,13 +1067,22 @@ export function OppDetail() {
                 className="flex-1 !py-2.5 !text-xs !rounded-full"
                 onClick={() => toggle(String(o.id))}
               >
-                <Bookmark size={15} fill={isSaved ? '#DFB76C' : 'none'} className={isSaved ? 'text-[#DFB76C]' : ''} />
+                <Bookmark size={15} fill={isSaved ? '#38BDF8' : 'none'} className={isSaved ? 'text-sky-400' : ''} />
                 {isSaved ? 'Saved in Bookmarks' : 'Save Bookmark'}
               </Btn>
+              <button
+                type="button"
+                onClick={() => setShowReportModal(true)}
+                title="Report Opportunity"
+                className="px-3.5 py-2.5 rounded-full border border-slate-200 hover:border-rose-300 hover:bg-rose-50/70 text-slate-500 hover:text-rose-600 transition flex items-center gap-1.5 text-xs font-semibold cursor-pointer"
+              >
+                <Flag size={14} />
+                <span>Report</span>
+              </button>
             </div>
           </Card>
 
-          <Card className="p-5 pm-cream-card space-y-2">
+          <Card className="p-5 pm-glass-card bg-white/85 backdrop-blur-xl border border-white/90 shadow-sm text-[#0e1b33] space-y-2">
             <h3 className="text-xs font-bold uppercase tracking-wider text-[#8C827A]">Your Referral Link</h3>
             <p className="text-xs text-[#5D574F]">
               Code <b className="font-bold text-[#16171D]">{code}</b>. Earn <span className="font-bold text-[#C5A059]">+25 Pixels</span> when peers register via your link.
@@ -969,6 +1114,15 @@ export function OppDetail() {
             ))}
         </div>
       </section>
+
+      <ReportModal
+        isOpen={showReportModal}
+        onClose={() => setShowReportModal(false)}
+        targetType="opportunity"
+        targetId={String(o.id)}
+        targetTitle={o.title}
+        targetContent={`${o.org} · ${o.cat} · ${o.description || ''}`}
+      />
     </W>
   );
 }
@@ -981,8 +1135,8 @@ export function Feed() {
   const [posts, setPosts] = useState<CommunityPost[]>([]);
   const [filterCategory, setFilterCategory] = useState<string>('All');
   const [refreshing, setRefreshing] = useState(false);
-  const userName = userProfile?.displayName || user?.displayName || 'Aarav Mehta';
-  const pixels = userProfile?.pixels ?? 4820;
+  const userName = userProfile?.displayName || user?.displayName || (user ? 'Pixel Builder' : 'Guest Builder');
+  const pixels = userProfile?.pixels ?? 0;
 
   const loadFeed = async () => {
     setRefreshing(true);
@@ -1000,7 +1154,7 @@ export function Feed() {
     loadFeed();
   }, []);
 
-  const allPosts = posts.length > 0 ? posts : initialPosts;
+  const allPosts = posts;
 
   // Filter posts based on active category
   const filteredPosts = allPosts.filter((p: any) => {
@@ -1028,146 +1182,171 @@ export function Feed() {
     { id: 'Learnings', label: '🧠 Learnings' }
   ];
 
-  return (
-    <W className="grid gap-6 py-8 lg:grid-cols-[270px_1fr_310px]">
-      {/* Left Sidebar: User Card */}
-      <aside className="hidden space-y-4 lg:block">
-        <Card className="overflow-hidden pm-cream-card">
-          <div className="h-18 bg-[#121317] relative overflow-hidden">
-            <div className="absolute inset-0 bg-gradient-to-r from-[#C5A059]/20 to-transparent" />
-            <svg
-              aria-hidden="true"
-              className="absolute -right-4 -bottom-4 h-24 w-24 text-[#DFB76C]/20"
-              viewBox="0 0 100 100"
-              fill="none"
-            >
-              <circle cx="50" cy="50" r="40" stroke="currentColor" strokeWidth="1" strokeDasharray="2 2" />
-              <circle cx="50" cy="50" r="25" stroke="currentColor" strokeWidth="1" />
-            </svg>
-          </div>
-          <div className="-mt-8 px-4 pb-4">
-            <div className="rounded-full ring-3 ring-[#FAF7F2] w-fit shadow-md">
-              <Avatar
-                name={userName}
-                photoURL={userProfile?.photoURL || user?.photoURL || undefined}
-                size={56}
-              />
-            </div>
-            <p className="mt-2.5 font-['Outfit',sans-serif] font-bold text-[#16171D] text-sm">{userName}</p>
-            <p className="text-xs text-[#7D756C] font-semibold flex items-center gap-1 mt-0.5">
-              <Sparkles size={11} className="text-[#C5A059]" />
-              {rankOf(pixels)}
-            </p>
-
-            <div className="mt-4 flex justify-between border-t border-black/6 pt-3 text-xs">
-              <span className="text-[#7D756C]">Pixel Balance</span>
-              <b className="text-[#C5A059] font-bold">{pixels} Pixels</b>
-            </div>
-            <div className="mt-2 flex justify-between text-xs">
-              <span className="text-[#7D756C]">Global Rank</span>
-              <b className="text-[#16171D] font-bold">#1</b>
-            </div>
-          </div>
-        </Card>
-
-        <Card className="p-2 text-xs font-semibold text-[#4A453F] pm-cream-card">
-          <Link to="/opportunities" className="block rounded-xl px-3.5 py-2.5 hover:bg-black/[0.04] hover:text-[#16171D] transition">
-            Explore Opportunities
-          </Link>
-          <Link to="/leaderboard" className="block rounded-xl px-3.5 py-2.5 hover:bg-black/[0.04] hover:text-[#16171D] transition">
-            Leaderboard &amp; Badges
-          </Link>
-          <Link to="/profile" className="block rounded-xl px-3.5 py-2.5 hover:bg-black/[0.04] hover:text-[#16171D] transition">
-            My Submissions &amp; Activity
-          </Link>
-        </Card>
-      </aside>
-
-      {/* Main Feed Section */}
-      <section className="space-y-4">
-        {/* Category Filters Bar */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-2xl bg-[#141418]/80 backdrop-blur-xl border border-white/10 p-3.5 text-white">
-          <div className="flex items-center gap-2">
-            <span className="font-['Outfit',sans-serif] font-bold text-sm text-white">Community Feed</span>
-            <span className="text-[11px] px-2 py-0.5 rounded-full bg-white/8 text-[#DFB76C] font-semibold border border-white/8">
-              {filteredPosts.length} posts
-            </span>
-          </div>
-
-          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
-            {feedCategories.map((fc) => (
-              <button
-                key={fc.id}
-                onClick={() => setFilterCategory(fc.id)}
-                className={`rounded-full px-3 py-1 text-xs font-semibold whitespace-nowrap transition cursor-pointer ${
-                  filterCategory === fc.id
-                    ? 'bg-[#C5A059]/20 text-[#DFB76C] border border-[#C5A059]/40 shadow-xs'
-                    : 'bg-white/6 text-zinc-400 hover:text-white hover:bg-white/10 border border-transparent'
-                }`}
-              >
-                {fc.label}
-              </button>
-            ))}
-          </div>
+  const UserProfileWidget = () => (
+    <Card className="overflow-hidden pm-glass-card bg-white/85 backdrop-blur-xl border border-white/90 shadow-sm text-[#0e1b33]">
+      <div className="h-18 bg-gradient-to-r from-blue-600 to-indigo-600 relative overflow-hidden">
+        <div className="absolute inset-0 bg-white/10" />
+        <svg
+          aria-hidden="true"
+          className="absolute -right-4 -bottom-4 h-24 w-24 text-white/20"
+          viewBox="0 0 100 100"
+          fill="none"
+        >
+          <circle cx="50" cy="50" r="40" stroke="currentColor" strokeWidth="1" strokeDasharray="2 2" />
+          <circle cx="50" cy="50" r="25" stroke="currentColor" strokeWidth="1" />
+        </svg>
+      </div>
+      <div className="relative z-10 -mt-8 px-4 pb-4">
+        <div className="rounded-full ring-3 ring-white w-fit shadow-md">
+          <Avatar
+            name={userName}
+            photoURL={userProfile?.photoURL || user?.photoURL || undefined}
+            size={56}
+          />
         </div>
+        <p className="mt-2.5 font-['Outfit',sans-serif] font-bold text-[#0e1b33] text-sm">{userName}</p>
+        <p className="text-xs text-blue-600 font-semibold flex items-center gap-1 mt-0.5">
+          <Sparkles size={11} className="text-blue-500" />
+          {rankOf(pixels)}
+        </p>
 
-        <Composer onPostCreated={(newPost) => setPosts(prev => [newPost, ...prev])} />
+        <div className="mt-4 flex justify-between border-t border-slate-200/60 pt-3 text-xs">
+          <span className="text-slate-500">Pixel Balance</span>
+          <b className="text-blue-600 font-bold">{pixels} Pixels</b>
+        </div>
+        <div className="mt-2 flex justify-between text-xs">
+          <span className="text-slate-500">Global Rank</span>
+          <b className="text-[#0e1b33] font-bold">{user && pixels > 0 ? '#1' : '—'}</b>
+        </div>
+      </div>
+    </Card>
+  );
 
-        {filteredPosts.length > 0 ? (
-          filteredPosts.map((p: any) => (
-            <PostCard
-              key={p.id}
-              p={p}
-              onPostDeleted={(id) => setPosts(prev => prev.filter(item => String(item.id) !== String(id)))}
-            />
-          ))
-        ) : (
-          <Card className="text-center py-12 text-[#8C827A] text-xs pm-cream-card">
-            <p className="font-semibold text-sm text-[#16171D] mb-1">No posts in this category yet</p>
-            <p className="mb-4">Be the first to share an update, or browse all community updates.</p>
-            <button
-              onClick={() => setFilterCategory('All')}
-              className="px-4 py-2 rounded-full bg-[#16171D] hover:bg-[#25262E] text-xs font-bold text-[#DFB76C] transition cursor-pointer"
-            >
-              View All Posts
-            </button>
+  const QuickNavWidget = () => (
+    <Card className="p-2 text-xs font-semibold text-slate-700 pm-glass-card bg-white/85 backdrop-blur-xl border border-white/90 shadow-sm">
+      <Link to="/opportunities" className="block rounded-xl px-3.5 py-2.5 hover:bg-blue-50/70 hover:text-blue-600 transition">
+        Explore Opportunities
+      </Link>
+      <Link to="/leaderboard" className="block rounded-xl px-3.5 py-2.5 hover:bg-blue-50/70 hover:text-blue-600 transition">
+        Leaderboard &amp; Badges
+      </Link>
+      <Link to="/profile" className="block rounded-xl px-3.5 py-2.5 hover:bg-blue-50/70 hover:text-blue-600 transition">
+        My Submissions &amp; Activity
+      </Link>
+    </Card>
+  );
+
+  return (
+    <div className="w-full max-w-[1440px] mx-auto py-2 sm:py-4">
+      <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_280px] xl:grid-cols-[240px_minmax(0,1fr)_290px] gap-5 items-start">
+        {/* Left Sidebar: User Card (Visible on XL displays, stays sticky) */}
+        <aside className="hidden xl:block space-y-4 sticky top-6">
+          <UserProfileWidget />
+          <QuickNavWidget />
+        </aside>
+
+        {/* Center Main Feed Column (min-w-0 guarantees responsiveness and prevents blowouts) */}
+        <section className="space-y-4 min-w-0">
+          {/* Category Filters Bar */}
+          <div className="rounded-2xl pm-glass-card bg-white/85 backdrop-blur-xl border border-white/90 p-3 sm:p-4 text-[#0e1b33] shadow-xs">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex items-center gap-2 shrink-0">
+                <span className="font-['Outfit',sans-serif] font-bold text-sm text-[#0e1b33]">Community Feed</span>
+                <span className="text-[11px] px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-700 font-bold border border-blue-200/80 shadow-2xs">
+                  {filteredPosts.length} posts
+                </span>
+              </div>
+
+              {/* Category Pills with clean scroll and no scrollbar */}
+              <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 scrollbar-none no-scrollbar -mx-1 px-1">
+                {feedCategories.map((fc) => (
+                  <button
+                    key={fc.id}
+                    onClick={() => setFilterCategory(fc.id)}
+                    className={`rounded-full px-3 py-1.5 text-xs font-semibold whitespace-nowrap transition cursor-pointer shrink-0 ${
+                      filterCategory === fc.id
+                        ? 'bg-blue-600 text-white shadow-xs font-bold'
+                        : 'bg-white/80 text-slate-600 hover:text-[#0e1b33] hover:bg-white border border-slate-200/80'
+                    }`}
+                  >
+                    {fc.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <Composer onPostCreated={(newPost) => setPosts(prev => [newPost, ...prev])} />
+
+          {filteredPosts.length > 0 ? (
+            filteredPosts.map((p: any) => (
+              <PostCard
+                key={p.id}
+                p={p}
+                onPostDeleted={(id) => setPosts(prev => prev.filter(item => String(item.id) !== String(id)))}
+              />
+            ))
+          ) : (
+            <Card className="text-center py-12 text-slate-500 text-xs pm-glass-card bg-white/80 border border-white/90">
+              <p className="font-semibold text-sm text-[#0e1b33] mb-1">No posts in this category yet</p>
+              <p className="mb-4">Be the first to share an update, or browse all community updates.</p>
+              <button
+                onClick={() => setFilterCategory('All')}
+                className="px-4 py-2 rounded-full bg-[#112240] hover:bg-[#1a335e] text-xs font-bold text-white transition cursor-pointer shadow-xs"
+              >
+                View All Posts
+              </button>
+            </Card>
+          )}
+        </section>
+
+        {/* Right Sidebar: Deadlines & Trending (Always fully visible on LG and XL) */}
+        <aside className="hidden lg:block space-y-4 sticky top-6">
+          {/* On LG displays (when left column is hidden), show User Profile here so it is never lost */}
+          <div className="xl:hidden space-y-4">
+            <UserProfileWidget />
+            <QuickNavWidget />
+          </div>
+
+          <Card className="p-4 sm:p-5 pm-glass-card bg-white/85 backdrop-blur-xl border border-white/90 shadow-sm text-[#0e1b33]">
+            <div className="flex items-center justify-between mb-3.5 pb-2 border-b border-slate-200/60">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+                <Clock size={14} className="text-blue-600" />
+                <span>Closing Soon</span>
+              </h3>
+              <button
+                onClick={loadFeed}
+                disabled={refreshing}
+                className="text-[11px] text-blue-600 hover:text-blue-700 hover:underline font-semibold cursor-pointer disabled:opacity-50"
+              >
+                {refreshing ? 'Refreshing...' : 'Refresh'}
+              </button>
+            </div>
+            <div className="space-y-2">
+              {[...initialOpps]
+                .sort((a, b) => a.days - b.days)
+                .slice(0, 3)
+                .map((o) => (
+                  <Link
+                    key={o.id}
+                    to={'/opportunities/' + o.id}
+                    className="flex justify-between items-center text-xs group p-2 rounded-xl hover:bg-blue-50/50 border border-transparent hover:border-blue-100 transition"
+                  >
+                    <span className="truncate pr-2 font-medium text-[#0e1b33] group-hover:text-blue-600 transition">
+                      {o.title}
+                    </span>
+                    <span className="shrink-0 px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 font-bold text-[10px] border border-blue-200/60 shadow-2xs">
+                      {o.days}d
+                    </span>
+                  </Link>
+                ))}
+            </div>
           </Card>
-        )}
-      </section>
 
-      {/* Right Sidebar: Deadlines & Trending */}
-      <aside className="hidden space-y-4 lg:block">
-        <Card className="p-5 pm-cream-card">
-          <div className="flex items-center justify-between mb-3.5">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-[#8C827A] flex items-center gap-1.5">
-              <Clock size={13} className="text-[#C5A059]" />
-              Closing Soon
-            </h3>
-            <button
-              onClick={loadFeed}
-              disabled={refreshing}
-              className="text-[11px] text-[#C5A059] hover:underline font-semibold cursor-pointer disabled:opacity-50"
-            >
-              {refreshing ? 'Refreshing...' : 'Refresh Feed'}
-            </button>
-          </div>
-          <div className="space-y-2.5">
-            {[...initialOpps]
-              .sort((a, b) => a.days - b.days)
-              .slice(0, 3)
-              .map((o) => (
-                <Link key={o.id} to={'/opportunities/' + o.id} className="flex justify-between items-center text-xs group p-1.5 -mx-1.5 rounded-xl hover:bg-black/[0.03] transition">
-                  <span className="truncate pr-2 font-medium text-[#2D2A26] group-hover:text-[#C5A059] transition">{o.title}</span>
-                  <span className="shrink-0 px-2 py-0.5 rounded-full bg-black/[0.05] text-[#C5A059] font-bold text-[11px] border border-black/5">
-                    {o.days}d
-                  </span>
-                </Link>
-              ))}
-          </div>
-        </Card>
-        <Mini />
-      </aside>
-    </W>
+          <Mini />
+        </aside>
+      </div>
+    </div>
   );
 }
 
@@ -1179,7 +1358,8 @@ import { ReferralPanel as RP } from './pixels';
 export function Profile() {
   const { userProfile, user, refreshProfile, updatePassword } = useAuth();
   const [searchParams] = useSearchParams();
-  const [tab, setTab] = useState('Posts');
+  const location = useLocation();
+  const [tab, setTab] = useState(location.pathname === '/applications' ? 'My Applications' : 'Posts');
   const [userSubs, setUserSubs] = useState<Opp[]>([]);
   const [rawSubmissions, setRawSubmissions] = useState<Opportunity[]>([]);
   const [selectedSubForModal, setSelectedSubForModal] = useState<Opportunity | null>(null);
@@ -1188,12 +1368,56 @@ export function Profile() {
   const [savingBio, setSavingBio] = useState(false);
   const { say } = useApp();
 
-  // URL query parameter tab syncing (e.g. from notification links)
+  const [userApplications, setUserApplications] = useState<UserApplication[]>([]);
+  const [confirmingAppId, setConfirmingAppId] = useState<string | null>(null);
+
+  const loadApplications = () => {
+    if (user?.uid) {
+      getUserApplications(user.uid).then(setUserApplications).catch(() => {});
+    }
+  };
+
+  useEffect(() => {
+    if (user?.uid) {
+      loadApplications();
+    }
+  }, [user]);
+
+  // Live seconds tick so countdown timers update continuously
+  const [, setClockTick] = useState(0);
+  useEffect(() => {
+    if (tab === 'My Applications') {
+      const interval = setInterval(() => setClockTick((c) => c + 1), 1000);
+      return () => clearInterval(interval);
+    }
+  }, [tab]);
+
+  const handleConfirmRegistration = async (appId: string) => {
+    if (!user?.uid) return;
+    setConfirmingAppId(appId);
+    try {
+      const res = await confirmOpportunityRegistration(user.uid, appId, user.email || undefined);
+      say(res.message);
+      if (res.success) {
+        loadApplications();
+        if (refreshProfile) await refreshProfile();
+      }
+    } catch (err: any) {
+      say(err?.message || 'Failed to confirm registration');
+    } finally {
+      setConfirmingAppId(null);
+    }
+  };
+
+  // URL query parameter tab syncing (e.g. from notification links or sidebar)
   useEffect(() => {
     const tabParam = searchParams.get('tab');
     if (tabParam) {
-      if (tabParam.toLowerCase() === 'submissions' || tabParam.toLowerCase() === 'mysubmissions' || tabParam.toLowerCase() === 'my submissions') {
+      const lower = tabParam.toLowerCase();
+      if (lower === 'submissions' || lower === 'mysubmissions' || lower === 'my submissions') {
         setTab('My Submissions');
+      } else if (lower === 'applications' || lower === 'myapplications' || lower === 'my applications') {
+        setTab('My Applications');
       } else {
         setTab(tabParam);
       }
@@ -1218,25 +1442,11 @@ export function Profile() {
       ])
         .then(([profile, posts]) => {
           setOtherUser(profile);
-          if (posts && posts.length > 0) {
-            setOtherUserPosts(posts);
-          } else {
-            const matched = initialPosts.filter(
-              (p: any) =>
-                p.userId === targetUid ||
-                (targetName && p.user.toLowerCase() === targetName.toLowerCase())
-            );
-            setOtherUserPosts((matched as any) || []);
-          }
+          setOtherUserPosts(posts || []);
         })
         .catch((err) => {
           console.error('Failed to load user profile or posts:', err);
-          const matched = initialPosts.filter(
-            (p: any) =>
-              p.userId === targetUid ||
-              (targetName && p.user.toLowerCase() === targetName.toLowerCase())
-          );
-          setOtherUserPosts((matched as any) || []);
+          setOtherUserPosts([]);
         })
         .finally(() => {
           setLoadingOtherUser(false);
@@ -1399,12 +1609,12 @@ export function Profile() {
         </div>
 
         {/* Public Profile Card */}
-        <Card className="overflow-hidden pm-cream-card">
-          <div className="h-36 bg-[#121317] relative overflow-hidden">
-            <div className="absolute inset-0 bg-gradient-to-r from-[#C5A059]/20 via-[#DFB76C]/10 to-transparent" />
+        <Card className="overflow-hidden pm-glass-card bg-white/85 backdrop-blur-xl border border-white/90 shadow-sm text-[#0e1b33]">
+          <div className="h-36 bg-gradient-to-r from-[#0B1628] via-[#11243D] to-[#162B45] relative overflow-hidden">
+            <div className="absolute inset-0 bg-blue-500/10" />
             <svg
               aria-hidden="true"
-              className="absolute -right-8 -top-8 h-48 w-48 text-[#DFB76C]/20"
+              className="absolute -right-8 -top-8 h-48 w-48 text-sky-400/20"
               viewBox="0 0 100 100"
               fill="none"
             >
@@ -1414,8 +1624,8 @@ export function Profile() {
             </svg>
           </div>
 
-          <div className="px-6 pb-6">
-            <div className="-mt-14 w-fit rounded-full ring-4 ring-[#FAF7F2] shadow-lg">
+          <div className="relative z-10 px-6 pb-6">
+            <div className="-mt-14 w-fit rounded-full ring-4 ring-white shadow-xl">
               <Avatar
                 name={profileName}
                 photoURL={otherUser?.photoURL || undefined}
@@ -1492,7 +1702,7 @@ export function Profile() {
           </div>
 
           {loadingOtherUser ? (
-            <Card className="text-center py-12 text-[#8C827A] text-xs pm-cream-card">
+            <Card className="text-center py-12 text-[#8C827A] text-xs pm-glass-card bg-white/85 backdrop-blur-xl border border-white/90 shadow-sm text-[#0e1b33]">
               Loading posts...
             </Card>
           ) : otherUserPosts.length > 0 ? (
@@ -1504,7 +1714,7 @@ export function Profile() {
               />
             ))
           ) : (
-            <Card className="text-center py-12 text-[#8C827A] text-xs pm-cream-card">
+            <Card className="text-center py-12 text-[#8C827A] text-xs pm-glass-card bg-white/85 backdrop-blur-xl border border-white/90 shadow-sm text-[#0e1b33]">
               <p className="font-semibold text-sm text-[#16171D] mb-1">No posts shared yet</p>
               <p>This user hasn't published any updates or hackathons to the community feed yet.</p>
             </Card>
@@ -1517,7 +1727,7 @@ export function Profile() {
   if (!user && !isViewingOtherUser) {
     return (
       <W className="max-w-md py-16 text-center space-y-4">
-        <Card className="p-8 pm-cream-card">
+        <Card className="p-8 pm-glass-card bg-white/85 backdrop-blur-xl border border-white/90 shadow-sm text-[#0e1b33]">
           <div className="w-16 h-16 rounded-full bg-[#16171D] text-[#DFB76C] grid place-items-center mx-auto mb-4 shadow-md">
             <Sparkles size={28} />
           </div>
@@ -1533,12 +1743,12 @@ export function Profile() {
 
   return (
     <W className="max-w-4xl py-8 space-y-7">
-      <Card className="overflow-hidden pm-cream-card">
-        <div className="h-36 bg-[#121317] relative overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-r from-[#C5A059]/20 via-[#DFB76C]/10 to-transparent" />
+      <Card className="overflow-hidden pm-glass-card bg-white/85 backdrop-blur-xl border border-white/90 shadow-sm text-[#0e1b33]">
+        <div className="h-36 bg-gradient-to-r from-[#0B1628] via-[#11243D] to-[#162B45] relative overflow-hidden">
+          <div className="absolute inset-0 bg-blue-500/10" />
           <svg
             aria-hidden="true"
-            className="absolute -right-8 -top-8 h-48 w-48 text-[#DFB76C]/20"
+            className="absolute -right-8 -top-8 h-48 w-48 text-sky-400/20"
             viewBox="0 0 100 100"
             fill="none"
           >
@@ -1547,8 +1757,8 @@ export function Profile() {
             <path d="M5 50 Q 50 10 95 50" stroke="currentColor" strokeWidth="0.8" />
           </svg>
         </div>
-        <div className="px-6 pb-6">
-          <div className="-mt-14 w-fit rounded-full ring-4 ring-[#FAF7F2] shadow-lg">
+        <div className="relative z-10 px-6 pb-6">
+          <div className="-mt-14 w-fit rounded-full ring-4 ring-white shadow-xl">
             <Avatar
               name={userName}
               photoURL={userProfile?.photoURL || user?.photoURL || undefined}
@@ -1625,7 +1835,7 @@ export function Profile() {
             ].map(([l, v]) => (
               <div key={l as string} className="rounded-2xl bg-white/70 p-3.5 border border-black/6 shadow-xs">
                 <p className="text-[10px] font-bold text-[#8C827A] uppercase tracking-wider">{l}</p>
-                <p className="font-['Outfit',sans-serif] font-extrabold text-[#16171D] text-lg mt-0.5">{v}</p>
+                <p className="font-['Outfit',sans-serif] font-extrabold text-[#0e1b33] text-lg mt-0.5">{v}</p>
               </div>
             ))}
           </div>
@@ -1634,7 +1844,7 @@ export function Profile() {
 
       {/* Tabs */}
       <div className="-mx-4 flex gap-1.5 overflow-x-auto px-4 pb-1 scrollbar-hide">
-        {['Posts', 'My Submissions', 'Shared Opportunities', 'Pixel History', 'Referrals', 'Achievements', 'Settings'].map((t) => {
+        {['Posts', 'My Applications', 'My Submissions', 'Shared Opportunities', 'Pixel History', 'Referrals', 'Achievements', 'Settings'].map((t) => {
           const isActive = tab === t;
           return (
             <button
@@ -1647,9 +1857,16 @@ export function Profile() {
               }`}
             >
               <span>{t}</span>
+              {t === 'My Applications' && userApplications.length > 0 && (
+                <span className={`rounded-full px-1.5 py-0.2 text-[10px] font-bold ${
+                  isActive ? 'bg-white/20 text-white' : 'bg-blue-50 text-blue-700'
+                }`}>
+                  {userApplications.length}
+                </span>
+              )}
               {t === 'My Submissions' && rawSubmissions.length > 0 && (
                 <span className={`rounded-full px-1.5 py-0.2 text-[10px] font-bold ${
-                  isActive ? 'bg-[#DFB76C]/20 text-[#DFB76C]' : 'bg-black/5 text-[#5D574F]'
+                  isActive ? 'bg-white/20 text-white' : 'bg-blue-50 text-blue-700'
                 }`}>
                   {rawSubmissions.length}
                 </span>
@@ -1671,9 +1888,142 @@ export function Profile() {
                 />
               ))
             ) : (
-              <Card className="text-center py-12 text-[#8C827A] text-xs pm-cream-card">
+              <Card className="text-center py-12 text-[#8C827A] text-xs pm-glass-card bg-white/85 backdrop-blur-xl border border-white/90 shadow-sm text-[#0e1b33]">
                 No posts shared yet. Share an update on the Community Feed!
               </Card>
+            )}
+          </div>
+        )}
+
+        {tab === 'My Applications' && (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-black/8">
+              <div>
+                <h3 className="font-['Outfit',sans-serif] text-base font-bold text-[#16171D]">My Registered Applications</h3>
+                <p className="text-xs text-[#7D756C]">
+                  Track programs you've applied for. Confirm your completed registration to claim your Pixel rewards!
+                </p>
+              </div>
+              <BtnLink to="/opportunities" className="!py-2 !px-4 !text-xs !min-h-9 !rounded-full shadow-xs">
+                + Explore More
+              </BtnLink>
+            </div>
+
+            {/* Quick Metrics */}
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+              <div className="rounded-2xl bg-white/70 p-3.5 border border-black/6 shadow-xs">
+                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Total Applied</p>
+                <p className="font-['Outfit',sans-serif] font-extrabold text-[#0e1b33] text-lg mt-0.5">{userApplications.length}</p>
+              </div>
+              <div className="rounded-2xl bg-white/70 p-3.5 border border-black/6 shadow-xs">
+                <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-wider">Confirmed</p>
+                <p className="font-['Outfit',sans-serif] font-extrabold text-emerald-600 text-lg mt-0.5">
+                  {userApplications.filter(a => a.status === 'confirmed').length}
+                </p>
+              </div>
+              <div className="rounded-2xl bg-white/70 p-3.5 border border-black/6 shadow-xs">
+                <p className="text-[10px] font-bold text-amber-600 uppercase tracking-wider">Pending Cooldown</p>
+                <p className="font-['Outfit',sans-serif] font-extrabold text-amber-600 text-lg mt-0.5">
+                  {userApplications.filter(a => a.status === 'pending_confirmation').length}
+                </p>
+              </div>
+              <div className="rounded-2xl bg-white/70 p-3.5 border border-black/6 shadow-xs">
+                <p className="text-[10px] font-bold text-blue-600 uppercase tracking-wider">Pixels Claimed</p>
+                <p className="font-['Outfit',sans-serif] font-extrabold text-blue-600 text-lg mt-0.5">
+                  +{userApplications.filter(a => a.rewardClaimed).reduce((sum, a) => sum + (a.pixelsRewarded || 10), 0)}
+                </p>
+              </div>
+            </div>
+
+            {userApplications.length === 0 ? (
+              <Card className="text-center py-16 pm-glass-card bg-white/85 backdrop-blur-xl border border-white/90 shadow-sm text-[#0e1b33] p-8">
+                <div className="w-14 h-14 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-3">
+                  <FileText size={24} />
+                </div>
+                <h4 className="font-['Outfit',sans-serif] text-base font-bold text-[#16171D] mb-1">
+                  You haven't applied for any opportunities yet.
+                </h4>
+                <p className="text-xs text-[#7D756C] mb-5 max-w-sm mx-auto">
+                  Browse hackathons, internships, and fellowships. Click "Apply on Official Site" to track your applications and unlock +10 Pixels per registration!
+                </p>
+                <BtnLink to="/opportunities" className="!py-2.5 !px-5 !text-xs !rounded-full">
+                  Browse Opportunities
+                </BtnLink>
+              </Card>
+            ) : (
+              <div className="space-y-3">
+                {userApplications.map((app) => {
+                  const elapsedMs = Date.now() - app.appliedAt;
+                  const THREE_MINS_MS = 3 * 60 * 1000;
+                  const remainingSecs = Math.max(0, Math.ceil((THREE_MINS_MS - elapsedMs) / 1000));
+                  const isReadyToConfirm = app.status === 'pending_confirmation' && remainingSecs === 0;
+                  const isConfirmed = app.status === 'confirmed';
+
+                  return (
+                    <Card key={app.id} className="p-4 sm:p-5 pm-glass-card bg-white/90 backdrop-blur-xl border border-white/90 shadow-xs hover:border-blue-200 transition">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <div className="space-y-1 min-w-0 flex-1">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 text-[10px] font-bold border border-blue-200/60 uppercase">
+                              {app.category}
+                            </span>
+                            <span className="text-[11px] text-slate-500 font-medium">
+                              {app.mode} · Deadline: {app.deadline}
+                            </span>
+                          </div>
+                          <Link to={`/opportunities/${app.opportunityId}`} className="block">
+                            <h4 className="font-bold text-sm sm:text-base text-[#0e1b33] hover:text-blue-600 transition truncate">
+                              {app.opportunityTitle}
+                            </h4>
+                          </Link>
+                          <p className="text-xs text-slate-500">{app.organizer}</p>
+                        </div>
+
+                        {/* Status / Confirm Action */}
+                        <div className="sm:text-right shrink-0 flex flex-col items-start sm:items-end gap-1.5">
+                          {isConfirmed ? (
+                            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs font-bold border border-emerald-200">
+                              <CheckCircle2 size={13} className="text-emerald-600" />
+                              <span>✓ Registered (+10 Pixels)</span>
+                            </span>
+                          ) : isReadyToConfirm ? (
+                            <button
+                              onClick={() => handleConfirmRegistration(app.id)}
+                              disabled={confirmingAppId === app.id}
+                              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-md shadow-emerald-600/20 active:scale-95 transition cursor-pointer"
+                            >
+                              <Sparkles size={13} />
+                              <span>{confirmingAppId === app.id ? 'Confirming...' : 'Confirm Registration & Claim +10'}</span>
+                            </button>
+                          ) : (
+                            <div className="space-y-1">
+                              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 text-amber-800 text-xs font-semibold border border-amber-200">
+                                <Clock size={13} className="text-amber-600 animate-spin" />
+                                <span>Verifying ({Math.floor(remainingSecs / 60)}m {remainingSecs % 60}s left)</span>
+                              </span>
+                              <p className="text-[10px] text-slate-400 max-w-[200px] text-left sm:text-right">
+                                Complete your registration on their portal. Confirmation unlocks in 3 mins.
+                              </p>
+                            </div>
+                          )}
+
+                          {app.officialUrl && (
+                            <a
+                              href={app.officialUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="inline-flex items-center gap-1 text-[11px] text-blue-600 hover:underline"
+                            >
+                              <span>Official Site</span>
+                              <ExternalLink size={10} />
+                            </a>
+                          )}
+                        </div>
+                      </div>
+                    </Card>
+                  );
+                })}
+              </div>
             )}
           </div>
         )}
@@ -1693,7 +2043,7 @@ export function Profile() {
             </div>
 
             {rawSubmissions.length === 0 ? (
-              <Card className="text-center py-16 pm-cream-card p-8">
+              <Card className="text-center py-16 pm-glass-card bg-white/85 backdrop-blur-xl border border-white/90 shadow-sm text-[#0e1b33] p-8">
                 <div className="w-14 h-14 bg-black/5 rounded-2xl flex items-center justify-center mx-auto mb-3 text-[#C5A059]">
                   <FileText size={24} />
                 </div>
@@ -1718,7 +2068,7 @@ export function Profile() {
                     <Card
                       key={sub.id}
                       onClick={() => setSelectedSubForModal(sub)}
-                      className="p-5 transition hover:border-[#C5A059]/40 hover:shadow-md cursor-pointer space-y-3 pm-cream-card"
+                      className="p-5 transition hover:border-[#C5A059]/40 hover:shadow-md cursor-pointer space-y-3 pm-glass-card bg-white/85 backdrop-blur-xl border border-white/90 shadow-sm text-[#0e1b33]"
                     >
                       <div className="flex flex-wrap items-start justify-between gap-3">
                         <div className="space-y-1 min-w-0 flex-1">
@@ -1816,7 +2166,7 @@ export function Profile() {
         )}
 
         {tab === 'Pixel History' && (
-          <Card className="overflow-hidden pm-cream-card">
+          <Card className="overflow-hidden pm-glass-card bg-white/85 backdrop-blur-xl border border-white/90 shadow-sm text-[#0e1b33]">
             <div className="border-b border-black/8 p-4 font-bold text-sm text-[#16171D] flex justify-between items-center">
               <span>Pixel Transaction Ledger</span>
               <span className="text-xs font-bold text-[#C5A059]">Current Balance: {userPixels} Pixels</span>
@@ -1877,7 +2227,7 @@ export function Profile() {
               '7-Day Streak Active',
               'Pixel Master Tier'
             ].map((a) => (
-              <Card key={a} className="flex items-center gap-3.5 p-4 pm-cream-card">
+              <Card key={a} className="flex items-center gap-3.5 p-4 pm-glass-card bg-white/85 backdrop-blur-xl border border-white/90 shadow-sm text-[#0e1b33]">
                 <div className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-[#16171D] text-[#DFB76C] shadow-sm">
                   <Award size={19} />
                 </div>
@@ -1890,7 +2240,7 @@ export function Profile() {
         {tab === 'Settings' && (
           <div className="space-y-6">
             {/* Academic & Profile Details Card */}
-            <Card className="p-6 pm-cream-card">
+            <Card className="p-6 pm-glass-card bg-white/85 backdrop-blur-xl border border-white/90 shadow-sm text-[#0e1b33]">
               <h2 className="text-sm font-bold text-[#16171D] uppercase tracking-wider mb-4 flex items-center gap-2">
                 <GraduationCap size={16} className="text-[#C5A059]" />
                 Profile &amp; Academic Information
@@ -1981,7 +2331,7 @@ export function Profile() {
             </Card>
 
             {/* Change Password Card */}
-            <Card className="p-6 pm-cream-card">
+            <Card className="p-6 pm-glass-card bg-white/85 backdrop-blur-xl border border-white/90 shadow-sm text-[#0e1b33]">
               <h2 className="text-sm font-bold text-[#16171D] uppercase tracking-wider mb-2 flex items-center gap-2">
                 <Lock size={16} className="text-[#C5A059]" />
                 Change Password
@@ -2061,7 +2411,7 @@ const FormField = ({ label, children, required = false }: any) => (
 );
 
 const SectionCard = ({ title: cardTitle, children }: any) => (
-  <Card className="p-5 sm:p-6 pm-cream-card space-y-4">
+  <Card className="p-5 sm:p-6 pm-glass-card bg-white/85 backdrop-blur-xl border border-white/90 shadow-sm text-[#0e1b33] space-y-4">
     <h2 className="font-['Outfit',sans-serif] text-sm font-bold text-[#16171D] uppercase tracking-wider">{cardTitle}</h2>
     <div className="grid gap-4 sm:grid-cols-2">{children}</div>
   </Card>
@@ -2347,6 +2697,7 @@ export function Submit() {
 const adminTabs: [string, any][] = [
   ['Overview', LayoutGrid],
   ['Submissions', ClipboardList],
+  ['Reports & Moderation', AlertCircle],
   ['Opportunities', FileText],
   ['Community Posts', MessageSquare],
   ['Announcements', Megaphone],
@@ -2782,7 +3133,7 @@ const AdminCMS = ({ allOppsList, loadData }: any) => {
         </div>
       </div>
 
-      <Card className="overflow-hidden pm-cream-card">
+      <Card className="overflow-hidden pm-glass-card bg-white/85 backdrop-blur-xl border border-white/90 shadow-sm text-[#0e1b33]">
         <div className="overflow-x-auto">
           <table className="w-full min-w-[700px] text-left text-xs">
             <thead className="bg-slate-50 text-slate-500 font-bold uppercase tracking-wider border-b border-slate-100">
@@ -2903,9 +3254,14 @@ export function Admin() {
   const [notifType, setNotifType] = useState<'system' | 'announcement' | 'opportunity' | 'offer' | 'reminder'>('system');
   const [sendingNotif, setSendingNotif] = useState(false);
 
+  // Dedicated Reports & Moderation State
+  const [reportsList, setReportsList] = useState<ReportItem[]>([]);
+  const [reportFilter, setReportFilter] = useState<'all' | 'pending' | 'opportunity' | 'post' | 'resolved'>('all');
+  const [resolvingReportId, setResolvingReportId] = useState<string | null>(null);
+
   const loadData = async () => {
     try {
-      const [pending, all, uList, posts, anns, logs, config, notifs] = await Promise.all([
+      const [pending, all, uList, posts, anns, logs, config, notifs, reports] = await Promise.all([
         getPendingSubmissions().catch((err) => { console.warn('Pending submissions load error:', err); return []; }),
         getAllOpportunities().catch((err) => { console.warn('All opps load error:', err); return []; }),
         getAllUsersAdmin().catch((err) => { console.warn('Users load error:', err); return []; }),
@@ -2913,7 +3269,8 @@ export function Admin() {
         getAnnouncements(false).catch((err) => { console.warn('Announcements load error:', err); return []; }),
         getAuditLogs(50).catch((err) => { console.warn('Audit logs load error:', err); return []; }),
         getRewardConfig().catch((err) => { console.warn('Reward config load error:', err); return DEFAULT_REWARD_CONFIG; }),
-        getAdminSentNotifications().catch((err) => { console.warn('Admin notifications load error:', err); return []; })
+        getAdminSentNotifications().catch((err) => { console.warn('Admin notifications load error:', err); return []; }),
+        getAllReports().catch((err) => { console.warn('Reports load error:', err); return []; })
       ]);
       setPendingOpps(pending);
       setAllOppsList(all);
@@ -2923,6 +3280,7 @@ export function Admin() {
       setAuditLogs(logs);
       setRewardConfig(config);
       setAdminNotifications(notifs);
+      setReportsList(reports);
     } catch (err) {
       console.error('Failed to load admin data:', err);
     }
@@ -3187,6 +3545,59 @@ export function Admin() {
     }
   };
 
+  const handleResolveReport = async (reportId: string, notes?: string) => {
+    setResolvingReportId(reportId);
+    try {
+      await resolveReport(reportId, notes || 'Verified and marked resolved by Admin', {
+        uid: user?.uid || 'admin',
+        email: user?.email || 'admin@pixelminds.org'
+      });
+      say('Report marked as resolved');
+      const updated = await getAllReports();
+      setReportsList(updated);
+    } catch (err: any) {
+      say(err?.message || 'Failed to resolve report');
+    } finally {
+      setResolvingReportId(null);
+    }
+  };
+
+  const handleDismissReport = async (reportId: string) => {
+    setResolvingReportId(reportId);
+    try {
+      await dismissReport(reportId, {
+        uid: user?.uid || 'admin',
+        email: user?.email || 'admin@pixelminds.org'
+      });
+      say('Report dismissed');
+      const updated = await getAllReports();
+      setReportsList(updated);
+    } catch (err: any) {
+      say(err?.message || 'Failed to dismiss report');
+    } finally {
+      setResolvingReportId(null);
+    }
+  };
+
+  const handleDeleteReportedItem = async (report: ReportItem) => {
+    if (!confirm(`Are you sure you want to permanently delete this reported ${report.targetType}? This will delete the content from the website immediately.`)) return;
+    setResolvingReportId(report.id);
+    try {
+      await deleteReportedItem(report.id, report.targetType, report.targetId, {
+        uid: user?.uid || 'admin',
+        email: user?.email || 'admin@pixelminds.org'
+      });
+      say(`Reported ${report.targetType} deleted permanently and report resolved`);
+      loadData();
+      const updated = await getAllReports();
+      setReportsList(updated);
+    } catch (err: any) {
+      say(err?.message || 'Failed to delete reported item');
+    } finally {
+      setResolvingReportId(null);
+    }
+  };
+
   // Real dashboard metrics
   const totalViews = allOppsList.reduce((acc, o) => acc + (o.views || 0), 0);
   const totalApplyClicks = allOppsList.reduce((acc, o) => acc + (o.applyClicks || 0), 0);
@@ -3216,6 +3627,11 @@ export function Admin() {
                   {pendingOpps.length}
                 </span>
               )}
+              {n === 'Reports & Moderation' && reportsList.filter(r => r.status === 'pending').length > 0 && (
+                <span className="ml-auto rounded-full bg-rose-500 px-2 py-0.5 text-[10px] font-bold text-white">
+                  {reportsList.filter(r => r.status === 'pending').length}
+                </span>
+              )}
             </button>
           );
         })}
@@ -3223,11 +3639,21 @@ export function Admin() {
 
       {/* Admin Panel Body */}
       <section className="min-w-0 space-y-6">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between flex-wrap gap-2">
           <h1 className="font-['Outfit',sans-serif] text-2xl font-extrabold text-[#16171D]">{t}</h1>
-          <Badge className="bg-[#16171D] text-[#DFB76C] font-bold border-white/10 !rounded-full !px-3.5 !py-1">
-            <ShieldCheck size={13} className="mr-1.5 inline text-[#C5A059]" /> Admin Control Active
-          </Badge>
+          <div className="flex items-center gap-2">
+            <Link
+              to="/"
+              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold bg-white/80 hover:bg-white text-slate-700 hover:text-blue-600 border border-slate-200/80 shadow-2xs transition"
+              title="Return to public website"
+            >
+              <ArrowLeft size={13} />
+              <span>Back to Home</span>
+            </Link>
+            <Badge className="bg-[#16171D] text-[#DFB76C] font-bold border-white/10 !rounded-full !px-3.5 !py-1">
+              <ShieldCheck size={13} className="mr-1.5 inline text-[#C5A059]" /> Admin Control Active
+            </Badge>
+          </div>
         </div>
 
         {/* OVERVIEW TAB */}
@@ -3244,14 +3670,14 @@ export function Admin() {
                 ['Community Posts', communityPosts.length.toString()],
                 ['Active Announcements', announcements.filter(a => a.status === 'published').length.toString()]
               ].map(([l, v]) => (
-                <Card key={l as string} className="p-4 pm-cream-card">
+                <Card key={l as string} className="p-4 pm-glass-card bg-white/85 backdrop-blur-xl border border-white/90 shadow-sm text-[#0e1b33]">
                   <p className="text-[10px] font-bold text-[#8C827A] uppercase tracking-wider">{l}</p>
                   <p className="mt-1 font-['Outfit',sans-serif] text-2xl font-extrabold text-[#16171D]">{v}</p>
                 </Card>
               ))}
             </div>
 
-            <Card className="overflow-hidden pm-cream-card">
+            <Card className="overflow-hidden pm-glass-card bg-white/85 backdrop-blur-xl border border-white/90 shadow-sm text-[#0e1b33]">
               <div className="border-b border-black/8 p-4 font-bold text-sm text-[#16171D] flex justify-between items-center">
                 <span>Pending Community Submissions</span>
                 <span className="text-xs font-semibold text-[#8C827A]">{pendingOpps.length} awaiting review</span>
@@ -3364,6 +3790,200 @@ export function Admin() {
           </Card>
         )}
 
+        {/* REPORTS & MODERATION TAB */}
+        {t === 'Reports & Moderation' && (() => {
+          const filteredReports = reportsList.filter((r) => {
+            if (reportFilter === 'pending') return r.status === 'pending';
+            if (reportFilter === 'opportunity') return r.targetType === 'opportunity';
+            if (reportFilter === 'post') return r.targetType === 'post';
+            if (reportFilter === 'resolved') return r.status === 'resolved' || r.status === 'dismissed';
+            return true;
+          });
+
+          return (
+            <div className="space-y-4">
+              <div className="bg-slate-50/70 p-4 rounded-2xl border border-slate-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                  <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                    <Flag size={16} className="text-rose-500" />
+                    Reports &amp; Community Moderation
+                  </h3>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Inspect user-flagged opportunities and community feed posts. Verify legitimacy, delete offending items, or dismiss false reports.
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-bold px-3 py-1 rounded-full bg-rose-50 text-rose-600 border border-rose-200">
+                    {reportsList.filter(r => r.status === 'pending').length} Awaiting Action
+                  </span>
+                </div>
+              </div>
+
+              {/* Filter Tabs */}
+              <div className="flex flex-wrap items-center gap-2">
+                {[
+                  { id: 'all', label: `All Reports (${reportsList.length})` },
+                  { id: 'pending', label: `Pending (${reportsList.filter(r => r.status === 'pending').length})` },
+                  { id: 'opportunity', label: `Opportunities (${reportsList.filter(r => r.targetType === 'opportunity').length})` },
+                  { id: 'post', label: `Feed Posts (${reportsList.filter(r => r.targetType === 'post').length})` },
+                  { id: 'resolved', label: `Resolved (${reportsList.filter(r => r.status === 'resolved' || r.status === 'dismissed').length})` }
+                ].map((f) => (
+                  <button
+                    key={f.id}
+                    onClick={() => setReportFilter(f.id as any)}
+                    className={`px-3 py-1.5 rounded-full text-xs font-bold transition cursor-pointer ${
+                      reportFilter === f.id
+                        ? 'bg-blue-600 text-white shadow-xs'
+                        : 'bg-white/80 text-slate-600 border border-slate-200/80 hover:bg-slate-100'
+                    }`}
+                  >
+                    {f.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* Reports List */}
+              <div className="space-y-3">
+                {filteredReports.map((report) => {
+                  const isPending = report.status === 'pending';
+                  const isOpportunity = report.targetType === 'opportunity';
+                  const isResolving = resolvingReportId === report.id;
+
+                  return (
+                    <Card key={report.id} className="p-4 pm-glass-card bg-white/90 border border-white/90 shadow-xs space-y-3">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-2.5">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[11px] font-bold border ${
+                            isOpportunity
+                              ? 'bg-sky-50 text-sky-700 border-sky-200'
+                              : 'bg-indigo-50 text-indigo-700 border-indigo-200'
+                          }`}>
+                            {isOpportunity ? <FileText size={11} /> : <MessageSquare size={11} />}
+                            {isOpportunity ? 'Opportunity' : 'Community Post'}
+                          </span>
+
+                          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold capitalize border ${
+                            report.status === 'pending'
+                              ? 'bg-amber-50 text-amber-700 border-amber-200'
+                              : report.status === 'resolved'
+                              ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                              : 'bg-slate-50 text-slate-600 border-slate-200'
+                          }`}>
+                            {report.status === 'pending' ? <Clock size={10} /> : report.status === 'resolved' ? <CheckCircle2 size={10} /> : <XCircle size={10} />}
+                            {report.status}
+                          </span>
+
+                          <span className="text-[11px] text-slate-400">
+                            Reported on {new Date(report.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                          </span>
+                        </div>
+
+                        <div className="text-[11px] text-slate-500 font-medium">
+                          Reported by: <span className="font-semibold text-slate-800">{report.reporterEmail || report.reporterId || 'Anonymous'}</span>
+                        </div>
+                      </div>
+
+                      {/* Reason & Content */}
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-bold text-slate-700">Flagged Reason:</span>
+                          <span className="text-xs font-bold text-rose-600 bg-rose-50 px-2 py-0.5 rounded border border-rose-200">
+                            {report.reason}
+                          </span>
+                        </div>
+
+                        {report.details && (
+                          <div className="text-xs text-slate-600 bg-slate-50 p-2.5 rounded-xl border border-slate-200/60">
+                            <span className="font-bold text-slate-700 block text-[11px] mb-0.5">Reporter Context / Explanation:</span>
+                            {report.details}
+                          </div>
+                        )}
+
+                        {/* Reported Item Details */}
+                        <div className="rounded-xl border border-blue-100 bg-blue-50/40 p-3 text-xs space-y-1">
+                          <div className="font-bold text-slate-800 flex items-center justify-between">
+                            <span>Item Identifier: <span className="font-mono text-[11px] text-blue-700 font-semibold">{report.targetId}</span></span>
+                            {isOpportunity && (
+                              <Link
+                                to={`/opportunities/${report.targetId}`}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="text-blue-600 hover:underline inline-flex items-center gap-1 font-semibold text-[11px]"
+                              >
+                                View Live Opportunity <ExternalLink size={11} />
+                              </Link>
+                            )}
+                          </div>
+                          {report.targetTitle && (
+                            <p className="text-slate-700 font-semibold">
+                              Target: <span className="font-bold text-slate-900">{report.targetTitle}</span>
+                            </p>
+                          )}
+                          {report.targetSnippet && (
+                            <p className="text-slate-600 italic bg-white/70 p-2 rounded-lg border border-slate-200/50 mt-1">
+                              "{report.targetSnippet}"
+                            </p>
+                          )}
+                        </div>
+
+                        {report.notes && (
+                          <div className="text-xs text-slate-500 italic">
+                            Admin note: {report.notes}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Action Buttons for Pending Reports */}
+                      {isPending && (
+                        <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+                          <button
+                            type="button"
+                            disabled={isResolving}
+                            onClick={() => handleDismissReport(report.id)}
+                            className="px-3 py-1.5 rounded-xl text-xs font-bold border border-slate-200 text-slate-600 hover:bg-slate-100 transition disabled:opacity-50 cursor-pointer"
+                          >
+                            Dismiss Report
+                          </button>
+                          <button
+                            type="button"
+                            disabled={isResolving}
+                            onClick={() => handleResolveReport(report.id)}
+                            className="px-3 py-1.5 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs transition disabled:opacity-50 cursor-pointer inline-flex items-center gap-1.5"
+                          >
+                            <CheckCircle2 size={13} />
+                            Mark Resolved
+                          </button>
+                          <button
+                            type="button"
+                            disabled={isResolving}
+                            onClick={() => handleDeleteReportedItem(report)}
+                            className="px-3.5 py-1.5 rounded-xl text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white shadow-xs transition disabled:opacity-50 cursor-pointer inline-flex items-center gap-1.5"
+                          >
+                            <Trash2 size={13} />
+                            Verify &amp; Delete Content
+                          </button>
+                        </div>
+                      )}
+                    </Card>
+                  );
+                })}
+
+                {filteredReports.length === 0 && (
+                  <Card className="p-10 text-center text-slate-400">
+                    <div className="flex flex-col items-center justify-center space-y-2">
+                      <div className="grid h-12 w-12 place-items-center rounded-2xl bg-emerald-50 text-emerald-600">
+                        <CheckCircle2 size={24} />
+                      </div>
+                      <p className="text-sm font-bold text-slate-700">No reports in this view</p>
+                      <p className="text-xs text-slate-400">All community submissions and opportunities are currently in good standing.</p>
+                    </div>
+                  </Card>
+                )}
+              </div>
+            </div>
+          );
+        })()}
+
         {/* OPPORTUNITIES CMS TAB */}
         {t === 'Opportunities' && (
           <AdminCMS allOppsList={allOppsList} loadData={loadData} />
@@ -3384,7 +4004,7 @@ export function Admin() {
             </div>
 
             {showCreatePost && (
-              <Card className="p-5 pm-cream-card">
+              <Card className="p-5 pm-glass-card bg-white/85 backdrop-blur-xl border border-white/90 shadow-sm text-[#0e1b33]">
                 <form onSubmit={handleCreatePost} className="space-y-3">
                   <h4 className="font-bold text-xs uppercase tracking-wider text-[#16171D]">New Admin Post</h4>
                   <div>
@@ -3479,7 +4099,7 @@ export function Admin() {
             </div>
 
             {showCreateAnnouncement && (
-              <Card className="p-5 pm-cream-card">
+              <Card className="p-5 pm-glass-card bg-white/85 backdrop-blur-xl border border-white/90 shadow-sm text-[#0e1b33]">
                 <form onSubmit={handleCreateAnnouncement} className="space-y-4">
                   <div className="flex items-center justify-between border-b border-black/8 pb-2">
                     <h4 className="font-bold text-xs uppercase tracking-wider text-[#16171D]">New Website Announcement</h4>
@@ -3669,7 +4289,7 @@ export function Admin() {
             </div>
 
             {showCreateNotif && (
-              <Card className="p-5 pm-cream-card">
+              <Card className="p-5 pm-glass-card bg-white/85 backdrop-blur-xl border border-white/90 shadow-sm text-[#0e1b33]">
                 <form onSubmit={handleSendAdminNotification} className="space-y-4">
                   <div className="flex items-center justify-between border-b border-black/8 pb-2">
                     <h4 className="font-bold text-xs uppercase tracking-wider text-[#16171D]">Compose Notification</h4>
@@ -3925,7 +4545,7 @@ export function Admin() {
             {/* Pixel Adjustment Modal Dialog */}
             {selectedUserForPixel && (
               <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-md flex items-center justify-center p-4">
-                <Card className="max-w-md w-full p-6 space-y-4 shadow-2xl pm-cream-card">
+                <Card className="max-w-md w-full p-6 space-y-4 shadow-2xl pm-glass-card bg-white/85 backdrop-blur-xl border border-white/90 shadow-sm text-[#0e1b33]">
                   <div className="flex items-center justify-between border-b border-black/8 pb-3">
                     <h3 className="font-['Outfit',sans-serif] font-bold text-sm text-[#16171D]">Adjust Pixels for {selectedUserForPixel.displayName}</h3>
                     <button onClick={() => setSelectedUserForPixel(null)} className="text-[#8C827A] hover:text-[#16171D] font-bold text-base cursor-pointer">✕</button>
@@ -3971,7 +4591,7 @@ export function Admin() {
               <p className="text-xs text-[#7D756C]">All components dynamically reference these Firestore values for rewarding actions across the website</p>
             </div>
 
-            <Card className="p-6 pm-cream-card">
+            <Card className="p-6 pm-glass-card bg-white/85 backdrop-blur-xl border border-white/90 shadow-sm text-[#0e1b33]">
               <form onSubmit={handleSaveRewardConfig} className="space-y-4 max-w-lg">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
@@ -4047,7 +4667,7 @@ export function Admin() {
               <p className="text-xs text-[#7D756C]">Immutable chronological history of all administrative operations, target entities, and value updates</p>
             </div>
 
-            <Card className="overflow-hidden pm-cream-card">
+            <Card className="overflow-hidden pm-glass-card bg-white/85 backdrop-blur-xl border border-white/90 shadow-sm text-[#0e1b33]">
               <div className="overflow-x-auto">
                 <table className="w-full min-w-[650px] text-left text-xs">
                   <thead className="bg-black/[0.02] text-[#8C827A] font-bold uppercase tracking-wider border-b border-black/8">

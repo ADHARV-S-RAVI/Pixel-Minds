@@ -12,7 +12,8 @@ export const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ childr
   }
 
   if (!currentUser) {
-    return <Navigate to="/login" state={{ from: location }} replace />;
+    const redirectUrl = location.pathname + location.search;
+    return <Navigate to={`/login?redirect=${encodeURIComponent(redirectUrl)}&msg=${encodeURIComponent('Please sign up or log in to continue.')}`} state={{ from: location }} replace />;
   }
 
   // Handle suspended user account

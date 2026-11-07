@@ -30,5 +30,6 @@
   "28": "devDependencies",
   "29": "audit-test.mjs",
   "30": "GooeyNav.tsx",
-  "31": "2. Features Inspected & Audit Findings"
+  "31": "2. Features Inspected & Audit Findings",
+  "32": "src/ui.tsx"
 }

@@ -96,7 +96,7 @@ export const AnnouncementModal: FC = () => {
         }
       }}
     >
-      <div className="relative w-full max-w-lg overflow-hidden rounded-3xl bg-[#141418]/95 backdrop-blur-2xl shadow-2xl border border-white/15 text-white transition-all transform animate-in zoom-in-95 duration-200">
+      <div className="relative w-full max-w-lg overflow-hidden rounded-3xl bg-[#11243D]/95 backdrop-blur-2xl shadow-2xl border border-sky-500/20 text-white transition-all transform animate-in zoom-in-95 duration-200">
         {/* Top-right close button (always on top, does not trigger navigation) */}
         <button
           onClick={(e) => {
@@ -136,13 +136,13 @@ export const AnnouncementModal: FC = () => {
           </div>
         ) : (
           /* Subtle Champagne Gold Bar when no image */
-          <div className="h-2 bg-gradient-to-r from-[#DFB76C] via-[#C5A059] to-[#997D46]" />
+          <div className="h-2 bg-gradient-to-r from-sky-400 via-blue-500 to-indigo-600" />
         )}
 
         <div className="p-6 sm:p-7">
           {/* Badge */}
-          <div className="inline-flex items-center gap-1.5 rounded-full bg-[#DFB76C]/15 border border-[#DFB76C]/30 px-3 py-1 text-[11px] font-bold text-[#DFB76C] mb-3">
-            <Megaphone size={13} className="text-[#DFB76C]" />
+          <div className="inline-flex items-center gap-1.5 rounded-full bg-sky-500/15 border border-sky-500/30 px-3 py-1 text-[11px] font-bold text-sky-300 mb-3">
+            <Megaphone size={13} className="text-sky-300" />
             <span>Community Announcement</span>
           </div>
 
@@ -165,7 +165,7 @@ export const AnnouncementModal: FC = () => {
               <button
                 type="button"
                 onClick={handleNavigateDestination}
-                className="inline-flex min-h-9 items-center justify-center gap-1.5 rounded-full bg-gradient-to-r from-[#C5A059] to-[#DFB76C] hover:brightness-105 active:scale-[0.98] px-5 py-2 text-xs font-bold text-zinc-950 shadow-sm transition cursor-pointer"
+                className="inline-flex min-h-9 items-center justify-center gap-1.5 rounded-full bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-400 hover:to-blue-500 text-white shadow-md shadow-sky-500/20 px-5 py-2 text-xs font-bold shadow-sm transition cursor-pointer"
               >
                 <span>{announcement.ctaText || 'Learn More'}</span>
                 {isExternal ? <ExternalLink size={13} /> : null}

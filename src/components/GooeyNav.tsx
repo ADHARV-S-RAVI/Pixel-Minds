@@ -2,13 +2,15 @@ import React, { useEffect, useLayoutEffect, useRef, useMemo } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import {
   Home,
-  Trophy,
   MessageSquare,
+  Trophy,
+  Rocket,
+  Briefcase,
   BarChart2,
   Bookmark,
   FileText,
-  Bell,
 } from 'lucide-react';
+import { useTheme } from '../contexts/ThemeContext';
 import './GooeyNav.css';
 
 const useIsomorphicLayoutEffect = typeof window === 'undefined' ? useEffect : useLayoutEffect;
@@ -224,21 +226,22 @@ export interface NavItemDef {
 
 const PRIMARY_ITEMS: NavItemDef[] = [
   { to: '/', label: 'Home', icon: Home, exact: true },
-  { to: '/opportunities', label: 'Opportunities', icon: Trophy, exact: false },
   { to: '/feed', label: 'Feed', icon: MessageSquare, exact: false },
+  { to: '/opportunities', label: 'Opportunities', icon: Trophy, exact: false },
+  { to: '/opportunities?cat=Hackathons', label: 'Hackathons', icon: Rocket, exact: false },
+  { to: '/opportunities?cat=Internships', label: 'Internships', icon: Briefcase, exact: false },
   { to: '/leaderboard', label: 'Leaderboard', icon: BarChart2, exact: false },
 ];
 
 const SECONDARY_ITEMS: NavItemDef[] = [
   { to: '/opportunities?saved=true', label: 'Bookmarks', icon: Bookmark, exact: false, isSemibold: true },
   { to: '/profile?tab=applications', label: 'My Applications', icon: FileText, exact: false, isSemibold: true },
-  { to: '/profile?tab=notifications', label: 'Notifications', icon: Bell, exact: false, isSemibold: true },
 ];
 
 function getSidebarActiveIndex(items: NavItemDef[], pathname: string, search: string): number {
   const fullPath = pathname + search;
 
-  // 1. Check exact match with search parameters (e.g. /opportunities?saved=true)
+  // 1. Check exact match with search parameters (e.g. /opportunities?cat=Hackathons, /opportunities?saved=true)
   for (let i = 0; i < items.length; i++) {
     if (items[i].to.includes('?') && items[i].to === fullPath) {
       return i;
@@ -251,15 +254,20 @@ function getSidebarActiveIndex(items: NavItemDef[], pathname: string, search: st
     if (item.to.includes('?')) continue;
 
     if (item.exact) {
-      if (pathname === item.to) return i;
+      if (pathname === item.to && !search) return i;
     } else {
-      if (item.to === '/opportunities' && search.includes('saved=true')) {
+      if (item.to === '/opportunities' && (search.includes('saved=true') || search.includes('cat='))) {
         continue;
       }
       if (pathname === item.to || pathname.startsWith(item.to + '/')) {
         return i;
       }
     }
+  }
+
+  if (pathname === '/opportunities') {
+    const oppIdx = items.findIndex(item => item.to === '/opportunities');
+    if (oppIdx !== -1) return oppIdx;
   }
 
   return -1;
@@ -285,12 +293,18 @@ export const SidebarGooeyNav: React.FC = () => {
   const fallbackRef = useRef<HTMLSpanElement>(null);
   const engineRef = useRef<{ go: (index: number) => void; refresh: () => void } | null>(null);
 
+  const { theme } = useTheme();
+  const isDark = theme === 'dark';
+
   const indexRef = useRef(activeIndex);
   indexRef.current = activeIndex;
 
-  const pillColor = '#000000'; // Solid black (#000000)
-  const pillRgb = useMemo(() => parse(pillColor), []);
-  const tints = useMemo(() => ['#000000', '#0a0a0a', '#141414'].map(parse), []);
+  const pillColor = isDark ? '#2563EB' : '#0B1628';
+  const pillRgb = useMemo(() => parse(pillColor), [pillColor]);
+  const tints = useMemo(
+    () => (isDark ? ['#2563EB', '#38BDF8', '#1D4ED8'].map(parse) : ['#0B1628', '#11243D', '#162B45'].map(parse)),
+    [isDark]
+  );
 
   const settingsRef = useRef({
     animationTime: 580,
@@ -303,6 +317,15 @@ export const SidebarGooeyNav: React.FC = () => {
     tints,
     shadow: 0.25
   });
+
+  useEffect(() => {
+    settingsRef.current.pillRgb = pillRgb;
+    settingsRef.current.tints = tints;
+    if (fallbackRef.current) {
+      fallbackRef.current.style.background = pillColor;
+    }
+    engineRef.current?.refresh();
+  }, [pillRgb, tints, pillColor]);
 
   useIsomorphicLayoutEffect(() => {
     const stage = stageRef.current;
@@ -828,16 +851,15 @@ export const SidebarGooeyNav: React.FC = () => {
               <Link
                 to={item.to}
                 aria-current={activeIndex === i ? 'page' : undefined}
-                className={`flex items-center gap-3 px-3.5 py-2.5 rounded-2xl text-xs font-bold transition w-full select-none text-slate-600 ${activeIndex === i ? '' : 'hover:text-[#0e1b33] hover:bg-white/70'
-                  }`}
+                className={`flex items-center gap-3 px-3.5 py-2.5 rounded-2xl text-xs font-bold transition w-full select-none ${activeIndex === i ? 'text-white' : 'text-slate-900 dark:text-slate-100 hover:text-blue-600 dark:hover:text-white hover:bg-slate-100/80 dark:hover:bg-white/10'}`}
               >
-                <item.icon size={17} className="text-slate-500 shrink-0" />
+                <item.icon size={17} className="text-slate-700 dark:text-slate-300 shrink-0" />
                 <span>{item.label}</span>
               </Link>
             </li>
           ))}
 
-          <li key="divider" className="my-3 h-px bg-slate-300/40 w-full" aria-hidden="true" />
+          <li key="divider" className="my-3 h-px bg-slate-300/60 dark:bg-slate-700/60 w-full" aria-hidden="true" />
 
           {SECONDARY_ITEMS.map((item, i) => {
             const globalIndex = PRIMARY_ITEMS.length + i;
@@ -851,10 +873,9 @@ export const SidebarGooeyNav: React.FC = () => {
                 <Link
                   to={item.to}
                   aria-current={activeIndex === globalIndex ? 'page' : undefined}
-                  className={`flex items-center gap-3 px-3.5 py-2.5 rounded-2xl text-xs font-semibold transition w-full select-none text-slate-600 ${activeIndex === globalIndex ? '' : 'hover:text-[#0e1b33] hover:bg-white/70'
-                    }`}
+                  className={`flex items-center gap-3 px-3.5 py-2.5 rounded-2xl text-xs font-bold transition w-full select-none ${activeIndex === globalIndex ? 'text-white' : 'text-slate-900 dark:text-slate-100 hover:text-blue-600 dark:hover:text-white hover:bg-slate-100/80 dark:hover:bg-white/10'}`}
                 >
-                  <item.icon size={17} className="text-slate-500 shrink-0" />
+                  <item.icon size={17} className="text-slate-700 dark:text-slate-300 shrink-0" />
                   <span>{item.label}</span>
                 </Link>
               </li>

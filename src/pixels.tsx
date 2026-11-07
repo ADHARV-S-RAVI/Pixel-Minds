@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import type { FC } from 'react';
 import {
   Share2,
@@ -11,11 +11,13 @@ import {
   Minus,
   Crown,
   RotateCcw,
-  Sparkles
+  Sparkles,
+  Trophy
 } from 'lucide-react';
 import { Avatar } from './ui';
 import { PixelMark } from './components/PixelMark';
-import { users, moves, tierInfo, rankOf } from './data';
+import { tierInfo, rankOf } from './data';
+import { getLeaderboardUsers, type LeaderboardUserEntry } from './services/users';
 import { useAuth } from './contexts/AuthContext';
 import { getUserReferrals } from './services/referrals';
 import type { Referral } from './types';
@@ -59,21 +61,21 @@ const evts: [number, string][] = [
 ];
 
 const Bar: FC<{ pct: number; on: boolean }> = ({ pct, on }) => (
-  <div className="h-2.5 overflow-hidden rounded-full bg-white/10">
+  <div className="h-2.5 overflow-hidden rounded-full bg-slate-200/80">
     <div
       style={{ width: on ? pct + '%' : '0%' }}
-      className="h-full rounded-full bg-gradient-to-r from-[#DFB76C] via-[#C5A059] to-[#997D46] transition-[width] duration-1000 ease-out shadow-[0_0_12px_rgba(212,175,55,0.4)]"
+      className="h-full rounded-full bg-gradient-to-r from-sky-400 via-blue-500 to-indigo-600 transition-[width] duration-1000 ease-out shadow-[0_0_10px_rgba(37,99,235,0.3)]"
     />
   </div>
 );
 
 const Delta: FC<{ d: number }> = ({ d }) =>
   d === 0 ? (
-    <span className="flex items-center text-xs font-semibold text-zinc-500">
+    <span className="flex items-center text-xs font-semibold text-slate-400">
       <Minus size={12} />
     </span>
   ) : (
-    <span className={`flex items-center text-xs font-bold ${d > 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+    <span className={`flex items-center text-xs font-bold ${d > 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
       {d > 0 ? <ArrowUp size={12} /> : <ArrowDown size={12} />}
       {Math.abs(d)}
     </span>
@@ -97,14 +99,14 @@ export function PixelGrid({ pct }: { pct: number }) {
               style={on ? { animationDelay: `${i * 20}ms` } : undefined}
               className={`aspect-square rounded-[4px] sm:rounded-md transition-all duration-300 ${
                 on
-                  ? 'pm-light bg-gradient-to-br from-[#DFB76C] to-[#C5A059] shadow-[0_0_8px_rgba(223,183,108,0.5)] hover:scale-110'
-                  : 'bg-white/5 border border-white/8 hover:bg-white/10'
+                  ? 'pm-light bg-gradient-to-br from-sky-400 to-blue-600 shadow-[0_0_8px_rgba(56,189,248,0.5)] hover:scale-110'
+                  : 'bg-slate-200/70 border border-slate-300/50 hover:bg-slate-300/80'
               }`}
             />
           );
         })}
       </div>
-      <p className="mt-3 h-5 text-xs font-semibold text-zinc-400">
+      <p className="mt-3 h-5 text-xs font-semibold text-slate-500">
         {h || `${lit} of 80 Pixels illuminated toward your next rank`}
       </p>
     </div>
@@ -163,24 +165,24 @@ export function ReferralPanel() {
           ['Successful Joined', joinedCount, ''],
           ['Pixels Earned', pixelsEarned, '+']
         ].map(([l, v, p]) => (
-          <div key={l as string} className="rounded-2xl bg-[#141418]/90 backdrop-blur-xl border border-white/12 p-4 text-center shadow-lg text-white">
-            <p className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-[#DFB76C] to-[#C5A059] sm:text-3xl">
+          <div key={l as string} className="rounded-2xl pm-glass-card bg-white/80 backdrop-blur-xl border border-white/90 p-4 text-center shadow-xs text-[#0e1b33]">
+            <p className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-sky-500 sm:text-3xl">
               <Count n={v as number} pre={p as string} />
             </p>
-            <p className="mt-1 text-xs font-semibold text-zinc-400">{l}</p>
+            <p className="mt-1 text-xs font-semibold text-slate-500">{l}</p>
           </div>
         ))}
       </div>
 
-      <div className="rounded-3xl bg-[#141418]/90 backdrop-blur-xl border border-white/12 p-5 sm:p-6 shadow-xl text-white">
+      <div className="rounded-3xl pm-glass-card bg-white/85 backdrop-blur-xl border border-white/90 p-5 sm:p-6 shadow-sm text-[#0e1b33]">
         <div className="flex items-center justify-between">
           <div>
-            <h3 className="font-bold text-white text-sm sm:text-base">Your Referral Journey</h3>
-            <p className="text-xs text-zinc-400 mt-0.5">How you earn Pixels by inviting friends</p>
+            <h3 className="font-bold text-[#0e1b33] text-sm sm:text-base">Your Referral Journey</h3>
+            <p className="text-xs text-slate-500 mt-0.5">How you earn Pixels by inviting friends</p>
           </div>
           <button
             onClick={() => setK(k + 1)}
-            className="inline-flex items-center gap-1.5 rounded-full bg-white/8 hover:bg-white/14 px-3 py-1.5 text-xs font-semibold text-zinc-300 hover:text-white transition cursor-pointer"
+            className="inline-flex items-center gap-1.5 rounded-full bg-white/80 hover:bg-white border border-slate-200/80 px-3 py-1.5 text-xs font-semibold text-slate-600 hover:text-blue-600 transition shadow-2xs cursor-pointer"
           >
             <RotateCcw size={13} />
             <span>Replay</span>
@@ -194,22 +196,22 @@ export function ReferralPanel() {
                 style={{ animationDelay: `${i * 350}ms` }}
                 className={`pm-in w-full flex-1 rounded-2xl border p-3.5 transition ${
                   i === 3
-                    ? 'border-[#DFB76C]/40 bg-gradient-to-br from-[#1C1C24] to-[#121218] text-white shadow-[0_0_20px_rgba(212,175,55,0.2)]'
-                    : 'border-white/10 bg-white/5'
+                    ? 'border-blue-400/60 bg-blue-50/80 text-blue-950 shadow-xs'
+                    : 'border-slate-200/70 bg-white/80'
                 }`}
               >
                 <span
                   className={`grid h-8 w-8 place-items-center rounded-xl ${
-                    i === 3 ? 'bg-[#DFB76C] text-zinc-950 shadow-xs' : 'bg-white/10 text-[#DFB76C] border border-white/10'
+                    i === 3 ? 'bg-blue-600 text-white shadow-xs' : 'bg-blue-100 text-blue-700 border border-blue-200/60'
                   }`}
                 >
                   <I size={16} />
                 </span>
-                <p className="mt-2 text-xs font-bold text-white">{t}</p>
-                <p className={`text-[11px] mt-0.5 ${i === 3 ? 'text-[#DFB76C]' : 'text-zinc-400'}`}>{d}</p>
+                <p className="mt-2 text-xs font-bold text-[#0e1b33]">{t}</p>
+                <p className={`text-[11px] mt-0.5 ${i === 3 ? 'text-blue-700 font-semibold' : 'text-slate-500'}`}>{d}</p>
               </div>
               {i < 3 && (
-                <span style={{ animationDelay: `${i * 350 + 200}ms` }} className="pm-in text-[#DFB76C]">
+                <span style={{ animationDelay: `${i * 350 + 200}ms` }} className="pm-in text-blue-500">
                   <ArrowRight size={16} className="hidden sm:block" />
                   <ArrowDown size={16} className="sm:hidden" />
                 </span>
@@ -219,22 +221,22 @@ export function ReferralPanel() {
         </ol>
       </div>
 
-      <div className="rounded-3xl bg-[#141418]/90 backdrop-blur-xl border border-white/12 shadow-xl overflow-hidden text-white">
-        <div className="border-b border-white/10 p-4 font-bold text-sm text-white">
+      <div className="rounded-3xl pm-glass-card bg-white/85 backdrop-blur-xl border border-white/90 shadow-sm overflow-hidden text-[#0e1b33]">
+        <div className="border-b border-slate-200/70 p-4 font-bold text-sm text-[#0e1b33]">
           Recent Referral Activity
         </div>
         {loading ? (
-          <div className="p-8 text-center text-xs text-zinc-400">Loading referral activity...</div>
+          <div className="p-8 text-center text-xs text-slate-400">Loading referral activity...</div>
         ) : referrals.length === 0 ? (
           <div className="p-8 text-center">
-            <UserPlus size={28} className="mx-auto text-zinc-600 mb-2" />
-            <p className="font-bold text-xs text-zinc-200">No referrals yet</p>
-            <p className="text-[11px] text-zinc-400 mt-1 max-w-sm mx-auto">
+            <UserPlus size={28} className="mx-auto text-slate-300 mb-2" />
+            <p className="font-bold text-xs text-slate-700">No referrals yet</p>
+            <p className="text-[11px] text-slate-500 mt-1 max-w-sm mx-auto">
               Share opportunities using your referral link to earn +25 Pixels when your friends sign up.
             </p>
           </div>
         ) : (
-          <ul className="divide-y divide-white/5">
+          <ul className="divide-y divide-slate-100">
             {referrals.map((refItem, i) => {
               const displayName = refItem.referredUserName || 'Member';
               const dateStr = new Date(refItem.createdAt).toLocaleDateString('en-IN', {
@@ -247,26 +249,26 @@ export function ReferralPanel() {
                 <li
                   key={refItem.id || i}
                   style={{ animationDelay: `${i * 60}ms` }}
-                  className="pm-in flex items-center gap-3 p-4 hover:bg-white/5 transition"
+                  className="pm-in flex items-center gap-3 p-4 hover:bg-blue-50/40 transition"
                 >
                   <Avatar name={displayName} photoURL={refItem.referredUserAvatar} size={36} />
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-xs font-bold text-white">
+                    <p className="truncate text-xs font-bold text-[#0e1b33]">
                       {refItem.opportunityTitle || 'Pixel Minds Invitation'}
                     </p>
-                    <p className="text-[11px] text-zinc-400">
+                    <p className="text-[11px] text-slate-500">
                       {displayName} · {dateStr}
                     </p>
                   </div>
                   <div className="text-right">
-                    <p className={`text-xs font-extrabold ${isCompleted ? 'text-[#DFB76C]' : 'text-zinc-400'}`}>
+                    <p className={`text-xs font-extrabold ${isCompleted ? 'text-blue-600' : 'text-slate-400'}`}>
                       +{refItem.pixelsRewarded || 25} Pixels
                     </p>
                     <span
                       className={`inline-block rounded-md px-2 py-0.5 text-[10px] font-semibold capitalize ${
                         isCompleted
-                          ? 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/30'
-                          : 'bg-amber-500/15 text-amber-300 border border-amber-500/30'
+                          ? 'bg-emerald-100 text-emerald-700 border border-emerald-200'
+                          : 'bg-amber-100 text-amber-700 border border-amber-200'
                       }`}
                     >
                       {refItem.status || 'Completed'}
@@ -286,10 +288,31 @@ export function Leaderboard() {
   const { userProfile, user } = useAuth();
   const [t, setT] = useState('Global');
   const [on, setOn] = useState(false);
+  const [leaderboardUsers, setLeaderboardUsers] = useState<LeaderboardUserEntry[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const id = setTimeout(() => setOn(true), 100);
     return () => clearTimeout(id);
+  }, []);
+
+  useEffect(() => {
+    let mounted = true;
+    setLoading(true);
+    getLeaderboardUsers(50)
+      .then((data) => {
+        if (mounted) {
+          setLeaderboardUsers(data);
+          setLoading(false);
+        }
+      })
+      .catch((err) => {
+        console.error('Failed to load leaderboard users:', err);
+        if (mounted) setLoading(false);
+      });
+    return () => {
+      mounted = false;
+    };
   }, []);
 
   const basePixels = userProfile?.pixels ?? 0;
@@ -297,31 +320,61 @@ export function Leaderboard() {
   const mine = basePixels;
   const ti = tierInfo(mine);
 
-  const list = users.map((u, i) => {
-    const isMe = i === 0;
-    const currentScore = isMe ? mine : u.pixels;
-    return {
-      ...u,
-      name: isMe && (userProfile?.displayName || user?.displayName) ? (userProfile?.displayName || user?.displayName)! : u.name,
-      pixels: Math.round(currentScore * k),
-      raw: currentScore,
-      mv: moves[i]
-    };
-  });
+  const list = useMemo(() => {
+    let pool = [...leaderboardUsers];
+
+    // If logged-in user is not in pool, add them so they can always view their rank
+    if (user?.uid && !pool.some((u) => u.id === user.uid)) {
+      pool.push({
+        id: user.uid,
+        rank: pool.length + 1,
+        name: userProfile?.displayName || user.displayName || 'You',
+        pixels: mine,
+        contribs: userProfile?.contributions || 0,
+        avatarUrl: userProfile?.photoURL || user.photoURL || undefined,
+        role: userProfile?.role || 'user'
+      });
+    }
+
+    // Sort descending by score
+    pool.sort((a, b) => {
+      const aScore = a.id === user?.uid ? mine : a.pixels;
+      const bScore = b.id === user?.uid ? mine : b.pixels;
+      return bScore - aScore;
+    });
+
+    return pool.map((u, i) => {
+      const isMe = user?.uid && u.id === user.uid;
+      const currentScore = isMe ? mine : u.pixels;
+      return {
+        ...u,
+        rank: i + 1,
+        name: isMe && (userProfile?.displayName || user?.displayName)
+          ? (userProfile?.displayName || user?.displayName)!
+          : u.name,
+        pixels: Math.round(currentScore * k),
+        raw: currentScore,
+        mv: 0,
+        avatarUrl: isMe ? (userProfile?.photoURL || user?.photoURL || u.avatarUrl) : u.avatarUrl
+      };
+    });
+  }, [leaderboardUsers, user?.uid, userProfile, mine, k]);
+
+  const myRank = user?.uid ? list.findIndex((u) => u.id === user.uid) + 1 : 0;
 
   return (
     <main className="mx-auto max-w-4xl space-y-6 px-4 py-8">
       <div>
-        <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-zinc-950">
+        <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-[#0e1b33]">
           Community Leaderboard
         </h1>
-        <p className="text-sm text-zinc-500 mt-1">
+        <p className="text-sm text-slate-600 mt-1">
           Discover opportunities, refer peers, earn Pixels and rise to Pixel Legend.
         </p>
       </div>
 
-      {/* User Pixel Balance Card in Dark Glassmorphism */}
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-b from-[#1C1C22]/95 to-[#121216]/98 backdrop-blur-2xl border border-white/12 p-6 sm:p-8 shadow-[0_20px_50px_-15px_rgba(0,0,0,0.5)] text-white">
+      {/* User Pixel Balance Card matching the frosted glass canvas theme */}
+      <div className="relative overflow-hidden rounded-3xl pm-glass-card bg-white/85 backdrop-blur-2xl border border-white/90 p-6 sm:p-8 shadow-sm text-[#0e1b33]">
         <div aria-hidden className="pointer-events-none absolute inset-0">
           {Array.from({ length: 14 }, (_, i) => (
             <i
@@ -333,38 +386,38 @@ export function Leaderboard() {
                 height: 6 + (i % 3) * 3,
                 animationDelay: `${i * 0.45}s`
               }}
-              className="pm-float absolute rounded-xs bg-[#DFB76C]/20 shadow-[0_0_6px_rgba(223,183,108,0.4)]"
+              className="pm-float absolute rounded-xs bg-blue-400/20 shadow-[0_0_6px_rgba(56,189,248,0.3)]"
             />
           ))}
         </div>
 
-        <div className="relative grid gap-6 md:grid-cols-2 items-center">
+        <div className="relative z-10 grid gap-6 md:grid-cols-2 items-center">
           <div>
-            <p className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-[#DFB76C]">
+            <p className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-blue-600">
               <PixelMark s={6} />
               <span>Your Pixel Balance</span>
             </p>
 
             <div className="relative mt-2 flex items-baseline gap-3">
-              <p className="text-5xl font-black tracking-tight text-white sm:text-6xl">
+              <p className="text-5xl font-black tracking-tight text-[#0e1b33] sm:text-6xl">
                 <Count n={mine} />
               </p>
-              <span className="text-sm font-bold text-zinc-400">Pixels</span>
+              <span className="text-sm font-bold text-slate-500">Pixels</span>
             </div>
 
             <div className="mt-3.5 flex flex-wrap items-center gap-2">
-              <span className="inline-flex items-center rounded-full bg-[#DFB76C]/15 border border-[#DFB76C]/30 px-3 py-1 text-xs font-bold text-[#DFB76C]">
-                Rank #{mine > 0 ? 1 : '—'}
+              <span className="inline-flex items-center rounded-full bg-blue-100/90 border border-blue-200/80 px-3 py-1 text-xs font-bold text-blue-700">
+                {myRank > 0 ? `Rank #${myRank}` : 'Rank #—'}
               </span>
-              <span className="inline-flex items-center rounded-full bg-white/10 border border-white/12 px-3 py-1 text-xs font-semibold text-zinc-200">
+              <span className="inline-flex items-center rounded-full bg-white/90 border border-slate-200/80 px-3 py-1 text-xs font-semibold text-slate-700 shadow-2xs">
                 {ti.name}
               </span>
             </div>
 
             <div className="mt-5">
               <div className="mb-1.5 flex justify-between text-xs font-semibold">
-                <span className="text-zinc-200">{ti.name}</span>
-                <span className="text-zinc-400">
+                <span className="text-slate-700">{ti.name}</span>
+                <span className="text-slate-500">
                   {ti.next ? `${ti.toGo.toLocaleString('en-IN')} Pixels to ${ti.next}` : 'Peak Rank Achieved 🏆'}
                 </span>
               </div>
@@ -372,7 +425,7 @@ export function Leaderboard() {
             </div>
           </div>
 
-          <div className="bg-white/5 p-4 rounded-2xl border border-white/10 backdrop-blur-md">
+          <div className="bg-white/60 p-4 rounded-2xl border border-white/80 backdrop-blur-md shadow-2xs">
             <PixelGrid pct={ti.pct} />
           </div>
         </div>
@@ -380,15 +433,15 @@ export function Leaderboard() {
 
       {/* Filter Tabs */}
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="inline-flex rounded-full border border-zinc-200/80 bg-white/80 p-1 shadow-xs backdrop-blur-md">
+        <div className="inline-flex rounded-full border border-white/90 bg-white/80 p-1 shadow-xs backdrop-blur-md">
           {['Global', 'Monthly', 'Weekly'].map((x) => (
             <button
               key={x}
               onClick={() => setT(x)}
               className={`rounded-full px-5 py-1.5 text-xs font-bold transition cursor-pointer ${
                 t === x
-                  ? 'bg-zinc-900 text-white shadow-xs'
-                  : 'text-zinc-600 hover:text-zinc-950 hover:bg-zinc-100'
+                  ? 'bg-[#112240] text-white shadow-xs'
+                  : 'text-slate-600 hover:text-[#0e1b33] hover:bg-white/80'
               }`}
             >
               {x}
@@ -396,85 +449,93 @@ export function Leaderboard() {
           ))}
         </div>
 
-        <div className="flex items-center gap-1.5 text-xs text-zinc-500 font-medium">
-          <Sparkles size={14} className="text-[#C5A059]" />
-          <span>Top builders receive exclusive Discord perks &amp; badges</span>
+        <div className="flex items-center gap-1.5 text-xs text-slate-500 font-medium">
+          <Sparkles size={14} className="text-blue-500" />
+          <span>Real-time platform activity</span>
         </div>
       </div>
 
       {/* Leaderboard List */}
-      <ul className="space-y-2.5">
-        {list.map((u, i) => {
-          const ui = tierInfo(u.raw);
-          const me = i === 0;
-          const top = i < 3;
-          return (
-            <li
-              key={u.rank}
-              style={{ animationDelay: `${i * 50}ms` }}
-              className={`pm-in flex items-center gap-3 rounded-2xl p-3.5 sm:gap-4 sm:p-4 transition ${
-                me
-                  ? 'bg-gradient-to-r from-[#1C1C22] to-[#141418] border border-[#DFB76C]/40 text-white shadow-lg ring-1 ring-[#DFB76C]/20'
-                  : top
-                  ? 'bg-gradient-to-r from-[#1C1C22]/95 to-[#16161C]/95 border border-white/12 text-white shadow-md'
-                  : 'bg-white/90 border border-zinc-200/80 text-zinc-900 shadow-xs hover:border-zinc-300'
-              }`}
-            >
-              <span
-                className={`grid h-9 w-9 shrink-0 place-items-center rounded-xl text-xs font-extrabold ${
-                  i === 0 
-                    ? 'bg-gradient-to-br from-[#DFB76C] to-[#997D46] text-zinc-950 shadow-[0_0_10px_rgba(212,175,55,0.4)]' 
-                    : i === 1
-                    ? 'bg-zinc-200 text-zinc-800 border border-zinc-300'
-                    : i === 2
-                    ? 'bg-amber-900/30 text-amber-300 border border-amber-700/40'
-                    : 'bg-zinc-100 text-zinc-600'
+      {loading ? (
+        <div className="space-y-3">
+          {[1, 2, 3, 4, 5].map((i) => (
+            <div key={i} className="h-16 rounded-2xl bg-white/60 animate-pulse border border-white/80" />
+          ))}
+        </div>
+      ) : list.length > 0 ? (
+        <ul className="space-y-2.5">
+          {list.map((u, i) => {
+            const ui = tierInfo(u.raw);
+            const me = user?.uid && u.id === user.uid;
+            const top = i < 3;
+            return (
+              <li
+                key={u.id || u.rank}
+                style={{ animationDelay: `${i * 50}ms` }}
+                className={`pm-in flex items-center gap-3 rounded-2xl p-3.5 sm:gap-4 sm:p-4 transition pm-glass-card ${
+                  me
+                    ? 'bg-gradient-to-r from-blue-50/95 via-sky-50/80 to-white/95 border-2 border-blue-400/60 text-[#0e1b33] shadow-md ring-1 ring-blue-400/20'
+                    : top
+                    ? 'bg-white/90 border border-blue-200/80 text-[#0e1b33] shadow-xs hover:border-blue-300'
+                    : 'bg-white/75 border border-white/90 text-[#0e1b33] shadow-2xs hover:border-blue-200'
                 }`}
               >
-                {i === 0 ? <Crown size={17} /> : u.rank}
-              </span>
+                <span
+                  className={`grid h-9 w-9 shrink-0 place-items-center rounded-xl text-xs font-extrabold ${
+                    i === 0 
+                      ? 'bg-gradient-to-br from-amber-400 to-amber-500 text-white shadow-xs' 
+                      : i === 1
+                      ? 'bg-slate-200 text-slate-800 border border-slate-300'
+                      : i === 2
+                      ? 'bg-amber-100 text-amber-800 border border-amber-300'
+                      : 'bg-slate-100 text-slate-600'
+                  }`}
+                >
+                  {i === 0 ? <Crown size={17} /> : u.rank}
+                </span>
 
-              <Avatar name={u.name} size={top ? 42 : 36} />
+                <Avatar name={u.name} photoURL={u.avatarUrl} size={top ? 42 : 36} />
 
-              <div className="min-w-0 flex-1">
-                <div className="flex flex-wrap items-center gap-x-2">
-                  <p className={`truncate text-xs sm:text-sm font-bold ${top ? 'text-white' : 'text-zinc-950'}`}>
-                    {u.name}
-                    {me && (
-                      <span className="ml-2 rounded-md bg-[#DFB76C] px-1.5 py-0.5 text-[10px] font-extrabold text-zinc-950">
-                        YOU
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-x-2">
+                    <p className="truncate text-xs sm:text-sm font-bold text-[#0e1b33]">
+                      {u.name}
+                      {me && (
+                        <span className="ml-2 rounded-md bg-blue-600 text-white px-1.5 py-0.5 text-[10px] font-extrabold shadow-2xs">
+                          YOU
+                        </span>
+                      )}
+                    </p>
+                    <span className="hidden sm:inline">
+                      <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full border bg-slate-100 border-slate-200/80 text-slate-600">
+                        {rankOf(u.raw)}
                       </span>
-                    )}
-                  </p>
-                  <span className="hidden sm:inline">
-                    <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${top ? 'bg-white/10 border-white/12 text-zinc-300' : 'bg-zinc-100 border-zinc-200 text-zinc-700'}`}>
-                      {rankOf(u.raw)}
                     </span>
-                  </span>
+                  </div>
+                  <div className="mt-1.5 max-w-xs">
+                    <Bar pct={ui.pct} on={on} />
+                  </div>
                 </div>
-                <div className="mt-1.5 max-w-xs">
-                  <Bar pct={ui.pct} on={on} />
-                </div>
-              </div>
 
-              <div className="text-right">
-                <p className={`text-sm font-black ${top ? 'text-[#DFB76C]' : 'text-zinc-950'}`}>
-                  <Count n={u.pixels} />
-                </p>
-                <div className="flex items-center justify-end gap-1 text-[10px] font-semibold text-zinc-400">
-                  Pixels <Delta d={u.mv} />
+                <div className="text-right">
+                  <p className="text-sm font-black text-blue-600">
+                    <Count n={u.pixels} />
+                  </p>
+                  <div className="flex items-center justify-end gap-1 text-[10px] font-semibold text-slate-400">
+                    Pixels <Delta d={u.mv} />
+                  </div>
                 </div>
-              </div>
-            </li>
-          );
-        })}
-      </ul>
-
-      {/* Referral journey section */}
-      <section className="pt-4">
-        <h2 className="mb-3 text-xl font-extrabold tracking-tight text-zinc-950">Referred by You</h2>
-        <ReferralPanel />
-      </section>
+              </li>
+            );
+          })}
+        </ul>
+      ) : (
+        <div className="rounded-3xl pm-glass-card bg-white/80 p-8 text-center text-slate-500 border border-white/90">
+          <Trophy size={32} className="mx-auto text-blue-500/60 mb-2" />
+          <p className="font-bold text-sm text-[#0e1b33]">No members on the leaderboard yet</p>
+          <p className="text-xs mt-1">Share opportunities, refer friends, and participate to claim the #1 spot!</p>
+        </div>
+      )}
     </main>
   );
 }

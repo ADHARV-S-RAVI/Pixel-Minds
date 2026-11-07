@@ -29,18 +29,23 @@ import {
   PenSquare,
   MessageSquare,
   Sun,
+  Moon,
   ChevronRight,
   Code2,
-  GraduationCap
+  GraduationCap,
+  Flag,
+  ShieldCheck
 } from 'lucide-react';
 import { opps } from './data';
 import type { Opp } from './data';
 import { AnnouncementModal } from './components/AnnouncementModal';
+import { ReportModal } from './components/ReportModal';
 import { SidebarGooeyNav } from './components/GooeyNav';
 import { grad, getCategoryMeta } from './utils/meta';
 import { useApp } from './store';
 import { NotificationBell } from './components/NotificationBell';
 import { useAuth } from './contexts/AuthContext';
+import { useTheme } from './contexts/ThemeContext';
 import { createCommunityPost, updateCommunityPost, deleteCommunityPost, formatTimeAgo } from './services/community';
 
 const cls = (v: string, c = '') =>
@@ -125,11 +130,11 @@ export const Avatar: FC<{ name?: string; size?: number; photoURL?: string; class
 
 export const Logo: FC<{ light?: boolean }> = ({ light = false }) => (
   <Link to="/" className="flex items-center gap-2.5 font-bold tracking-tight group shrink-0">
-    <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-md shadow-blue-500/20 text-white shrink-0 group-hover:scale-105 transition-transform">
-      <div className="h-4.5 w-4.5 rounded-md border-2 border-white flex items-center justify-center bg-blue-500/40">
-        <div className="h-1.5 w-1.5 rounded-xs bg-white" />
-      </div>
-    </div>
+    <img
+      src="/logo.png"
+      alt="Pixel Minds"
+      className="h-8 w-auto max-h-8 object-contain transition-transform group-hover:scale-105 shrink-0"
+    />
     <span className={`text-base font-extrabold tracking-tight ${light ? 'text-white' : 'text-[#0e1b33]'}`}>
       Pixel Minds
     </span>
@@ -190,78 +195,96 @@ export const ReferBtn: FC<{ title: string; path: string; className?: string }> =
 
 export const OppCard: FC<{ o: Opp; variant?: 'light' | 'dark' }> = ({ o, variant = 'light' }) => {
   const { saved, toggle } = useApp();
+  const [showReport, setShowReport] = useState(false);
   const on = saved.includes(String(o.id));
 
   // Dark variant matching reference "Featured Opportunity"
   if (variant === 'dark') {
     return (
-      <div className="group relative flex flex-col justify-between rounded-3xl pm-dark-featured p-5 sm:p-6 text-white shadow-xl transition-all duration-300 hover:shadow-2xl overflow-hidden min-h-[310px]">
+      <div className="group relative flex flex-col justify-between rounded-[28px] pm-glass-card border-2 border-blue-400/40 bg-white/85 backdrop-blur-2xl p-5 sm:p-6 text-[#0e1b33] shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden min-h-[310px]">
+        {/* Soft Ambient Sky-Blue Glow in Corner */}
+        <div className="pointer-events-none absolute -right-16 -top-16 h-40 w-40 rounded-full bg-blue-500/10 blur-2xl" />
+
         {/* Top Header */}
-        <div className="flex items-center justify-between gap-2 mb-3">
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 border border-white/15 px-3 py-1 text-xs font-semibold text-blue-200">
-            <Code2 size={13} className="text-blue-300" />
-            <span>{o.cat}</span>
+        <div className="flex items-center justify-between gap-2 mb-3 relative z-10">
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-blue-100/90 border border-blue-200/80 px-3 py-1 text-xs font-bold text-blue-700 shadow-2xs">
+            <Code2 size={13} className="text-blue-600" />
+            <span>Featured · {o.cat}</span>
           </span>
-          <button
-            aria-label={on ? 'Unsave' : 'Save'}
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              toggle(String(o.id));
-            }}
-            className="grid h-8 w-8 place-items-center rounded-full bg-white/10 hover:bg-white/20 border border-white/15 text-white transition shadow-xs cursor-pointer"
-          >
-            <Bookmark size={15} fill={on ? '#60a5fa' : 'none'} className={on ? 'text-blue-400' : 'text-white'} />
-          </button>
+          <div className="flex items-center gap-1.5">
+            <button
+              aria-label="Report"
+              title="Report Opportunity"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setShowReport(true);
+              }}
+              className="grid h-8 w-8 place-items-center rounded-full bg-white/80 hover:bg-rose-50 border border-slate-200/80 text-slate-400 hover:text-rose-600 transition shadow-2xs cursor-pointer"
+            >
+              <Flag size={13} />
+            </button>
+            <button
+              aria-label={on ? 'Unsave' : 'Save'}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                toggle(String(o.id));
+              }}
+              className="grid h-8 w-8 place-items-center rounded-full bg-white/80 hover:bg-white border border-slate-200/80 text-slate-500 hover:text-blue-600 transition shadow-2xs cursor-pointer"
+            >
+              <Bookmark size={15} fill={on ? '#2563eb' : 'none'} className={on ? 'text-blue-600' : 'text-slate-500'} />
+            </button>
+          </div>
         </div>
 
         {/* Title & Organization */}
-        <div className="mb-3">
+        <div className="mb-3 relative z-10">
           <Link to={'/opportunities/' + o.id}>
-            <h3 className="font-extrabold text-lg sm:text-xl text-white tracking-tight leading-snug line-clamp-1 group-hover:text-blue-300 transition">
+            <h3 className="font-extrabold text-lg sm:text-xl text-[#0e1b33] tracking-tight leading-snug line-clamp-1 group-hover:text-blue-600 transition">
               {o.title}
             </h3>
           </Link>
-          <p className="text-xs text-blue-200/70 font-medium mt-1 line-clamp-1">{o.org}</p>
+          <p className="text-xs text-slate-500 font-semibold mt-1 line-clamp-1">{o.org}</p>
         </div>
 
         {/* Metadata */}
-        <div className="flex flex-wrap items-center gap-x-3.5 gap-y-1.5 text-xs text-blue-100/90 mb-3.5">
+        <div className="flex flex-wrap items-center gap-x-3.5 gap-y-1.5 text-xs text-slate-600 mb-3.5 relative z-10">
           <span className="flex items-center gap-1.5">
-            <Calendar size={13} className="text-blue-300" />
+            <Calendar size={13} className="text-blue-600" />
             <span>{o.deadline} {o.days ? `· ${o.days}d left` : ''}</span>
           </span>
           <span className="flex items-center gap-1.5">
-            <MapPin size={13} className="text-blue-300" />
+            <MapPin size={13} className="text-blue-600" />
             <span>{o.mode}</span>
           </span>
           {o.prize && (
-            <span className="flex items-center gap-1.5 font-bold text-amber-300">
-              <Trophy size={13} className="text-amber-400" />
+            <span className="flex items-center gap-1.5 font-bold text-amber-600">
+              <Trophy size={13} className="text-amber-500" />
               <span>{o.prize}</span>
             </span>
           )}
         </div>
 
         {/* Skill Tags */}
-        <div className="flex flex-wrap gap-1.5 mb-5">
+        <div className="flex flex-wrap gap-1.5 mb-5 relative z-10">
           {o.skills.slice(0, 3).map((s) => (
-            <span key={s} className="rounded-lg bg-white/10 border border-white/10 px-2.5 py-0.5 text-[11px] font-medium text-blue-100">
+            <span key={s} className="rounded-lg bg-white/90 border border-slate-200/80 px-2.5 py-0.5 text-[11px] font-semibold text-slate-700 shadow-2xs">
               {s}
             </span>
           ))}
           {o.skills.length > 3 && (
-            <span className="text-[10px] text-blue-200/60 font-medium self-center">
+            <span className="text-[10px] text-slate-500 font-medium self-center">
               +{o.skills.length - 3}
             </span>
           )}
         </div>
 
         {/* Action Buttons */}
-        <div className="grid grid-cols-2 gap-2 pt-3 border-t border-white/10 mt-auto">
+        <div className="grid grid-cols-2 gap-2 pt-3 border-t border-slate-200/60 mt-auto relative z-10">
           <Link
             to={'/opportunities/' + o.id}
-            className="inline-flex min-h-9 items-center justify-center gap-1.5 rounded-xl bg-[#1d3557] hover:bg-[#274775] border border-white/15 px-3 py-2 text-xs font-bold text-white transition active:scale-[0.98]"
+            className="inline-flex min-h-9 items-center justify-center gap-1.5 rounded-xl bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-400 hover:to-blue-500 text-white shadow-md shadow-blue-500/20 px-3 py-2 text-xs font-bold transition active:scale-[0.98]"
           >
             <span>View Details</span>
             <ArrowRight size={13} />
@@ -274,13 +297,22 @@ export const OppCard: FC<{ o: Opp; variant?: 'light' | 'dark' }> = ({ o, variant
                 navigator.clipboard.writeText(window.location.origin + '/opportunities/' + o.id);
               }
             }}
-            className="inline-flex min-h-9 items-center justify-center gap-1.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/15 px-3 py-2 text-xs font-semibold text-white transition active:scale-[0.98]"
+            className="inline-flex min-h-9 items-center justify-center gap-1.5 rounded-xl bg-white/80 hover:bg-white border border-slate-200/80 px-3 py-2 text-xs font-bold text-[#0e1b33] hover:text-blue-600 transition active:scale-[0.98] shadow-2xs cursor-pointer"
           >
-            <Share2 size={13} />
+            <Share2 size={13} className="text-blue-600" />
             <span>Refer &amp; Earn</span>
-            <span className="rounded-md bg-white/15 px-1 py-0.2 text-[10px] font-extrabold text-blue-200">+25</span>
+            <span className="rounded-md bg-blue-100 px-1 py-0.2 text-[10px] font-extrabold text-blue-700">+25</span>
           </button>
         </div>
+
+        <ReportModal
+          isOpen={showReport}
+          onClose={() => setShowReport(false)}
+          targetType="opportunity"
+          targetId={String(o.id)}
+          targetTitle={o.title}
+          targetContent={`${o.org} · ${o.cat} · ${o.description || ''}`}
+        />
       </div>
     );
   }
@@ -316,17 +348,31 @@ export const OppCard: FC<{ o: Opp; variant?: 'light' | 'dark' }> = ({ o, variant
             </span>
           )}
 
-          <button
-            aria-label={on ? 'Unsave' : 'Save'}
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              toggle(String(o.id));
-            }}
-            className="grid h-7 w-7 place-items-center rounded-full bg-white/70 hover:bg-white border border-white/80 text-slate-500 hover:text-blue-600 transition shadow-2xs cursor-pointer"
-          >
-            <Bookmark size={14} fill={on ? '#2563eb' : 'none'} className={on ? 'text-blue-600' : 'text-slate-500'} />
-          </button>
+          <div className="flex items-center gap-1.5">
+            <button
+              aria-label="Report"
+              title="Report Opportunity"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setShowReport(true);
+              }}
+              className="grid h-7 w-7 place-items-center rounded-full bg-white/70 hover:bg-rose-50 border border-white/80 text-slate-400 hover:text-rose-600 transition shadow-2xs cursor-pointer"
+            >
+              <Flag size={12} />
+            </button>
+            <button
+              aria-label={on ? 'Unsave' : 'Save'}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                toggle(String(o.id));
+              }}
+              className="grid h-7 w-7 place-items-center rounded-full bg-white/70 hover:bg-white border border-white/80 text-slate-500 hover:text-blue-600 transition shadow-2xs cursor-pointer"
+            >
+              <Bookmark size={14} fill={on ? '#2563eb' : 'none'} className={on ? 'text-blue-600' : 'text-slate-500'} />
+            </button>
+          </div>
         </div>
 
         {/* Title & Organization */}
@@ -365,6 +411,15 @@ export const OppCard: FC<{ o: Opp; variant?: 'light' | 'dark' }> = ({ o, variant
           </span>
         )}
       </div>
+
+      <ReportModal
+        isOpen={showReport}
+        onClose={() => setShowReport(false)}
+        targetType="opportunity"
+        targetId={String(o.id)}
+        targetTitle={o.title}
+        targetContent={`${o.org} · ${o.cat} · ${o.description || ''}`}
+      />
     </div>
   );
 };
@@ -502,7 +557,7 @@ export const Composer: FC<{ onPostCreated?: (p: any) => void }> = ({ onPostCreat
   ];
 
   return (
-    <div className="rounded-3xl pm-glass-card border border-white/90 p-5 sm:p-6 shadow-sm text-[#0e1b33]">
+    <div className="rounded-3xl pm-glass-card border-2 border-slate-300/80 dark:border-slate-700 p-5 sm:p-6 shadow-sm text-[#0e1b33] dark:text-white">
       {/* Mode Selector Tabs */}
       <div className="flex border-b border-slate-200/60 pb-3 mb-4 gap-2 overflow-x-auto">
         <button
@@ -550,8 +605,7 @@ export const Composer: FC<{ onPostCreated?: (p: any) => void }> = ({ onPostCreat
               <input
                 value={hName}
                 onChange={(e) => setHName(e.target.value)}
-                placeholder="e.g. Smart India Hackathon 2026"
-                className="w-full rounded-xl bg-white/70 border border-white/90 px-3.5 py-2 text-xs text-[#0e1b33] outline-none focus:border-blue-500 focus:bg-white placeholder-slate-400 transition"
+                placeholder="e.g. Smart India Hackathon 2026" className="w-full rounded-xl bg-white/90 dark:bg-[#11243D] border-2 border-slate-300 dark:border-slate-600 hover:border-slate-400 px-3.5 py-2 text-xs text-[#0e1b33] dark:text-white outline-none focus:border-blue-500 dark:focus:border-sky-400 placeholder-slate-400 transition shadow-2xs"
               />
             </div>
 
@@ -562,8 +616,7 @@ export const Composer: FC<{ onPostCreated?: (p: any) => void }> = ({ onPostCreat
               <input
                 value={hDate}
                 onChange={(e) => setHDate(e.target.value)}
-                placeholder="e.g. Nov 14 - 16, 2026 (or Deadline)"
-                className="w-full rounded-xl bg-white/70 border border-white/90 px-3.5 py-2 text-xs text-[#0e1b33] outline-none focus:border-blue-500 focus:bg-white placeholder-slate-400 transition"
+                placeholder="e.g. Nov 14 - 16, 2026 (or Deadline)" className="w-full rounded-xl bg-white/90 dark:bg-[#11243D] border-2 border-slate-300 dark:border-slate-600 hover:border-slate-400 px-3.5 py-2 text-xs text-[#0e1b33] dark:text-white outline-none focus:border-blue-500 dark:focus:border-sky-400 placeholder-slate-400 transition shadow-2xs"
               />
             </div>
 
@@ -574,8 +627,7 @@ export const Composer: FC<{ onPostCreated?: (p: any) => void }> = ({ onPostCreat
               <input
                 value={hLoc}
                 onChange={(e) => setHLoc(e.target.value)}
-                placeholder="e.g. Online (Virtual), Bengaluru, or Hybrid"
-                className="w-full rounded-xl bg-white/70 border border-white/90 px-3.5 py-2 text-xs text-[#0e1b33] outline-none focus:border-blue-500 focus:bg-white placeholder-slate-400 transition"
+                placeholder="e.g. Online (Virtual), Bengaluru, or Hybrid" className="w-full rounded-xl bg-white/90 dark:bg-[#11243D] border-2 border-slate-300 dark:border-slate-600 hover:border-slate-400 px-3.5 py-2 text-xs text-[#0e1b33] dark:text-white outline-none focus:border-blue-500 dark:focus:border-sky-400 placeholder-slate-400 transition shadow-2xs"
               />
             </div>
 
@@ -587,8 +639,7 @@ export const Composer: FC<{ onPostCreated?: (p: any) => void }> = ({ onPostCreat
                 value={hLink}
                 onChange={(e) => setHLink(e.target.value)}
                 type="url"
-                placeholder="https://hackathon-website.com/register"
-                className="w-full rounded-xl bg-white/70 border border-white/90 px-3.5 py-2 text-xs text-[#0e1b33] outline-none focus:border-blue-500 focus:bg-white placeholder-slate-400 transition"
+                placeholder="https://hackathon-website.com/register" className="w-full rounded-xl bg-white/90 dark:bg-[#11243D] border-2 border-slate-300 dark:border-slate-600 hover:border-slate-400 px-3.5 py-2 text-xs text-[#0e1b33] dark:text-white outline-none focus:border-blue-500 dark:focus:border-sky-400 placeholder-slate-400 transition shadow-2xs"
               />
             </div>
           </div>
@@ -601,8 +652,7 @@ export const Composer: FC<{ onPostCreated?: (p: any) => void }> = ({ onPostCreat
               value={hDesc}
               onChange={(e) => setHDesc(e.target.value)}
               rows={2}
-              placeholder="Themes (AI, Web3, CleanTech), eligibility, cash prizes, or if you are looking to assemble a squad..."
-              className="w-full resize-none rounded-xl bg-white/70 border border-white/90 px-3.5 py-2.5 text-xs text-[#0e1b33] outline-none focus:border-blue-500 focus:bg-white placeholder-slate-400 transition"
+              placeholder="Themes (AI, Web3, CleanTech), eligibility, cash prizes, or if you are looking to assemble a squad..." className="w-full resize-none rounded-xl bg-white/90 dark:bg-[#11243D] border-2 border-slate-300 dark:border-slate-600 hover:border-slate-400 px-3.5 py-2.5 text-xs text-[#0e1b33] dark:text-white outline-none focus:border-blue-500 dark:focus:border-sky-400 placeholder-slate-400 transition shadow-2xs"
             />
           </div>
 
@@ -664,7 +714,7 @@ export const Composer: FC<{ onPostCreated?: (p: any) => void }> = ({ onPostCreat
                     ? 'Share key tech insights, architecture tips, or lessons from your builds...'
                     : 'Share an update or ask a question to fellow builders...'
                 }
-                className="w-full resize-none rounded-2xl bg-white/70 border border-white/90 px-4 py-2.5 text-xs sm:text-sm outline-none focus:border-blue-500 focus:bg-white text-[#0e1b33] placeholder:text-slate-400 transition leading-relaxed shadow-2xs"
+                className="w-full resize-none rounded-2xl bg-white/90 dark:bg-[#11243D] border-2 border-slate-300 dark:border-slate-600 hover:border-slate-400 dark:hover:border-slate-500 px-4 py-3 text-xs sm:text-sm outline-none focus:border-blue-500 dark:focus:border-sky-400 focus:ring-2 focus:ring-blue-500/15 text-[#0e1b33] dark:text-white placeholder:text-slate-400 transition leading-relaxed shadow-xs"
               />
               <div className="flex justify-end text-[10px] text-slate-400">
                 {t.length}/1200
@@ -676,7 +726,7 @@ export const Composer: FC<{ onPostCreated?: (p: any) => void }> = ({ onPostCreat
             <select
               value={oid}
               onChange={(e) => setOid(e.target.value)}
-              className="w-full rounded-xl bg-white/70 border border-white/90 px-3 py-2 text-xs text-[#0e1b33] outline-none focus:border-blue-500"
+              className="w-full rounded-xl bg-white/90 dark:bg-[#11243D] border-2 border-slate-300 dark:border-slate-600 px-3 py-2 text-xs text-[#0e1b33] dark:text-white outline-none focus:border-blue-500"
             >
               <option value={0} className="bg-white text-slate-700">Attach {pick === 'event' ? 'an event' : 'an opportunity'}…</option>
               {list.map((o) => (
@@ -693,7 +743,7 @@ export const Composer: FC<{ onPostCreated?: (p: any) => void }> = ({ onPostCreat
               onChange={(e) => setLnk(e.target.value)}
               type="url"
               placeholder="https://example.com/github-repo-or-resource"
-              className="w-full rounded-xl bg-white/70 border border-white/90 px-3.5 py-2 text-xs outline-none focus:border-blue-500 text-[#0e1b33] placeholder-slate-400"
+              className="w-full rounded-xl bg-white/90 dark:bg-[#11243D] border-2 border-slate-300 dark:border-slate-600 px-3.5 py-2 text-xs outline-none focus:border-blue-500 text-[#0e1b33] dark:text-white placeholder-slate-400"
             />
           )}
 
@@ -741,6 +791,7 @@ export interface PostCommentItem {
 export const PostCard: FC<{ p: any; onPostDeleted?: (id: string) => void }> = ({ p, onPostDeleted }) => {
   const { saved, toggle, say } = useApp();
   const { userProfile, user } = useAuth();
+  const [showReport, setShowReport] = useState(false);
   const o = opps.find((x) => String(x.id) === String(p.opp));
 
   // Likes state with localStorage persistence
@@ -753,26 +804,13 @@ export const PostCard: FC<{ p: any; onPostDeleted?: (id: string) => void }> = ({
   });
   const [likesCount, setLikesCount] = useState<number>(p.likes || 0);
 
-  // Comments state with localStorage persistence & seeding
+  // Comments state with localStorage persistence
   const [open, setOpen] = useState(false);
   const [comments, setComments] = useState<PostCommentItem[]>(() => {
     try {
       const stored = localStorage.getItem(`pm_post_comments_${p.id}`);
       if (stored) return JSON.parse(stored);
     } catch {}
-    // Seed initial comments for mock posts if comments > 0
-    if (p.comments > 0 && String(p.id).startsWith('post-')) {
-      return [
-        {
-          id: 'c1_' + p.id,
-          authorName: 'Aarav Mehta',
-          authorRole: 'Pixel Member',
-          authorId: 'user-aarav',
-          text: 'Great share! Bookmarked this.',
-          createdAt: Date.now() - 3600000
-        }
-      ];
-    }
     return [];
   });
   const [commentText, setCommentText] = useState('');
@@ -897,15 +935,24 @@ export const PostCard: FC<{ p: any; onPostDeleted?: (id: string) => void }> = ({
             </p>
           </div>
         </Link>
-        {canDelete && (
+        <div className="flex items-center gap-1">
           <button
-            onClick={handleDelete}
-            title="Delete post"
-            className="text-slate-400 hover:text-rose-600 transition p-1.5 rounded-lg hover:bg-rose-50 cursor-pointer"
+            onClick={() => setShowReport(true)}
+            title="Report Post"
+            className="text-slate-400 hover:text-rose-500 transition p-1.5 rounded-lg hover:bg-rose-50 cursor-pointer"
           >
-            <Trash2 size={15} />
+            <Flag size={14} />
           </button>
-        )}
+          {canDelete && (
+            <button
+              onClick={handleDelete}
+              title={userProfile?.role === 'admin' ? "Delete post (Admin)" : "Delete post"}
+              className="text-slate-400 hover:text-rose-600 transition p-1.5 rounded-lg hover:bg-rose-50 cursor-pointer"
+            >
+              <Trash2 size={15} />
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Post Content */}
@@ -1143,6 +1190,15 @@ export const PostCard: FC<{ p: any; onPostDeleted?: (id: string) => void }> = ({
           </div>
         </div>
       )}
+
+      <ReportModal
+        isOpen={showReport}
+        onClose={() => setShowReport(false)}
+        targetType="post"
+        targetId={String(p.id)}
+        targetTitle={`Post by ${p.user}`}
+        targetContent={p.text}
+      />
     </div>
   );
 };
@@ -1157,9 +1213,32 @@ const navItems = [
 
 export const Layout: FC = () => {
   const { user, userProfile, logout } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const userMenuRef = useRef<HTMLDivElement>(null);
+  const location = useLocation();
   const searchInputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
+
+  // Close profile dropdown on navigation
+  useEffect(() => {
+    setShowUserMenu(false);
+  }, [location.pathname]);
+
+  // Close profile dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node)) {
+        setShowUserMenu(false);
+      }
+    };
+    if (showUserMenu) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showUserMenu]);
 
   // Listen for Ctrl+K / Cmd+K to focus search
   useEffect(() => {
@@ -1182,6 +1261,7 @@ export const Layout: FC = () => {
   };
 
   const displayName = userProfile?.displayName || user?.displayName || 'Pixel Builder';
+  const isAdmin = userProfile?.role === 'admin' || user?.email === 'admin@pixelminds.org';
 
   return (
     <div className="min-h-screen pm-bg-canvas flex flex-col lg:flex-row p-3 sm:p-5 lg:p-6 gap-5 selection:bg-blue-500/20 selection:text-[#0e1b33]">
@@ -1200,6 +1280,22 @@ export const Layout: FC = () => {
 
           {/* Navigation Links with GooeyNav liquid animation effect */}
           <SidebarGooeyNav />
+
+          {/* Admin Console Quick Access (For Administrators) */}
+          {isAdmin && (
+            <div className="pt-3">
+              <Link
+                to="/admin"
+                className="flex items-center justify-between px-3.5 py-2.5 rounded-2xl bg-[#16171D] hover:bg-[#20222a] text-[#DFB76C] border border-[#C5A059]/40 hover:border-[#DFB76C] shadow-md shadow-black/10 transition group"
+              >
+                <span className="flex items-center gap-2 text-xs font-extrabold">
+                  <ShieldCheck size={16} className="text-[#C5A059]" />
+                  Admin Console
+                </span>
+                <ChevronRight size={14} className="text-[#DFB76C] group-hover:translate-x-0.5 transition" />
+              </Link>
+            </div>
+          )}
         </div>
 
         {/* Bottom User Profile Widget */}
@@ -1214,10 +1310,10 @@ export const Layout: FC = () => {
               size={36}
             />
             <div className="flex-1 min-w-0">
-              <p className="text-xs font-bold text-[#0e1b33] truncate group-hover:text-blue-600 transition">
+              <p className="text-xs font-extrabold text-slate-900 dark:text-white truncate group-hover:text-blue-600 transition">
                 {displayName}
               </p>
-              <p className="text-[11px] text-slate-500 truncate">
+              <p className="text-[11px] font-semibold text-slate-600 dark:text-slate-400 truncate">
                 {user ? 'View Profile' : 'Sign In'}
               </p>
             </div>
@@ -1231,7 +1327,7 @@ export const Layout: FC = () => {
       {/* ============================================================ */}
       <div className="flex-1 min-w-0 flex flex-col gap-5 pb-20 lg:pb-0">
         {/* Top Navigation Bar */}
-        <header className="pm-glass rounded-[24px] sm:rounded-full px-4 sm:px-6 py-2.5 sm:py-3 flex items-center justify-between gap-3 sm:gap-4 shadow-sm">
+        <header className="pm-glass rounded-[24px] sm:rounded-full px-4 sm:px-6 py-2.5 sm:py-3 flex items-center justify-between gap-3 sm:gap-4 shadow-sm relative z-30">
           {/* Mobile Logo on left */}
           <div className="flex items-center gap-2 lg:hidden">
             <Logo />
@@ -1253,14 +1349,35 @@ export const Layout: FC = () => {
 
           {/* Right Controls matching reference: Sun toggle, + Share Opportunity, NotificationBell */}
           <div className="flex items-center gap-2 sm:gap-3 shrink-0 ml-auto">
-            {/* Sun Theme Toggle */}
+            {/* Sun / Moon Theme Toggle */}
             <button
-              aria-label="Toggle theme"
-              onClick={() => {}}
-              className="grid h-10 w-10 place-items-center rounded-full bg-white/70 hover:bg-white text-slate-700 border border-white/90 shadow-xs transition hover:text-blue-600 cursor-pointer"
+              aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+              onClick={toggleTheme}
+              className={`grid h-10 w-10 place-items-center rounded-full transition cursor-pointer shadow-xs ${
+                theme === 'dark'
+                  ? 'bg-[#162B45] text-amber-400 border border-white/10 hover:text-amber-300 hover:bg-[#1c3656]'
+                  : 'bg-white text-slate-800 border-2 border-slate-200/90 hover:text-blue-600 hover:bg-slate-50 shadow-sm'
+              }`}
             >
-              <Sun size={18} />
+              {theme === 'dark' ? (
+                <Sun size={18} className="text-amber-400 transition-transform duration-200 hover:rotate-45" />
+              ) : (
+                <Moon size={18} className="text-slate-800 transition-transform duration-200 hover:-rotate-12" />
+              )}
             </button>
+
+            {/* Admin Console Quick Button (Visible when logged in as Admin) */}
+            {isAdmin && (
+              <Link
+                to="/admin"
+                className="inline-flex items-center gap-1.5 rounded-full bg-[#16171D] hover:bg-[#20222a] text-[#DFB76C] border border-[#C5A059]/40 hover:border-[#DFB76C] px-3 sm:px-4 py-2 sm:py-2.5 text-xs font-bold shadow-md shadow-black/10 transition active:scale-[0.98] cursor-pointer"
+                title="Admin Console"
+              >
+                <ShieldCheck size={14} className="text-[#C5A059]" />
+                <span className="hidden sm:inline">Admin Console</span>
+                <span className="sm:hidden">Admin</span>
+              </Link>
+            )}
 
             {/* + Share Opportunity (Navy Blue Button) */}
             <Link to="/submit">
@@ -1274,12 +1391,13 @@ export const Layout: FC = () => {
             {/* Notification Bell */}
             <NotificationBell />
 
-            {/* User Avatar Menu */}
+            {/* User Avatar Menu or Auth Buttons */}
             {user ? (
-              <div className="relative">
+              <div className="relative" ref={userMenuRef}>
                 <button
                   onClick={() => setShowUserMenu(!showUserMenu)}
-                  className="flex items-center rounded-full p-0.5 hover:ring-2 hover:ring-blue-500/40 transition cursor-pointer"
+                  aria-label="User profile menu"
+                  className="flex items-center rounded-full p-0.5 hover:ring-2 hover:ring-sky-500/40 transition cursor-pointer"
                 >
                   <Avatar
                     name={displayName}
@@ -1290,7 +1408,7 @@ export const Layout: FC = () => {
 
                 {showUserMenu && (
                   <div
-                    className="absolute right-0 mt-3 w-56 rounded-3xl border border-white/90 bg-white/95 backdrop-blur-2xl p-2.5 shadow-2xl z-50 text-[#0e1b33] pm-in"
+                    className="absolute right-0 top-full mt-2 w-60 rounded-3xl border border-white/90 bg-white/95 backdrop-blur-2xl p-2.5 shadow-2xl z-[100] text-[#0e1b33] pm-in max-w-[calc(100vw-2rem)]"
                     onClick={() => setShowUserMenu(false)}
                   >
                     <div className="px-3.5 py-2.5 border-b border-slate-200/60">
@@ -1298,28 +1416,39 @@ export const Layout: FC = () => {
                         {displayName}
                       </p>
                       <p className="text-[11px] text-slate-500 truncate">{user.email}</p>
-                      <div className="mt-1.5 flex items-center gap-1.5 text-xs font-bold text-blue-600">
-                        <Sparkles size={13} className="text-blue-500" />
+                      <div className="mt-1.5 flex items-center gap-1.5 text-xs font-bold text-sky-600">
+                        <Sparkles size={13} className="text-sky-500" />
                         <span>{userProfile?.pixels ?? 0} Pixels</span>
                       </div>
                     </div>
 
                     <div className="py-1.5">
+                      {isAdmin && (
+                        <Link
+                          to="/admin"
+                          className="flex items-center justify-between gap-2 rounded-xl px-3 py-2 text-xs font-bold text-[#DFB76C] bg-[#16171D] hover:bg-[#20222a] border border-[#C5A059]/40 hover:border-[#DFB76C] transition mb-1.5 shadow-xs"
+                        >
+                          <span className="flex items-center gap-2">
+                            <ShieldCheck size={14} className="text-[#C5A059]" />
+                            <span>Admin Console</span>
+                          </span>
+                          <span className="text-[10px] uppercase tracking-wider bg-[#DFB76C]/20 text-[#DFB76C] px-1.5 py-0.5 rounded font-black">Admin</span>
+                        </Link>
+                      )}
                       <Link
                         to="/profile"
-                        className="flex items-center gap-2 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100/70 hover:text-blue-600 transition"
+                        className="flex items-center gap-2 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100/70 hover:text-sky-600 transition"
                       >
                         <User size={14} className="text-slate-400" />
                         <span>My Profile</span>
                       </Link>
                       <Link
                         to="/leaderboard"
-                        className="flex items-center gap-2 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100/70 hover:text-blue-600 transition"
+                        className="flex items-center gap-2 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100/70 hover:text-sky-600 transition"
                       >
                         <Trophy size={14} className="text-amber-500" />
                         <span>Leaderboard &amp; Badges</span>
                       </Link>
-
                     </div>
 
                     <div className="border-t border-slate-200/60 pt-1.5">
@@ -1335,12 +1464,18 @@ export const Layout: FC = () => {
                 )}
               </div>
             ) : (
-              <div className="flex items-center gap-1.5">
+              <div className="flex items-center gap-1.5 sm:gap-2">
                 <Link
                   to="/login"
-                  className="inline-flex items-center justify-center rounded-full bg-white/70 hover:bg-white text-[#0e1b33] font-bold text-xs px-3.5 py-2 shadow-xs transition active:scale-[0.98]"
+                  className="inline-flex items-center justify-center rounded-full bg-white/80 hover:bg-white text-[#0e1b33] font-bold text-xs px-3 sm:px-4 py-2 border border-slate-200/80 shadow-xs transition active:scale-[0.98]"
                 >
                   Log In
+                </Link>
+                <Link
+                  to="/signup"
+                  className="inline-flex items-center justify-center rounded-full bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-400 hover:to-blue-500 text-white font-bold text-xs px-3 sm:px-4 py-2 shadow-md shadow-sky-500/20 transition active:scale-[0.98]"
+                >
+                  Sign Up
                 </Link>
               </div>
             )}
