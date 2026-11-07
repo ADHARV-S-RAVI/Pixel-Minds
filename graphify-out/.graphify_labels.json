@@ -23,7 +23,7 @@
   "21": "Leaderboard.tsx",
   "22": "Profile",
   "23": "pixel-minds/vite.config.ts",
-  "24": "admin.ts",
+  "24": "src/pages.tsx",
   "25": "Pixel Minds Backend Integration Audit",
   "26": "Phase 3: Community Posts & Feed Supabase Migration Report",
   "27": "Pixel Minds - Auth & Profile Completion Update Report",
@@ -31,10 +31,7 @@
   "29": "audit-test.mjs",
   "30": "GooeyNav.tsx",
   "31": "2. Features Inspected & Audit Findings",
-  "32": "src/pages.tsx",
-  "33": "src/pixels.tsx",
-  "34": "src/data.ts",
-  "35": "community.ts",
-  "36": "reports.ts",
-  "37": "applications.ts"
+  "32": "vercel.json",
+  "33": "SubmitOpportunity.tsx",
+  "34": "src/data.ts"
 }

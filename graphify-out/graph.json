@@ -95,6 +95,19 @@
       "norm_label": "themecontexttype"
     },
     {
+      "label": "LeaderboardUserEntry",
+      "file_type": "code",
+      "source_file": "src/services/users.ts",
+      "source_location": "L153",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "id": "src_services_users_leaderboarduserentry",
+      "community": 0,
+      "community_name": "useAuth",
+      "norm_label": "leaderboarduserentry"
+    },
+    {
       "label": "AppContextType",
       "file_type": "code",
       "source_file": "src/store.tsx",
@@ -106,6 +119,19 @@
       "community": 0,
       "community_name": "useAuth",
       "norm_label": "appcontexttype"
+    },
+    {
+      "label": "Referral",
+      "file_type": "code",
+      "source_file": "src/types/index.ts",
+      "source_location": "L82",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "id": "src_types_index_referral",
+      "community": 0,
+      "community_name": "useAuth",
+      "norm_label": "referral"
     },
     {
       "label": "User",
@@ -199,6 +225,32 @@
       "norm_label": "submissionrow"
     },
     {
+      "label": "Database",
+      "file_type": "code",
+      "source_file": "src/types/database.ts",
+      "source_location": "L9",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "id": "src_types_database_database",
+      "community": 10,
+      "community_name": "opportunities.ts",
+      "norm_label": "database"
+    },
+    {
+      "label": "Json",
+      "file_type": "code",
+      "source_file": "src/types/database.ts",
+      "source_location": "L1",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "id": "src_types_database_json",
+      "community": 10,
+      "community_name": "opportunities.ts",
+      "norm_label": "json"
+    },
+    {
       "label": "Opportunity",
       "file_type": "code",
       "source_file": "src/types/index.ts",
@@ -212,19 +264,6 @@
       "norm_label": "opportunity"
     },
     {
-      "label": "OpportunityStatus",
-      "file_type": "code",
-      "source_file": "src/types/index.ts",
-      "source_location": "L2",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "id": "src_types_index_opportunitystatus",
-      "community": 10,
-      "community_name": "opportunities.ts",
-      "norm_label": "opportunitystatus"
-    },
-    {
       "label": "AdminMetrics",
       "file_type": "code",
       "source_file": "src/services/admin.ts",
@@ -234,7 +273,7 @@
       "_origin": "ast",
       "id": "src_services_admin_adminmetrics",
       "community": 24,
-      "community_name": "admin.ts",
+      "community_name": "src/pages.tsx",
       "norm_label": "adminmetrics"
     },
     {
@@ -247,8 +286,73 @@
       "_origin": "ast",
       "id": "src_services_announcements_announcementupdate",
       "community": 24,
-      "community_name": "admin.ts",
+      "community_name": "src/pages.tsx",
       "norm_label": "announcementupdate"
+    },
+    {
+      "label": "UserApplication",
+      "file_type": "code",
+      "source_file": "src/services/applications.ts",
+      "source_location": "L4",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "id": "src_services_applications_userapplication",
+      "community": 24,
+      "community_name": "src/pages.tsx",
+      "norm_label": "userapplication"
+    },
+    {
+      "label": "PostInsert",
+      "file_type": "code",
+      "source_file": "src/services/community.ts",
+      "source_location": "L6",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "id": "src_services_community_postinsert",
+      "community": 24,
+      "community_name": "src/pages.tsx",
+      "norm_label": "postinsert"
+    },
+    {
+      "label": "PostRow",
+      "file_type": "code",
+      "source_file": "src/services/community.ts",
+      "source_location": "L5",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "id": "src_services_community_postrow",
+      "community": 24,
+      "community_name": "src/pages.tsx",
+      "norm_label": "postrow"
+    },
+    {
+      "label": "PostUpdate",
+      "file_type": "code",
+      "source_file": "src/services/community.ts",
+      "source_location": "L7",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "id": "src_services_community_postupdate",
+      "community": 24,
+      "community_name": "src/pages.tsx",
+      "norm_label": "postupdate"
+    },
+    {
+      "label": "ReportItem",
+      "file_type": "code",
+      "source_file": "src/services/reports.ts",
+      "source_location": "L6",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "id": "src_services_reports_reportitem",
+      "community": 24,
+      "community_name": "src/pages.tsx",
+      "norm_label": "reportitem"
     },
     {
       "label": "AdminSentNotification",
@@ -260,7 +364,7 @@
       "_origin": "ast",
       "id": "src_types_index_adminsentnotification",
       "community": 24,
-      "community_name": "admin.ts",
+      "community_name": "src/pages.tsx",
       "norm_label": "adminsentnotification"
     },
     {
@@ -273,7 +377,7 @@
       "_origin": "ast",
       "id": "src_types_index_announcement",
       "community": 24,
-      "community_name": "admin.ts",
+      "community_name": "src/pages.tsx",
       "norm_label": "announcement"
     },
     {
@@ -286,7 +390,7 @@
       "_origin": "ast",
       "id": "src_types_index_appnotification",
       "community": 24,
-      "community_name": "admin.ts",
+      "community_name": "src/pages.tsx",
       "norm_label": "appnotification"
     },
     {
@@ -299,7 +403,7 @@
       "_origin": "ast",
       "id": "src_types_index_auditlog",
       "community": 24,
-      "community_name": "admin.ts",
+      "community_name": "src/pages.tsx",
       "norm_label": "auditlog"
     },
     {
@@ -312,8 +416,21 @@
       "_origin": "ast",
       "id": "src_types_index_communitypost",
       "community": 24,
-      "community_name": "admin.ts",
+      "community_name": "src/pages.tsx",
       "norm_label": "communitypost"
+    },
+    {
+      "label": "OpportunityStatus",
+      "file_type": "code",
+      "source_file": "src/types/index.ts",
+      "source_location": "L2",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "id": "src_types_index_opportunitystatus",
+      "community": 24,
+      "community_name": "src/pages.tsx",
+      "norm_label": "opportunitystatus"
     },
     {
       "label": "PixelTransaction",
@@ -325,7 +442,7 @@
       "_origin": "ast",
       "id": "src_types_index_pixeltransaction",
       "community": 24,
-      "community_name": "admin.ts",
+      "community_name": "src/pages.tsx",
       "norm_label": "pixeltransaction"
     },
     {
@@ -338,7 +455,7 @@
       "_origin": "ast",
       "id": "src_types_index_report",
       "community": 24,
-      "community_name": "admin.ts",
+      "community_name": "src/pages.tsx",
       "norm_label": "report"
     },
     {
@@ -351,7 +468,7 @@
       "_origin": "ast",
       "id": "src_types_index_rewardconfig",
       "community": 24,
-      "community_name": "admin.ts",
+      "community_name": "src/pages.tsx",
       "norm_label": "rewardconfig"
     },
     {
@@ -364,7 +481,7 @@
       "_origin": "ast",
       "id": "src_types_index_role",
       "community": 24,
-      "community_name": "admin.ts",
+      "community_name": "src/pages.tsx",
       "norm_label": "role"
     },
     {
@@ -433,45 +550,6 @@
       "norm_label": "rectbox"
     },
     {
-      "label": "ReportModalProps",
-      "file_type": "code",
-      "source_file": "src/components/ReportModal.tsx",
-      "source_location": "L7",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "id": "src_components_reportmodal_reportmodalprops",
-      "community": 32,
-      "community_name": "src/pages.tsx",
-      "norm_label": "reportmodalprops"
-    },
-    {
-      "label": "LeaderboardUserEntry",
-      "file_type": "code",
-      "source_file": "src/services/users.ts",
-      "source_location": "L153",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "id": "src_services_users_leaderboarduserentry",
-      "community": 33,
-      "community_name": "src/pixels.tsx",
-      "norm_label": "leaderboarduserentry"
-    },
-    {
-      "label": "Referral",
-      "file_type": "code",
-      "source_file": "src/types/index.ts",
-      "source_location": "L82",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "id": "src_types_index_referral",
-      "community": 33,
-      "community_name": "src/pixels.tsx",
-      "norm_label": "referral"
-    },
-    {
       "label": "FeedPost",
       "file_type": "code",
       "source_file": "src/data.ts",
@@ -524,97 +602,6 @@
       "norm_label": "verifiedopportunity"
     },
     {
-      "label": "PostInsert",
-      "file_type": "code",
-      "source_file": "src/services/community.ts",
-      "source_location": "L6",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "id": "src_services_community_postinsert",
-      "community": 35,
-      "community_name": "community.ts",
-      "norm_label": "postinsert"
-    },
-    {
-      "label": "PostRow",
-      "file_type": "code",
-      "source_file": "src/services/community.ts",
-      "source_location": "L5",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "id": "src_services_community_postrow",
-      "community": 35,
-      "community_name": "community.ts",
-      "norm_label": "postrow"
-    },
-    {
-      "label": "PostUpdate",
-      "file_type": "code",
-      "source_file": "src/services/community.ts",
-      "source_location": "L7",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "id": "src_services_community_postupdate",
-      "community": 35,
-      "community_name": "community.ts",
-      "norm_label": "postupdate"
-    },
-    {
-      "label": "Database",
-      "file_type": "code",
-      "source_file": "src/types/database.ts",
-      "source_location": "L9",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "id": "src_types_database_database",
-      "community": 35,
-      "community_name": "community.ts",
-      "norm_label": "database"
-    },
-    {
-      "label": "Json",
-      "file_type": "code",
-      "source_file": "src/types/database.ts",
-      "source_location": "L1",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "id": "src_types_database_json",
-      "community": 35,
-      "community_name": "community.ts",
-      "norm_label": "json"
-    },
-    {
-      "label": "ReportItem",
-      "file_type": "code",
-      "source_file": "src/services/reports.ts",
-      "source_location": "L6",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "id": "src_services_reports_reportitem",
-      "community": 36,
-      "community_name": "reports.ts",
-      "norm_label": "reportitem"
-    },
-    {
-      "label": "UserApplication",
-      "file_type": "code",
-      "source_file": "src/services/applications.ts",
-      "source_location": "L4",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "id": "src_services_applications_userapplication",
-      "community": 37,
-      "community_name": "applications.ts",
-      "norm_label": "userapplication"
-    },
-    {
       "label": "Opp",
       "file_type": "code",
       "source_file": "pixel-minds/src/data.ts",
@@ -639,6 +626,19 @@
       "community": 5,
       "community_name": "pixel-minds/src/pages.tsx",
       "norm_label": "p"
+    },
+    {
+      "label": "ReportModalProps",
+      "file_type": "code",
+      "source_file": "src/components/ReportModal.tsx",
+      "source_location": "L7",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "id": "src_components_reportmodal_reportmodalprops",
+      "community": 8,
+      "community_name": "src/ui.tsx",
+      "norm_label": "reportmodalprops"
     },
     {
       "label": "PostCommentItem",
@@ -763,6 +763,18 @@
       "norm_label": "navbar()"
     },
     {
+      "label": "NotificationBell()",
+      "file_type": "code",
+      "source_file": "src/components/NotificationBell.tsx",
+      "source_location": "L24",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "src_components_notificationbell_notificationbell",
+      "community": 0,
+      "community_name": "useAuth",
+      "norm_label": "notificationbell()"
+    },
+    {
       "label": "PixelMark()",
       "file_type": "code",
       "source_file": "src/components/PixelMark.tsx",
@@ -823,6 +835,30 @@
       "norm_label": "themeprovider()"
     },
     {
+      "label": "rankOf()",
+      "file_type": "code",
+      "source_file": "src/data.ts",
+      "source_location": "L115",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "src_data_rankof",
+      "community": 0,
+      "community_name": "useAuth",
+      "norm_label": "rankof()"
+    },
+    {
+      "label": "tierInfo()",
+      "file_type": "code",
+      "source_file": "src/data.ts",
+      "source_location": "L101",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "src_data_tierinfo",
+      "community": 0,
+      "community_name": "useAuth",
+      "norm_label": "tierinfo()"
+    },
+    {
       "label": "AdminLogin()",
       "file_type": "code",
       "source_file": "src/pages/AdminLogin.tsx",
@@ -871,6 +907,18 @@
       "norm_label": "login()"
     },
     {
+      "label": "Mini()",
+      "file_type": "code",
+      "source_file": "src/pages.tsx",
+      "source_location": "L123",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "src_pages_mini",
+      "community": 0,
+      "community_name": "useAuth",
+      "norm_label": "mini()"
+    },
+    {
       "label": "ResetPassword()",
       "file_type": "code",
       "source_file": "src/pages/ResetPassword.tsx",
@@ -907,6 +955,66 @@
       "norm_label": "submit()"
     },
     {
+      "label": "Bar()",
+      "file_type": "code",
+      "source_file": "src/pixels.tsx",
+      "source_location": "L63",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "src_pixels_bar",
+      "community": 0,
+      "community_name": "useAuth",
+      "norm_label": "bar()"
+    },
+    {
+      "label": "Count()",
+      "file_type": "code",
+      "source_file": "src/pixels.tsx",
+      "source_location": "L44",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "src_pixels_count",
+      "community": 0,
+      "community_name": "useAuth",
+      "norm_label": "count()"
+    },
+    {
+      "label": "Delta()",
+      "file_type": "code",
+      "source_file": "src/pixels.tsx",
+      "source_location": "L72",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "src_pixels_delta",
+      "community": 0,
+      "community_name": "useAuth",
+      "norm_label": "delta()"
+    },
+    {
+      "label": "Leaderboard()",
+      "file_type": "code",
+      "source_file": "src/pixels.tsx",
+      "source_location": "L287",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "src_pixels_leaderboard",
+      "community": 0,
+      "community_name": "useAuth",
+      "norm_label": "leaderboard()"
+    },
+    {
+      "label": "PixelGrid()",
+      "file_type": "code",
+      "source_file": "src/pixels.tsx",
+      "source_location": "L84",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "src_pixels_pixelgrid",
+      "community": 0,
+      "community_name": "useAuth",
+      "norm_label": "pixelgrid()"
+    },
+    {
       "label": "ReferralPanel()",
       "file_type": "code",
       "source_file": "src/pixels.tsx",
@@ -919,16 +1027,52 @@
       "norm_label": "referralpanel()"
     },
     {
-      "label": "getRewardConfig()",
+      "label": "useCount()",
       "file_type": "code",
-      "source_file": "src/services/pixels.ts",
-      "source_location": "L21",
+      "source_file": "src/pixels.tsx",
+      "source_location": "L25",
       "_callable": true,
       "_origin": "ast",
-      "id": "src_services_pixels_getrewardconfig",
+      "id": "src_pixels_usecount",
       "community": 0,
       "community_name": "useAuth",
-      "norm_label": "getrewardconfig()"
+      "norm_label": "usecount()"
+    },
+    {
+      "label": "getUserNotifications()",
+      "file_type": "code",
+      "source_file": "src/services/notifications.ts",
+      "source_location": "L10",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "src_services_notifications_getusernotifications",
+      "community": 0,
+      "community_name": "useAuth",
+      "norm_label": "getusernotifications()"
+    },
+    {
+      "label": "markAllNotificationsAsRead()",
+      "file_type": "code",
+      "source_file": "src/services/notifications.ts",
+      "source_location": "L124",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "src_services_notifications_markallnotificationsasread",
+      "community": 0,
+      "community_name": "useAuth",
+      "norm_label": "markallnotificationsasread()"
+    },
+    {
+      "label": "markNotificationAsRead()",
+      "file_type": "code",
+      "source_file": "src/services/notifications.ts",
+      "source_location": "L102",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "src_services_notifications_marknotificationasread",
+      "community": 0,
+      "community_name": "useAuth",
+      "norm_label": "marknotificationasread()"
     },
     {
       "label": "getReferralStats()",
@@ -989,6 +1133,18 @@
       "community": 0,
       "community_name": "useAuth",
       "norm_label": "createuserprofile()"
+    },
+    {
+      "label": "getLeaderboardUsers()",
+      "file_type": "code",
+      "source_file": "src/services/users.ts",
+      "source_location": "L166",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "src_services_users_getleaderboardusers",
+      "community": 0,
+      "community_name": "useAuth",
+      "norm_label": "getleaderboardusers()"
     },
     {
       "label": "getUserProfile()",
@@ -1087,28 +1243,16 @@
       "norm_label": "admin()"
     },
     {
-      "label": "AdminCMS()",
+      "label": "Landing()",
       "file_type": "code",
       "source_file": "src/pages.tsx",
-      "source_location": "L2992",
+      "source_location": "L169",
       "_callable": true,
       "_origin": "ast",
-      "id": "src_pages_admincms",
+      "id": "src_pages_landing",
       "community": 10,
       "community_name": "opportunities.ts",
-      "norm_label": "admincms()"
-    },
-    {
-      "label": "AdminOpportunityForm()",
-      "file_type": "code",
-      "source_file": "src/pages.tsx",
-      "source_location": "L2710",
-      "_callable": true,
-      "_origin": "ast",
-      "id": "src_pages_adminopportunityform",
-      "community": 10,
-      "community_name": "opportunities.ts",
-      "norm_label": "adminopportunityform()"
+      "norm_label": "landing()"
     },
     {
       "label": "MySubmissions()",
@@ -1157,54 +1301,6 @@
       "community": 10,
       "community_name": "opportunities.ts",
       "norm_label": "opportunitydetails()"
-    },
-    {
-      "label": "SubmitOpportunity()",
-      "file_type": "code",
-      "source_file": "src/pages/SubmitOpportunity.tsx",
-      "source_location": "L13",
-      "_callable": true,
-      "_origin": "ast",
-      "id": "src_pages_submitopportunity_submitopportunity",
-      "community": 10,
-      "community_name": "opportunities.ts",
-      "norm_label": "submitopportunity()"
-    },
-    {
-      "label": "Opportunities()",
-      "file_type": "code",
-      "source_file": "src/pages.tsx",
-      "source_location": "L597",
-      "_callable": true,
-      "_origin": "ast",
-      "id": "src_pages_tsx_src_pages_opportunities",
-      "community": 10,
-      "community_name": "opportunities.ts",
-      "norm_label": "opportunities()"
-    },
-    {
-      "label": "uploadAnnouncementImage()",
-      "file_type": "code",
-      "source_file": "src/services/announcements.ts",
-      "source_location": "L85",
-      "_callable": true,
-      "_origin": "ast",
-      "id": "src_services_announcements_uploadannouncementimage",
-      "community": 10,
-      "community_name": "opportunities.ts",
-      "norm_label": "uploadannouncementimage()"
-    },
-    {
-      "label": "createReviewNotification()",
-      "file_type": "code",
-      "source_file": "src/services/notifications.ts",
-      "source_location": "L148",
-      "_callable": true,
-      "_origin": "ast",
-      "id": "src_services_notifications_createreviewnotification",
-      "community": 10,
-      "community_name": "opportunities.ts",
-      "norm_label": "createreviewnotification()"
     },
     {
       "label": "addAdminDeletedOppId()",
@@ -1363,30 +1459,6 @@
       "norm_label": "setadminmodifiedopp()"
     },
     {
-      "label": "submitOpportunity()",
-      "file_type": "code",
-      "source_file": "src/services/opportunities.ts",
-      "source_location": "L316",
-      "_callable": true,
-      "_origin": "ast",
-      "id": "src_services_opportunities_submitopportunity",
-      "community": 10,
-      "community_name": "opportunities.ts",
-      "norm_label": "submitopportunity()"
-    },
-    {
-      "label": "submitOpportunityAdmin()",
-      "file_type": "code",
-      "source_file": "src/services/opportunities.ts",
-      "source_location": "L649",
-      "_callable": true,
-      "_origin": "ast",
-      "id": "src_services_opportunities_submitopportunityadmin",
-      "community": 10,
-      "community_name": "opportunities.ts",
-      "norm_label": "submitopportunityadmin()"
-    },
-    {
       "label": "toUpdatePayload()",
       "file_type": "code",
       "source_file": "src/services/opportunities.ts",
@@ -1397,42 +1469,6 @@
       "community": 10,
       "community_name": "opportunities.ts",
       "norm_label": "toupdatepayload()"
-    },
-    {
-      "label": "updateOpportunityAdmin()",
-      "file_type": "code",
-      "source_file": "src/services/opportunities.ts",
-      "source_location": "L497",
-      "_callable": true,
-      "_origin": "ast",
-      "id": "src_services_opportunities_updateopportunityadmin",
-      "community": 10,
-      "community_name": "opportunities.ts",
-      "norm_label": "updateopportunityadmin()"
-    },
-    {
-      "label": "uploadImage()",
-      "file_type": "code",
-      "source_file": "src/services/storage.ts",
-      "source_location": "L10",
-      "_callable": true,
-      "_origin": "ast",
-      "id": "src_services_storage_uploadimage",
-      "community": 10,
-      "community_name": "opportunities.ts",
-      "norm_label": "uploadimage()"
-    },
-    {
-      "label": "uploadOpportunityImage()",
-      "file_type": "code",
-      "source_file": "src/services/storage.ts",
-      "source_location": "L71",
-      "_callable": true,
-      "_origin": "ast",
-      "id": "src_services_storage_uploadopportunityimage",
-      "community": 10,
-      "community_name": "opportunities.ts",
-      "norm_label": "uploadopportunityimage()"
     },
     {
       "label": "Home()",
@@ -1471,28 +1507,52 @@
       "norm_label": "profile()"
     },
     {
-      "label": "AnnouncementModal()",
+      "label": "AdminCMS()",
       "file_type": "code",
-      "source_file": "src/components/AnnouncementModal.tsx",
-      "source_location": "L9",
+      "source_file": "src/pages.tsx",
+      "source_location": "L2992",
       "_callable": true,
       "_origin": "ast",
-      "id": "src_components_announcementmodal_announcementmodal",
+      "id": "src_pages_admincms",
       "community": 24,
-      "community_name": "admin.ts",
-      "norm_label": "announcementmodal()"
+      "community_name": "src/pages.tsx",
+      "norm_label": "admincms()"
     },
     {
-      "label": "NotificationBell()",
+      "label": "AdminOpportunityForm()",
       "file_type": "code",
-      "source_file": "src/components/NotificationBell.tsx",
-      "source_location": "L24",
+      "source_file": "src/pages.tsx",
+      "source_location": "L2710",
       "_callable": true,
       "_origin": "ast",
-      "id": "src_components_notificationbell_notificationbell",
+      "id": "src_pages_adminopportunityform",
       "community": 24,
-      "community_name": "admin.ts",
-      "norm_label": "notificationbell()"
+      "community_name": "src/pages.tsx",
+      "norm_label": "adminopportunityform()"
+    },
+    {
+      "label": "FormField()",
+      "file_type": "code",
+      "source_file": "src/pages.tsx",
+      "source_location": "L2406",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "src_pages_formfield",
+      "community": 24,
+      "community_name": "src/pages.tsx",
+      "norm_label": "formfield()"
+    },
+    {
+      "label": "SectionCard()",
+      "file_type": "code",
+      "source_file": "src/pages.tsx",
+      "source_location": "L2413",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "src_pages_sectioncard",
+      "community": 24,
+      "community_name": "src/pages.tsx",
+      "norm_label": "sectioncard()"
     },
     {
       "label": "Admin()",
@@ -1503,8 +1563,32 @@
       "_origin": "ast",
       "id": "src_pages_tsx_src_pages_admin",
       "community": 24,
-      "community_name": "admin.ts",
+      "community_name": "src/pages.tsx",
       "norm_label": "admin()"
+    },
+    {
+      "label": "Profile()",
+      "file_type": "code",
+      "source_file": "src/pages.tsx",
+      "source_location": "L1358",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "src_pages_tsx_src_pages_profile",
+      "community": 24,
+      "community_name": "src/pages.tsx",
+      "norm_label": "profile()"
+    },
+    {
+      "label": "W()",
+      "file_type": "code",
+      "source_file": "src/pages.tsx",
+      "source_location": "L119",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "src_pages_w",
+      "community": 24,
+      "community_name": "src/pages.tsx",
+      "norm_label": "w()"
     },
     {
       "label": "createAdminCommunityPost()",
@@ -1515,7 +1599,7 @@
       "_origin": "ast",
       "id": "src_services_admin_createadmincommunitypost",
       "community": 24,
-      "community_name": "admin.ts",
+      "community_name": "src/pages.tsx",
       "norm_label": "createadmincommunitypost()"
     },
     {
@@ -1527,7 +1611,7 @@
       "_origin": "ast",
       "id": "src_services_admin_deletecommunitypost",
       "community": 24,
-      "community_name": "admin.ts",
+      "community_name": "src/pages.tsx",
       "norm_label": "deletecommunitypost()"
     },
     {
@@ -1539,7 +1623,7 @@
       "_origin": "ast",
       "id": "src_services_admin_getauditlogs",
       "community": 24,
-      "community_name": "admin.ts",
+      "community_name": "src/pages.tsx",
       "norm_label": "getauditlogs()"
     },
     {
@@ -1551,7 +1635,7 @@
       "_origin": "ast",
       "id": "src_services_admin_getrealadminmetrics",
       "community": 24,
-      "community_name": "admin.ts",
+      "community_name": "src/pages.tsx",
       "norm_label": "getrealadminmetrics()"
     },
     {
@@ -1563,8 +1647,20 @@
       "_origin": "ast",
       "id": "src_services_admin_recordauditlog",
       "community": 24,
-      "community_name": "admin.ts",
+      "community_name": "src/pages.tsx",
       "norm_label": "recordauditlog()"
+    },
+    {
+      "label": "updateCommunityPost()",
+      "file_type": "code",
+      "source_file": "src/services/admin.ts",
+      "source_location": "L110",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "src_services_admin_updatecommunitypost",
+      "community": 24,
+      "community_name": "src/pages.tsx",
+      "norm_label": "updatecommunitypost()"
     },
     {
       "label": "createAnnouncement()",
@@ -1575,7 +1671,7 @@
       "_origin": "ast",
       "id": "src_services_announcements_createannouncement",
       "community": 24,
-      "community_name": "admin.ts",
+      "community_name": "src/pages.tsx",
       "norm_label": "createannouncement()"
     },
     {
@@ -1587,7 +1683,7 @@
       "_origin": "ast",
       "id": "src_services_announcements_deleteannouncement",
       "community": 24,
-      "community_name": "admin.ts",
+      "community_name": "src/pages.tsx",
       "norm_label": "deleteannouncement()"
     },
     {
@@ -1599,20 +1695,8 @@
       "_origin": "ast",
       "id": "src_services_announcements_formatannouncementrow",
       "community": 24,
-      "community_name": "admin.ts",
+      "community_name": "src/pages.tsx",
       "norm_label": "formatannouncementrow()"
-    },
-    {
-      "label": "getActiveAnnouncements()",
-      "file_type": "code",
-      "source_file": "src/services/announcements.ts",
-      "source_location": "L11",
-      "_callable": true,
-      "_origin": "ast",
-      "id": "src_services_announcements_getactiveannouncements",
-      "community": 24,
-      "community_name": "admin.ts",
-      "norm_label": "getactiveannouncements()"
     },
     {
       "label": "getAnnouncements()",
@@ -1623,7 +1707,7 @@
       "_origin": "ast",
       "id": "src_services_announcements_getannouncements",
       "community": 24,
-      "community_name": "admin.ts",
+      "community_name": "src/pages.tsx",
       "norm_label": "getannouncements()"
     },
     {
@@ -1635,8 +1719,152 @@
       "_origin": "ast",
       "id": "src_services_announcements_updateannouncement",
       "community": 24,
-      "community_name": "admin.ts",
+      "community_name": "src/pages.tsx",
       "norm_label": "updateannouncement()"
+    },
+    {
+      "label": "uploadAnnouncementImage()",
+      "file_type": "code",
+      "source_file": "src/services/announcements.ts",
+      "source_location": "L85",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "src_services_announcements_uploadannouncementimage",
+      "community": 24,
+      "community_name": "src/pages.tsx",
+      "norm_label": "uploadannouncementimage()"
+    },
+    {
+      "label": "confirmOpportunityRegistration()",
+      "file_type": "code",
+      "source_file": "src/services/applications.ts",
+      "source_location": "L165",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "src_services_applications_confirmopportunityregistration",
+      "community": 24,
+      "community_name": "src/pages.tsx",
+      "norm_label": "confirmopportunityregistration()"
+    },
+    {
+      "label": "getLocalStorageApplications()",
+      "file_type": "code",
+      "source_file": "src/services/applications.ts",
+      "source_location": "L23",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "src_services_applications_getlocalstorageapplications",
+      "community": 24,
+      "community_name": "src/pages.tsx",
+      "norm_label": "getlocalstorageapplications()"
+    },
+    {
+      "label": "getUserApplications()",
+      "file_type": "code",
+      "source_file": "src/services/applications.ts",
+      "source_location": "L43",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "src_services_applications_getuserapplications",
+      "community": 24,
+      "community_name": "src/pages.tsx",
+      "norm_label": "getuserapplications()"
+    },
+    {
+      "label": "recordOpportunityApplication()",
+      "file_type": "code",
+      "source_file": "src/services/applications.ts",
+      "source_location": "L99",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "src_services_applications_recordopportunityapplication",
+      "community": 24,
+      "community_name": "src/pages.tsx",
+      "norm_label": "recordopportunityapplication()"
+    },
+    {
+      "label": "saveLocalStorageApplications()",
+      "file_type": "code",
+      "source_file": "src/services/applications.ts",
+      "source_location": "L32",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "src_services_applications_savelocalstorageapplications",
+      "community": 24,
+      "community_name": "src/pages.tsx",
+      "norm_label": "savelocalstorageapplications()"
+    },
+    {
+      "label": "deleteCommunityPost()",
+      "file_type": "code",
+      "source_file": "src/services/community.ts",
+      "source_location": "L244",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "src_services_community_deletecommunitypost",
+      "community": 24,
+      "community_name": "src/pages.tsx",
+      "norm_label": "deletecommunitypost()"
+    },
+    {
+      "label": "formatTimeAgo()",
+      "file_type": "code",
+      "source_file": "src/services/community.ts",
+      "source_location": "L12",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "src_services_community_formattimeago",
+      "community": 24,
+      "community_name": "src/pages.tsx",
+      "norm_label": "formattimeago()"
+    },
+    {
+      "label": "getCommunityPosts()",
+      "file_type": "code",
+      "source_file": "src/services/community.ts",
+      "source_location": "L50",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "src_services_community_getcommunityposts",
+      "community": 24,
+      "community_name": "src/pages.tsx",
+      "norm_label": "getcommunityposts()"
+    },
+    {
+      "label": "getUserCommunityPosts()",
+      "file_type": "code",
+      "source_file": "src/services/community.ts",
+      "source_location": "L87",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "src_services_community_getusercommunityposts",
+      "community": 24,
+      "community_name": "src/pages.tsx",
+      "norm_label": "getusercommunityposts()"
+    },
+    {
+      "label": "mapPostRow()",
+      "file_type": "code",
+      "source_file": "src/services/community.ts",
+      "source_location": "L27",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "src_services_community_mappostrow",
+      "community": 24,
+      "community_name": "src/pages.tsx",
+      "norm_label": "mappostrow()"
+    },
+    {
+      "label": "createReviewNotification()",
+      "file_type": "code",
+      "source_file": "src/services/notifications.ts",
+      "source_location": "L148",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "src_services_notifications_createreviewnotification",
+      "community": 24,
+      "community_name": "src/pages.tsx",
+      "norm_label": "createreviewnotification()"
     },
     {
       "label": "deleteAdminNotification()",
@@ -1647,7 +1875,7 @@
       "_origin": "ast",
       "id": "src_services_notifications_deleteadminnotification",
       "community": 24,
-      "community_name": "admin.ts",
+      "community_name": "src/pages.tsx",
       "norm_label": "deleteadminnotification()"
     },
     {
@@ -1659,44 +1887,8 @@
       "_origin": "ast",
       "id": "src_services_notifications_getadminsentnotifications",
       "community": 24,
-      "community_name": "admin.ts",
+      "community_name": "src/pages.tsx",
       "norm_label": "getadminsentnotifications()"
-    },
-    {
-      "label": "getUserNotifications()",
-      "file_type": "code",
-      "source_file": "src/services/notifications.ts",
-      "source_location": "L10",
-      "_callable": true,
-      "_origin": "ast",
-      "id": "src_services_notifications_getusernotifications",
-      "community": 24,
-      "community_name": "admin.ts",
-      "norm_label": "getusernotifications()"
-    },
-    {
-      "label": "markAllNotificationsAsRead()",
-      "file_type": "code",
-      "source_file": "src/services/notifications.ts",
-      "source_location": "L124",
-      "_callable": true,
-      "_origin": "ast",
-      "id": "src_services_notifications_markallnotificationsasread",
-      "community": 24,
-      "community_name": "admin.ts",
-      "norm_label": "markallnotificationsasread()"
-    },
-    {
-      "label": "markNotificationAsRead()",
-      "file_type": "code",
-      "source_file": "src/services/notifications.ts",
-      "source_location": "L102",
-      "_callable": true,
-      "_origin": "ast",
-      "id": "src_services_notifications_marknotificationasread",
-      "community": 24,
-      "community_name": "admin.ts",
-      "norm_label": "marknotificationasread()"
     },
     {
       "label": "sendAdminNotification()",
@@ -1707,8 +1899,56 @@
       "_origin": "ast",
       "id": "src_services_notifications_sendadminnotification",
       "community": 24,
-      "community_name": "admin.ts",
+      "community_name": "src/pages.tsx",
       "norm_label": "sendadminnotification()"
+    },
+    {
+      "label": "deleteOpportunityAdmin()",
+      "file_type": "code",
+      "source_file": "src/services/opportunities.ts",
+      "source_location": "L694",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "src_services_opportunities_deleteopportunityadmin",
+      "community": 24,
+      "community_name": "src/pages.tsx",
+      "norm_label": "deleteopportunityadmin()"
+    },
+    {
+      "label": "submitOpportunityAdmin()",
+      "file_type": "code",
+      "source_file": "src/services/opportunities.ts",
+      "source_location": "L649",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "src_services_opportunities_submitopportunityadmin",
+      "community": 24,
+      "community_name": "src/pages.tsx",
+      "norm_label": "submitopportunityadmin()"
+    },
+    {
+      "label": "updateOpportunityAdmin()",
+      "file_type": "code",
+      "source_file": "src/services/opportunities.ts",
+      "source_location": "L497",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "src_services_opportunities_updateopportunityadmin",
+      "community": 24,
+      "community_name": "src/pages.tsx",
+      "norm_label": "updateopportunityadmin()"
+    },
+    {
+      "label": "adjustUserPixels()",
+      "file_type": "code",
+      "source_file": "src/services/pixels.ts",
+      "source_location": "L145",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "src_services_pixels_adjustuserpixels",
+      "community": 24,
+      "community_name": "src/pages.tsx",
+      "norm_label": "adjustuserpixels()"
     },
     {
       "label": "getAllUsersAdmin()",
@@ -1719,8 +1959,32 @@
       "_origin": "ast",
       "id": "src_services_pixels_getallusersadmin",
       "community": 24,
-      "community_name": "admin.ts",
+      "community_name": "src/pages.tsx",
       "norm_label": "getallusersadmin()"
+    },
+    {
+      "label": "getPixelTransactions()",
+      "file_type": "code",
+      "source_file": "src/services/pixels.ts",
+      "source_location": "L110",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "src_services_pixels_getpixeltransactions",
+      "community": 24,
+      "community_name": "src/pages.tsx",
+      "norm_label": "getpixeltransactions()"
+    },
+    {
+      "label": "getRewardConfig()",
+      "file_type": "code",
+      "source_file": "src/services/pixels.ts",
+      "source_location": "L21",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "src_services_pixels_getrewardconfig",
+      "community": 24,
+      "community_name": "src/pages.tsx",
+      "norm_label": "getrewardconfig()"
     },
     {
       "label": "getUserPixelBalance()",
@@ -1731,7 +1995,7 @@
       "_origin": "ast",
       "id": "src_services_pixels_getuserpixelbalance",
       "community": 24,
-      "community_name": "admin.ts",
+      "community_name": "src/pages.tsx",
       "norm_label": "getuserpixelbalance()"
     },
     {
@@ -1743,7 +2007,7 @@
       "_origin": "ast",
       "id": "src_services_pixels_toggleusersuspension",
       "community": 24,
-      "community_name": "admin.ts",
+      "community_name": "src/pages.tsx",
       "norm_label": "toggleusersuspension()"
     },
     {
@@ -1755,8 +2019,104 @@
       "_origin": "ast",
       "id": "src_services_pixels_updaterewardconfig",
       "community": 24,
-      "community_name": "admin.ts",
+      "community_name": "src/pages.tsx",
       "norm_label": "updaterewardconfig()"
+    },
+    {
+      "label": "createReport()",
+      "file_type": "code",
+      "source_file": "src/services/reports.ts",
+      "source_location": "L47",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "src_services_reports_createreport",
+      "community": 24,
+      "community_name": "src/pages.tsx",
+      "norm_label": "createreport()"
+    },
+    {
+      "label": "deleteReportedItem()",
+      "file_type": "code",
+      "source_file": "src/services/reports.ts",
+      "source_location": "L222",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "src_services_reports_deletereporteditem",
+      "community": 24,
+      "community_name": "src/pages.tsx",
+      "norm_label": "deletereporteditem()"
+    },
+    {
+      "label": "dismissReport()",
+      "file_type": "code",
+      "source_file": "src/services/reports.ts",
+      "source_location": "L183",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "src_services_reports_dismissreport",
+      "community": 24,
+      "community_name": "src/pages.tsx",
+      "norm_label": "dismissreport()"
+    },
+    {
+      "label": "getAllReports()",
+      "file_type": "code",
+      "source_file": "src/services/reports.ts",
+      "source_location": "L94",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "src_services_reports_getallreports",
+      "community": 24,
+      "community_name": "src/pages.tsx",
+      "norm_label": "getallreports()"
+    },
+    {
+      "label": "getLocalReports()",
+      "file_type": "code",
+      "source_file": "src/services/reports.ts",
+      "source_location": "L27",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "src_services_reports_getlocalreports",
+      "community": 24,
+      "community_name": "src/pages.tsx",
+      "norm_label": "getlocalreports()"
+    },
+    {
+      "label": "resolveReport()",
+      "file_type": "code",
+      "source_file": "src/services/reports.ts",
+      "source_location": "L141",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "src_services_reports_resolvereport",
+      "community": 24,
+      "community_name": "src/pages.tsx",
+      "norm_label": "resolvereport()"
+    },
+    {
+      "label": "saveLocalReports()",
+      "file_type": "code",
+      "source_file": "src/services/reports.ts",
+      "source_location": "L36",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "src_services_reports_savelocalreports",
+      "community": 24,
+      "community_name": "src/pages.tsx",
+      "norm_label": "savelocalreports()"
+    },
+    {
+      "label": "updateUserProfile()",
+      "file_type": "code",
+      "source_file": "src/services/users.ts",
+      "source_location": "L122",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "src_services_users_updateuserprofile",
+      "community": 24,
+      "community_name": "src/pages.tsx",
+      "norm_label": "updateuserprofile()"
     },
     {
       "label": "fail()",
@@ -1927,544 +2287,52 @@
       "norm_label": "usetheme()"
     },
     {
-      "label": "ReportModal()",
+      "label": "SubmitOpportunity()",
       "file_type": "code",
-      "source_file": "src/components/ReportModal.tsx",
-      "source_location": "L35",
+      "source_file": "src/pages/SubmitOpportunity.tsx",
+      "source_location": "L13",
       "_callable": true,
       "_origin": "ast",
-      "id": "src_components_reportmodal_reportmodal",
-      "community": 32,
-      "community_name": "src/pages.tsx",
-      "norm_label": "reportmodal()"
-    },
-    {
-      "label": "FormField()",
-      "file_type": "code",
-      "source_file": "src/pages.tsx",
-      "source_location": "L2406",
-      "_callable": true,
-      "_origin": "ast",
-      "id": "src_pages_formfield",
-      "community": 32,
-      "community_name": "src/pages.tsx",
-      "norm_label": "formfield()"
-    },
-    {
-      "label": "SectionCard()",
-      "file_type": "code",
-      "source_file": "src/pages.tsx",
-      "source_location": "L2413",
-      "_callable": true,
-      "_origin": "ast",
-      "id": "src_pages_sectioncard",
-      "community": 32,
-      "community_name": "src/pages.tsx",
-      "norm_label": "sectioncard()"
-    },
-    {
-      "label": "Profile()",
-      "file_type": "code",
-      "source_file": "src/pages.tsx",
-      "source_location": "L1358",
-      "_callable": true,
-      "_origin": "ast",
-      "id": "src_pages_tsx_src_pages_profile",
-      "community": 32,
-      "community_name": "src/pages.tsx",
-      "norm_label": "profile()"
-    },
-    {
-      "label": "W()",
-      "file_type": "code",
-      "source_file": "src/pages.tsx",
-      "source_location": "L119",
-      "_callable": true,
-      "_origin": "ast",
-      "id": "src_pages_w",
-      "community": 32,
-      "community_name": "src/pages.tsx",
-      "norm_label": "w()"
-    },
-    {
-      "label": "getUserCommunityPosts()",
-      "file_type": "code",
-      "source_file": "src/services/community.ts",
-      "source_location": "L87",
-      "_callable": true,
-      "_origin": "ast",
-      "id": "src_services_community_getusercommunityposts",
-      "community": 32,
-      "community_name": "src/pages.tsx",
-      "norm_label": "getusercommunityposts()"
-    },
-    {
-      "label": "getPixelTransactions()",
-      "file_type": "code",
-      "source_file": "src/services/pixels.ts",
-      "source_location": "L110",
-      "_callable": true,
-      "_origin": "ast",
-      "id": "src_services_pixels_getpixeltransactions",
-      "community": 32,
-      "community_name": "src/pages.tsx",
-      "norm_label": "getpixeltransactions()"
-    },
-    {
-      "label": "updateUserProfile()",
-      "file_type": "code",
-      "source_file": "src/services/users.ts",
-      "source_location": "L122",
-      "_callable": true,
-      "_origin": "ast",
-      "id": "src_services_users_updateuserprofile",
-      "community": 32,
-      "community_name": "src/pages.tsx",
-      "norm_label": "updateuserprofile()"
-    },
-    {
-      "label": "useApp()",
-      "file_type": "code",
-      "source_file": "src/store.tsx",
-      "source_location": "L52",
-      "_callable": true,
-      "_origin": "ast",
-      "id": "src_store_useapp",
-      "community": 32,
-      "community_name": "src/pages.tsx",
-      "norm_label": "useapp()"
-    },
-    {
-      "label": "OppCard()",
-      "file_type": "code",
-      "source_file": "src/ui.tsx",
-      "source_location": "L196",
-      "_callable": true,
-      "_origin": "ast",
-      "id": "src_ui_oppcard",
-      "community": 32,
-      "community_name": "src/pages.tsx",
-      "norm_label": "oppcard()"
-    },
-    {
-      "label": "ReferBtn()",
-      "file_type": "code",
-      "source_file": "src/ui.tsx",
-      "source_location": "L178",
-      "_callable": true,
-      "_origin": "ast",
-      "id": "src_ui_referbtn",
-      "community": 32,
-      "community_name": "src/pages.tsx",
-      "norm_label": "referbtn()"
-    },
-    {
-      "label": "rankOf()",
-      "file_type": "code",
-      "source_file": "src/data.ts",
-      "source_location": "L115",
-      "_callable": true,
-      "_origin": "ast",
-      "id": "src_data_rankof",
+      "id": "src_pages_submitopportunity_submitopportunity",
       "community": 33,
-      "community_name": "src/pixels.tsx",
-      "norm_label": "rankof()"
+      "community_name": "SubmitOpportunity.tsx",
+      "norm_label": "submitopportunity()"
     },
     {
-      "label": "tierInfo()",
-      "file_type": "code",
-      "source_file": "src/data.ts",
-      "source_location": "L101",
-      "_callable": true,
-      "_origin": "ast",
-      "id": "src_data_tierinfo",
-      "community": 33,
-      "community_name": "src/pixels.tsx",
-      "norm_label": "tierinfo()"
-    },
-    {
-      "label": "Mini()",
-      "file_type": "code",
-      "source_file": "src/pages.tsx",
-      "source_location": "L123",
-      "_callable": true,
-      "_origin": "ast",
-      "id": "src_pages_mini",
-      "community": 33,
-      "community_name": "src/pixels.tsx",
-      "norm_label": "mini()"
-    },
-    {
-      "label": "Bar()",
-      "file_type": "code",
-      "source_file": "src/pixels.tsx",
-      "source_location": "L63",
-      "_callable": true,
-      "_origin": "ast",
-      "id": "src_pixels_bar",
-      "community": 33,
-      "community_name": "src/pixels.tsx",
-      "norm_label": "bar()"
-    },
-    {
-      "label": "Count()",
-      "file_type": "code",
-      "source_file": "src/pixels.tsx",
-      "source_location": "L44",
-      "_callable": true,
-      "_origin": "ast",
-      "id": "src_pixels_count",
-      "community": 33,
-      "community_name": "src/pixels.tsx",
-      "norm_label": "count()"
-    },
-    {
-      "label": "Delta()",
-      "file_type": "code",
-      "source_file": "src/pixels.tsx",
-      "source_location": "L72",
-      "_callable": true,
-      "_origin": "ast",
-      "id": "src_pixels_delta",
-      "community": 33,
-      "community_name": "src/pixels.tsx",
-      "norm_label": "delta()"
-    },
-    {
-      "label": "Leaderboard()",
-      "file_type": "code",
-      "source_file": "src/pixels.tsx",
-      "source_location": "L287",
-      "_callable": true,
-      "_origin": "ast",
-      "id": "src_pixels_leaderboard",
-      "community": 33,
-      "community_name": "src/pixels.tsx",
-      "norm_label": "leaderboard()"
-    },
-    {
-      "label": "PixelGrid()",
-      "file_type": "code",
-      "source_file": "src/pixels.tsx",
-      "source_location": "L84",
-      "_callable": true,
-      "_origin": "ast",
-      "id": "src_pixels_pixelgrid",
-      "community": 33,
-      "community_name": "src/pixels.tsx",
-      "norm_label": "pixelgrid()"
-    },
-    {
-      "label": "useCount()",
-      "file_type": "code",
-      "source_file": "src/pixels.tsx",
-      "source_location": "L25",
-      "_callable": true,
-      "_origin": "ast",
-      "id": "src_pixels_usecount",
-      "community": 33,
-      "community_name": "src/pixels.tsx",
-      "norm_label": "usecount()"
-    },
-    {
-      "label": "getLeaderboardUsers()",
-      "file_type": "code",
-      "source_file": "src/services/users.ts",
-      "source_location": "L166",
-      "_callable": true,
-      "_origin": "ast",
-      "id": "src_services_users_getleaderboardusers",
-      "community": 33,
-      "community_name": "src/pixels.tsx",
-      "norm_label": "getleaderboardusers()"
-    },
-    {
-      "label": "Avatar()",
-      "file_type": "code",
-      "source_file": "src/ui.tsx",
-      "source_location": "L99",
-      "_callable": true,
-      "_origin": "ast",
-      "id": "src_ui_avatar",
-      "community": 33,
-      "community_name": "src/pixels.tsx",
-      "norm_label": "avatar()"
-    },
-    {
-      "label": "Landing()",
-      "file_type": "code",
-      "source_file": "src/pages.tsx",
-      "source_location": "L169",
-      "_callable": true,
-      "_origin": "ast",
-      "id": "src_pages_landing",
-      "community": 35,
-      "community_name": "community.ts",
-      "norm_label": "landing()"
-    },
-    {
-      "label": "updateCommunityPost()",
-      "file_type": "code",
-      "source_file": "src/services/admin.ts",
-      "source_location": "L110",
-      "_callable": true,
-      "_origin": "ast",
-      "id": "src_services_admin_updatecommunitypost",
-      "community": 35,
-      "community_name": "community.ts",
-      "norm_label": "updatecommunitypost()"
-    },
-    {
-      "label": "createAdminCommunityPost()",
-      "file_type": "code",
-      "source_file": "src/services/community.ts",
-      "source_location": "L186",
-      "_callable": true,
-      "_origin": "ast",
-      "id": "src_services_community_createadmincommunitypost",
-      "community": 35,
-      "community_name": "community.ts",
-      "norm_label": "createadmincommunitypost()"
-    },
-    {
-      "label": "createCommunityPost()",
-      "file_type": "code",
-      "source_file": "src/services/community.ts",
-      "source_location": "L111",
-      "_callable": true,
-      "_origin": "ast",
-      "id": "src_services_community_createcommunitypost",
-      "community": 35,
-      "community_name": "community.ts",
-      "norm_label": "createcommunitypost()"
-    },
-    {
-      "label": "formatTimeAgo()",
-      "file_type": "code",
-      "source_file": "src/services/community.ts",
-      "source_location": "L12",
-      "_callable": true,
-      "_origin": "ast",
-      "id": "src_services_community_formattimeago",
-      "community": 35,
-      "community_name": "community.ts",
-      "norm_label": "formattimeago()"
-    },
-    {
-      "label": "getCommunityPosts()",
-      "file_type": "code",
-      "source_file": "src/services/community.ts",
-      "source_location": "L50",
-      "_callable": true,
-      "_origin": "ast",
-      "id": "src_services_community_getcommunityposts",
-      "community": 35,
-      "community_name": "community.ts",
-      "norm_label": "getcommunityposts()"
-    },
-    {
-      "label": "mapPostRow()",
-      "file_type": "code",
-      "source_file": "src/services/community.ts",
-      "source_location": "L27",
-      "_callable": true,
-      "_origin": "ast",
-      "id": "src_services_community_mappostrow",
-      "community": 35,
-      "community_name": "community.ts",
-      "norm_label": "mappostrow()"
-    },
-    {
-      "label": "Composer()",
-      "file_type": "code",
-      "source_file": "src/ui.tsx",
-      "source_location": "L427",
-      "_callable": true,
-      "_origin": "ast",
-      "id": "src_ui_composer",
-      "community": 35,
-      "community_name": "community.ts",
-      "norm_label": "composer()"
-    },
-    {
-      "label": "deleteCommunityPost()",
-      "file_type": "code",
-      "source_file": "src/services/community.ts",
-      "source_location": "L244",
-      "_callable": true,
-      "_origin": "ast",
-      "id": "src_services_community_deletecommunitypost",
-      "community": 36,
-      "community_name": "reports.ts",
-      "norm_label": "deletecommunitypost()"
-    },
-    {
-      "label": "deleteOpportunityAdmin()",
+      "label": "submitOpportunity()",
       "file_type": "code",
       "source_file": "src/services/opportunities.ts",
-      "source_location": "L694",
+      "source_location": "L316",
       "_callable": true,
       "_origin": "ast",
-      "id": "src_services_opportunities_deleteopportunityadmin",
-      "community": 36,
-      "community_name": "reports.ts",
-      "norm_label": "deleteopportunityadmin()"
+      "id": "src_services_opportunities_submitopportunity",
+      "community": 33,
+      "community_name": "SubmitOpportunity.tsx",
+      "norm_label": "submitopportunity()"
     },
     {
-      "label": "createReport()",
+      "label": "uploadImage()",
       "file_type": "code",
-      "source_file": "src/services/reports.ts",
-      "source_location": "L47",
+      "source_file": "src/services/storage.ts",
+      "source_location": "L10",
       "_callable": true,
       "_origin": "ast",
-      "id": "src_services_reports_createreport",
-      "community": 36,
-      "community_name": "reports.ts",
-      "norm_label": "createreport()"
+      "id": "src_services_storage_uploadimage",
+      "community": 33,
+      "community_name": "SubmitOpportunity.tsx",
+      "norm_label": "uploadimage()"
     },
     {
-      "label": "deleteReportedItem()",
+      "label": "uploadOpportunityImage()",
       "file_type": "code",
-      "source_file": "src/services/reports.ts",
-      "source_location": "L222",
+      "source_file": "src/services/storage.ts",
+      "source_location": "L71",
       "_callable": true,
       "_origin": "ast",
-      "id": "src_services_reports_deletereporteditem",
-      "community": 36,
-      "community_name": "reports.ts",
-      "norm_label": "deletereporteditem()"
-    },
-    {
-      "label": "dismissReport()",
-      "file_type": "code",
-      "source_file": "src/services/reports.ts",
-      "source_location": "L183",
-      "_callable": true,
-      "_origin": "ast",
-      "id": "src_services_reports_dismissreport",
-      "community": 36,
-      "community_name": "reports.ts",
-      "norm_label": "dismissreport()"
-    },
-    {
-      "label": "getAllReports()",
-      "file_type": "code",
-      "source_file": "src/services/reports.ts",
-      "source_location": "L94",
-      "_callable": true,
-      "_origin": "ast",
-      "id": "src_services_reports_getallreports",
-      "community": 36,
-      "community_name": "reports.ts",
-      "norm_label": "getallreports()"
-    },
-    {
-      "label": "getLocalReports()",
-      "file_type": "code",
-      "source_file": "src/services/reports.ts",
-      "source_location": "L27",
-      "_callable": true,
-      "_origin": "ast",
-      "id": "src_services_reports_getlocalreports",
-      "community": 36,
-      "community_name": "reports.ts",
-      "norm_label": "getlocalreports()"
-    },
-    {
-      "label": "resolveReport()",
-      "file_type": "code",
-      "source_file": "src/services/reports.ts",
-      "source_location": "L141",
-      "_callable": true,
-      "_origin": "ast",
-      "id": "src_services_reports_resolvereport",
-      "community": 36,
-      "community_name": "reports.ts",
-      "norm_label": "resolvereport()"
-    },
-    {
-      "label": "saveLocalReports()",
-      "file_type": "code",
-      "source_file": "src/services/reports.ts",
-      "source_location": "L36",
-      "_callable": true,
-      "_origin": "ast",
-      "id": "src_services_reports_savelocalreports",
-      "community": 36,
-      "community_name": "reports.ts",
-      "norm_label": "savelocalreports()"
-    },
-    {
-      "label": "confirmOpportunityRegistration()",
-      "file_type": "code",
-      "source_file": "src/services/applications.ts",
-      "source_location": "L165",
-      "_callable": true,
-      "_origin": "ast",
-      "id": "src_services_applications_confirmopportunityregistration",
-      "community": 37,
-      "community_name": "applications.ts",
-      "norm_label": "confirmopportunityregistration()"
-    },
-    {
-      "label": "getLocalStorageApplications()",
-      "file_type": "code",
-      "source_file": "src/services/applications.ts",
-      "source_location": "L23",
-      "_callable": true,
-      "_origin": "ast",
-      "id": "src_services_applications_getlocalstorageapplications",
-      "community": 37,
-      "community_name": "applications.ts",
-      "norm_label": "getlocalstorageapplications()"
-    },
-    {
-      "label": "getUserApplications()",
-      "file_type": "code",
-      "source_file": "src/services/applications.ts",
-      "source_location": "L43",
-      "_callable": true,
-      "_origin": "ast",
-      "id": "src_services_applications_getuserapplications",
-      "community": 37,
-      "community_name": "applications.ts",
-      "norm_label": "getuserapplications()"
-    },
-    {
-      "label": "recordOpportunityApplication()",
-      "file_type": "code",
-      "source_file": "src/services/applications.ts",
-      "source_location": "L99",
-      "_callable": true,
-      "_origin": "ast",
-      "id": "src_services_applications_recordopportunityapplication",
-      "community": 37,
-      "community_name": "applications.ts",
-      "norm_label": "recordopportunityapplication()"
-    },
-    {
-      "label": "saveLocalStorageApplications()",
-      "file_type": "code",
-      "source_file": "src/services/applications.ts",
-      "source_location": "L32",
-      "_callable": true,
-      "_origin": "ast",
-      "id": "src_services_applications_savelocalstorageapplications",
-      "community": 37,
-      "community_name": "applications.ts",
-      "norm_label": "savelocalstorageapplications()"
-    },
-    {
-      "label": "adjustUserPixels()",
-      "file_type": "code",
-      "source_file": "src/services/pixels.ts",
-      "source_location": "L145",
-      "_callable": true,
-      "_origin": "ast",
-      "id": "src_services_pixels_adjustuserpixels",
-      "community": 37,
-      "community_name": "applications.ts",
-      "norm_label": "adjustuserpixels()"
+      "id": "src_services_storage_uploadopportunityimage",
+      "community": 33,
+      "community_name": "SubmitOpportunity.tsx",
+      "norm_label": "uploadopportunityimage()"
     },
     {
       "label": "App()",
@@ -2971,6 +2839,78 @@
       "norm_label": "sectiontitle()"
     },
     {
+      "label": "AnnouncementModal()",
+      "file_type": "code",
+      "source_file": "src/components/AnnouncementModal.tsx",
+      "source_location": "L9",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "src_components_announcementmodal_announcementmodal",
+      "community": 8,
+      "community_name": "src/ui.tsx",
+      "norm_label": "announcementmodal()"
+    },
+    {
+      "label": "ReportModal()",
+      "file_type": "code",
+      "source_file": "src/components/ReportModal.tsx",
+      "source_location": "L35",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "src_components_reportmodal_reportmodal",
+      "community": 8,
+      "community_name": "src/ui.tsx",
+      "norm_label": "reportmodal()"
+    },
+    {
+      "label": "Opportunities()",
+      "file_type": "code",
+      "source_file": "src/pages.tsx",
+      "source_location": "L597",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "src_pages_tsx_src_pages_opportunities",
+      "community": 8,
+      "community_name": "src/ui.tsx",
+      "norm_label": "opportunities()"
+    },
+    {
+      "label": "getActiveAnnouncements()",
+      "file_type": "code",
+      "source_file": "src/services/announcements.ts",
+      "source_location": "L11",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "src_services_announcements_getactiveannouncements",
+      "community": 8,
+      "community_name": "src/ui.tsx",
+      "norm_label": "getactiveannouncements()"
+    },
+    {
+      "label": "createAdminCommunityPost()",
+      "file_type": "code",
+      "source_file": "src/services/community.ts",
+      "source_location": "L186",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "src_services_community_createadmincommunitypost",
+      "community": 8,
+      "community_name": "src/ui.tsx",
+      "norm_label": "createadmincommunitypost()"
+    },
+    {
+      "label": "createCommunityPost()",
+      "file_type": "code",
+      "source_file": "src/services/community.ts",
+      "source_location": "L111",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "src_services_community_createcommunitypost",
+      "community": 8,
+      "community_name": "src/ui.tsx",
+      "norm_label": "createcommunitypost()"
+    },
+    {
       "label": "updateCommunityPost()",
       "file_type": "code",
       "source_file": "src/services/community.ts",
@@ -2981,6 +2921,30 @@
       "community": 8,
       "community_name": "src/ui.tsx",
       "norm_label": "updatecommunitypost()"
+    },
+    {
+      "label": "useApp()",
+      "file_type": "code",
+      "source_file": "src/store.tsx",
+      "source_location": "L52",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "src_store_useapp",
+      "community": 8,
+      "community_name": "src/ui.tsx",
+      "norm_label": "useapp()"
+    },
+    {
+      "label": "Avatar()",
+      "file_type": "code",
+      "source_file": "src/ui.tsx",
+      "source_location": "L99",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "src_ui_avatar",
+      "community": 8,
+      "community_name": "src/ui.tsx",
+      "norm_label": "avatar()"
     },
     {
       "label": "BackBtn()",
@@ -3055,6 +3019,18 @@
       "norm_label": "cls()"
     },
     {
+      "label": "Composer()",
+      "file_type": "code",
+      "source_file": "src/ui.tsx",
+      "source_location": "L427",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "src_ui_composer",
+      "community": 8,
+      "community_name": "src/ui.tsx",
+      "norm_label": "composer()"
+    },
+    {
       "label": "Logo()",
       "file_type": "code",
       "source_file": "src/ui.tsx",
@@ -3067,6 +3043,18 @@
       "norm_label": "logo()"
     },
     {
+      "label": "OppCard()",
+      "file_type": "code",
+      "source_file": "src/ui.tsx",
+      "source_location": "L196",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "src_ui_oppcard",
+      "community": 8,
+      "community_name": "src/ui.tsx",
+      "norm_label": "oppcard()"
+    },
+    {
       "label": "PostCard()",
       "file_type": "code",
       "source_file": "src/ui.tsx",
@@ -3077,6 +3065,18 @@
       "community": 8,
       "community_name": "src/ui.tsx",
       "norm_label": "postcard()"
+    },
+    {
+      "label": "ReferBtn()",
+      "file_type": "code",
+      "source_file": "src/ui.tsx",
+      "source_location": "L178",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "src_ui_referbtn",
+      "community": 8,
+      "community_name": "src/ui.tsx",
+      "norm_label": "referbtn()"
     },
     {
       "label": "SectionTitle()",
@@ -3179,6 +3179,17 @@
       "community": 0,
       "community_name": "useAuth",
       "norm_label": "navbar.tsx"
+    },
+    {
+      "label": "NotificationBell.tsx",
+      "file_type": "code",
+      "source_file": "src/components/NotificationBell.tsx",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "src_components_notificationbell",
+      "community": 0,
+      "community_name": "useAuth",
+      "norm_label": "notificationbell.tsx"
     },
     {
       "label": "PixelMark.tsx",
@@ -3333,6 +3344,39 @@
       "community": 0,
       "community_name": "useAuth",
       "norm_label": "signup.tsx"
+    },
+    {
+      "label": "src/pixels.tsx",
+      "file_type": "code",
+      "source_file": "src/pixels.tsx",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "src_pixels",
+      "community": 0,
+      "community_name": "useAuth",
+      "norm_label": "src/pixels.tsx"
+    },
+    {
+      "label": "evts",
+      "file_type": "code",
+      "source_file": "src/pixels.tsx",
+      "source_location": "L54",
+      "_origin": "ast",
+      "id": "src_pixels_evts",
+      "community": 0,
+      "community_name": "useAuth",
+      "norm_label": "evts"
+    },
+    {
+      "label": "steps",
+      "file_type": "code",
+      "source_file": "src/pixels.tsx",
+      "source_location": "L116",
+      "_origin": "ast",
+      "id": "src_pixels_steps",
+      "community": 0,
+      "community_name": "useAuth",
+      "norm_label": "steps"
     },
     {
       "label": "referrals.ts",
@@ -3731,28 +3775,6 @@
       "norm_label": "opportunitydetails.tsx"
     },
     {
-      "label": "SubmitOpportunity.tsx",
-      "file_type": "code",
-      "source_file": "src/pages/SubmitOpportunity.tsx",
-      "source_location": "L1",
-      "_origin": "ast",
-      "id": "src_pages_submitopportunity",
-      "community": 10,
-      "community_name": "opportunities.ts",
-      "norm_label": "submitopportunity.tsx"
-    },
-    {
-      "label": "CATEGORIES",
-      "file_type": "code",
-      "source_file": "src/pages/SubmitOpportunity.tsx",
-      "source_location": "L8",
-      "_origin": "ast",
-      "id": "src_pages_submitopportunity_categories",
-      "community": 10,
-      "community_name": "opportunities.ts",
-      "norm_label": "categories"
-    },
-    {
       "label": "opportunities.ts",
       "file_type": "code",
       "source_file": "src/services/opportunities.ts",
@@ -3764,15 +3786,15 @@
       "norm_label": "opportunities.ts"
     },
     {
-      "label": "storage.ts",
+      "label": "database.ts",
       "file_type": "code",
-      "source_file": "src/services/storage.ts",
+      "source_file": "src/types/database.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "id": "src_services_storage",
+      "id": "src_types_database",
       "community": 10,
       "community_name": "opportunities.ts",
-      "norm_label": "storage.ts"
+      "norm_label": "database.ts"
     },
     {
       "label": "postcss.config.js",
@@ -4545,37 +4567,26 @@
       "norm_label": "pixel-minds/vite.config.ts"
     },
     {
-      "label": "AnnouncementBanner.tsx",
+      "label": "src/pages.tsx",
       "file_type": "code",
-      "source_file": "src/components/AnnouncementBanner.tsx",
+      "source_file": "src/pages.tsx",
       "source_location": "L1",
       "_origin": "ast",
-      "id": "src_components_announcementbanner",
+      "id": "src_pages",
       "community": 24,
-      "community_name": "admin.ts",
-      "norm_label": "announcementbanner.tsx"
+      "community_name": "src/pages.tsx",
+      "norm_label": "src/pages.tsx"
     },
     {
-      "label": "AnnouncementModal.tsx",
+      "label": "adminTabs",
       "file_type": "code",
-      "source_file": "src/components/AnnouncementModal.tsx",
-      "source_location": "L1",
+      "source_file": "src/pages.tsx",
+      "source_location": "L2697",
       "_origin": "ast",
-      "id": "src_components_announcementmodal",
+      "id": "src_pages_admintabs",
       "community": 24,
-      "community_name": "admin.ts",
-      "norm_label": "announcementmodal.tsx"
-    },
-    {
-      "label": "NotificationBell.tsx",
-      "file_type": "code",
-      "source_file": "src/components/NotificationBell.tsx",
-      "source_location": "L1",
-      "_origin": "ast",
-      "id": "src_components_notificationbell",
-      "community": 24,
-      "community_name": "admin.ts",
-      "norm_label": "notificationbell.tsx"
+      "community_name": "src/pages.tsx",
+      "norm_label": "admintabs"
     },
     {
       "label": "admin.ts",
@@ -4585,7 +4596,7 @@
       "_origin": "ast",
       "id": "src_services_admin",
       "community": 24,
-      "community_name": "admin.ts",
+      "community_name": "src/pages.tsx",
       "norm_label": "admin.ts"
     },
     {
@@ -4596,8 +4607,30 @@
       "_origin": "ast",
       "id": "src_services_announcements",
       "community": 24,
-      "community_name": "admin.ts",
+      "community_name": "src/pages.tsx",
       "norm_label": "announcements.ts"
+    },
+    {
+      "label": "applications.ts",
+      "file_type": "code",
+      "source_file": "src/services/applications.ts",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "src_services_applications",
+      "community": 24,
+      "community_name": "src/pages.tsx",
+      "norm_label": "applications.ts"
+    },
+    {
+      "label": "community.ts",
+      "file_type": "code",
+      "source_file": "src/services/community.ts",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "src_services_community",
+      "community": 24,
+      "community_name": "src/pages.tsx",
+      "norm_label": "community.ts"
     },
     {
       "label": "notifications.ts",
@@ -4607,7 +4640,7 @@
       "_origin": "ast",
       "id": "src_services_notifications",
       "community": 24,
-      "community_name": "admin.ts",
+      "community_name": "src/pages.tsx",
       "norm_label": "notifications.ts"
     },
     {
@@ -4618,7 +4651,7 @@
       "_origin": "ast",
       "id": "src_services_pixels",
       "community": 24,
-      "community_name": "admin.ts",
+      "community_name": "src/pages.tsx",
       "norm_label": "pixels.ts"
     },
     {
@@ -4629,8 +4662,19 @@
       "_origin": "ast",
       "id": "src_services_pixels_default_reward_config",
       "community": 24,
-      "community_name": "admin.ts",
+      "community_name": "src/pages.tsx",
       "norm_label": "default_reward_config"
+    },
+    {
+      "label": "reports.ts",
+      "file_type": "code",
+      "source_file": "src/services/reports.ts",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "src_services_reports",
+      "community": 24,
+      "community_name": "src/pages.tsx",
+      "norm_label": "reports.ts"
     },
     {
       "label": "index.ts",
@@ -4640,7 +4684,7 @@
       "_origin": "ast",
       "id": "src_types_index",
       "community": 24,
-      "community_name": "admin.ts",
+      "community_name": "src/pages.tsx",
       "norm_label": "index.ts"
     },
     {
@@ -5590,92 +5634,147 @@
       "norm_label": "g. analytics & dashboard overview (`overview` tab)"
     },
     {
-      "label": "ReportModal.tsx",
+      "label": "vercel.json",
       "file_type": "code",
-      "source_file": "src/components/ReportModal.tsx",
+      "source_file": "vercel.json",
       "source_location": "L1",
       "_origin": "ast",
-      "id": "src_components_reportmodal",
+      "id": "vercel",
       "community": 32,
-      "community_name": "src/pages.tsx",
-      "norm_label": "reportmodal.tsx"
+      "community_name": "vercel.json",
+      "norm_label": "vercel.json"
     },
     {
-      "label": "OPPORTUNITY_REASONS",
+      "label": "framework",
       "file_type": "code",
-      "source_file": "src/components/ReportModal.tsx",
-      "source_location": "L17",
+      "source_file": "vercel.json",
+      "source_location": "L6",
       "_origin": "ast",
-      "id": "src_components_reportmodal_opportunity_reasons",
+      "id": "vercel_app_framework",
       "community": 32,
-      "community_name": "src/pages.tsx",
-      "norm_label": "opportunity_reasons"
+      "community_name": "vercel.json",
+      "norm_label": "framework"
     },
     {
-      "label": "POST_REASONS",
+      "label": "root",
       "file_type": "code",
-      "source_file": "src/components/ReportModal.tsx",
-      "source_location": "L26",
+      "source_file": "vercel.json",
+      "source_location": "L5",
       "_origin": "ast",
-      "id": "src_components_reportmodal_post_reasons",
+      "id": "vercel_app_root",
       "community": 32,
-      "community_name": "src/pages.tsx",
-      "norm_label": "post_reasons"
+      "community_name": "vercel.json",
+      "norm_label": "root"
     },
     {
-      "label": "src/pages.tsx",
+      "label": "framework",
       "file_type": "code",
-      "source_file": "src/pages.tsx",
+      "source_file": "vercel.json",
+      "source_location": "L10",
+      "_origin": "ast",
+      "id": "vercel_pixel_minds_framework",
+      "community": 32,
+      "community_name": "vercel.json",
+      "norm_label": "framework"
+    },
+    {
+      "label": "root",
+      "file_type": "code",
+      "source_file": "vercel.json",
+      "source_location": "L9",
+      "_origin": "ast",
+      "id": "vercel_pixel_minds_root",
+      "community": 32,
+      "community_name": "vercel.json",
+      "norm_label": "root"
+    },
+    {
+      "label": "rewrites",
+      "file_type": "code",
+      "source_file": "vercel.json",
+      "source_location": "L13",
+      "_origin": "ast",
+      "id": "vercel_rewrites",
+      "community": 32,
+      "community_name": "vercel.json",
+      "norm_label": "rewrites"
+    },
+    {
+      "label": "$schema",
+      "file_type": "code",
+      "source_file": "vercel.json",
+      "source_location": "L2",
+      "_origin": "ast",
+      "id": "vercel_schema",
+      "community": 32,
+      "community_name": "vercel.json",
+      "norm_label": "$schema"
+    },
+    {
+      "label": "services",
+      "file_type": "code",
+      "source_file": "vercel.json",
+      "source_location": "L3",
+      "_origin": "ast",
+      "id": "vercel_services",
+      "community": 32,
+      "community_name": "vercel.json",
+      "norm_label": "services"
+    },
+    {
+      "label": "app",
+      "file_type": "code",
+      "source_file": "vercel.json",
+      "source_location": "L4",
+      "_origin": "ast",
+      "id": "vercel_services_app",
+      "community": 32,
+      "community_name": "vercel.json",
+      "norm_label": "app"
+    },
+    {
+      "label": "pixel-minds",
+      "file_type": "code",
+      "source_file": "vercel.json",
+      "source_location": "L8",
+      "_origin": "ast",
+      "id": "vercel_services_pixel_minds",
+      "community": 32,
+      "community_name": "vercel.json",
+      "norm_label": "pixel-minds"
+    },
+    {
+      "label": "SubmitOpportunity.tsx",
+      "file_type": "code",
+      "source_file": "src/pages/SubmitOpportunity.tsx",
       "source_location": "L1",
       "_origin": "ast",
-      "id": "src_pages",
-      "community": 32,
-      "community_name": "src/pages.tsx",
-      "norm_label": "src/pages.tsx"
+      "id": "src_pages_submitopportunity",
+      "community": 33,
+      "community_name": "SubmitOpportunity.tsx",
+      "norm_label": "submitopportunity.tsx"
     },
     {
-      "label": "adminTabs",
+      "label": "CATEGORIES",
       "file_type": "code",
-      "source_file": "src/pages.tsx",
-      "source_location": "L2697",
+      "source_file": "src/pages/SubmitOpportunity.tsx",
+      "source_location": "L8",
       "_origin": "ast",
-      "id": "src_pages_admintabs",
-      "community": 32,
-      "community_name": "src/pages.tsx",
-      "norm_label": "admintabs"
+      "id": "src_pages_submitopportunity_categories",
+      "community": 33,
+      "community_name": "SubmitOpportunity.tsx",
+      "norm_label": "categories"
     },
     {
-      "label": "src/pixels.tsx",
+      "label": "storage.ts",
       "file_type": "code",
-      "source_file": "src/pixels.tsx",
+      "source_file": "src/services/storage.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "id": "src_pixels",
+      "id": "src_services_storage",
       "community": 33,
-      "community_name": "src/pixels.tsx",
-      "norm_label": "src/pixels.tsx"
-    },
-    {
-      "label": "evts",
-      "file_type": "code",
-      "source_file": "src/pixels.tsx",
-      "source_location": "L54",
-      "_origin": "ast",
-      "id": "src_pixels_evts",
-      "community": 33,
-      "community_name": "src/pixels.tsx",
-      "norm_label": "evts"
-    },
-    {
-      "label": "steps",
-      "file_type": "code",
-      "source_file": "src/pixels.tsx",
-      "source_location": "L116",
-      "_origin": "ast",
-      "id": "src_pixels_steps",
-      "community": 33,
-      "community_name": "src/pixels.tsx",
-      "norm_label": "steps"
+      "community_name": "SubmitOpportunity.tsx",
+      "norm_label": "storage.ts"
     },
     {
       "label": "src/data.ts",
@@ -5797,50 +5896,6 @@
       "community": 34,
       "community_name": "src/data.ts",
       "norm_label": "verified_opportunities"
-    },
-    {
-      "label": "community.ts",
-      "file_type": "code",
-      "source_file": "src/services/community.ts",
-      "source_location": "L1",
-      "_origin": "ast",
-      "id": "src_services_community",
-      "community": 35,
-      "community_name": "community.ts",
-      "norm_label": "community.ts"
-    },
-    {
-      "label": "database.ts",
-      "file_type": "code",
-      "source_file": "src/types/database.ts",
-      "source_location": "L1",
-      "_origin": "ast",
-      "id": "src_types_database",
-      "community": 35,
-      "community_name": "community.ts",
-      "norm_label": "database.ts"
-    },
-    {
-      "label": "reports.ts",
-      "file_type": "code",
-      "source_file": "src/services/reports.ts",
-      "source_location": "L1",
-      "_origin": "ast",
-      "id": "src_services_reports",
-      "community": 36,
-      "community_name": "reports.ts",
-      "norm_label": "reports.ts"
-    },
-    {
-      "label": "applications.ts",
-      "file_type": "code",
-      "source_file": "src/services/applications.ts",
-      "source_location": "L1",
-      "_origin": "ast",
-      "id": "src_services_applications",
-      "community": 37,
-      "community_name": "applications.ts",
-      "norm_label": "applications.ts"
     },
     {
       "label": "tsconfig.node.json",
@@ -6952,6 +7007,61 @@
       "community": 7,
       "community_name": "plugins",
       "norm_label": "warn"
+    },
+    {
+      "label": "AnnouncementBanner.tsx",
+      "file_type": "code",
+      "source_file": "src/components/AnnouncementBanner.tsx",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "src_components_announcementbanner",
+      "community": 8,
+      "community_name": "src/ui.tsx",
+      "norm_label": "announcementbanner.tsx"
+    },
+    {
+      "label": "AnnouncementModal.tsx",
+      "file_type": "code",
+      "source_file": "src/components/AnnouncementModal.tsx",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "src_components_announcementmodal",
+      "community": 8,
+      "community_name": "src/ui.tsx",
+      "norm_label": "announcementmodal.tsx"
+    },
+    {
+      "label": "ReportModal.tsx",
+      "file_type": "code",
+      "source_file": "src/components/ReportModal.tsx",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "src_components_reportmodal",
+      "community": 8,
+      "community_name": "src/ui.tsx",
+      "norm_label": "reportmodal.tsx"
+    },
+    {
+      "label": "OPPORTUNITY_REASONS",
+      "file_type": "code",
+      "source_file": "src/components/ReportModal.tsx",
+      "source_location": "L17",
+      "_origin": "ast",
+      "id": "src_components_reportmodal_opportunity_reasons",
+      "community": 8,
+      "community_name": "src/ui.tsx",
+      "norm_label": "opportunity_reasons"
+    },
+    {
+      "label": "POST_REASONS",
+      "file_type": "code",
+      "source_file": "src/components/ReportModal.tsx",
+      "source_location": "L26",
+      "_origin": "ast",
+      "id": "src_components_reportmodal_post_reasons",
+      "community": 8,
+      "community_name": "src/ui.tsx",
+      "norm_label": "post_reasons"
     },
     {
       "label": "src/ui.tsx",
@@ -21172,6 +21282,105 @@
       "confidence_score": 1.0
     },
     {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "vercel.json",
+      "source_location": "L13",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "vercel",
+      "target": "vercel_rewrites",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "vercel.json",
+      "source_location": "L2",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "vercel",
+      "target": "vercel_schema",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "vercel.json",
+      "source_location": "L3",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "vercel",
+      "target": "vercel_services",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "vercel.json",
+      "source_location": "L4",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "vercel_services",
+      "target": "vercel_services_app",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "vercel.json",
+      "source_location": "L8",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "vercel_services",
+      "target": "vercel_services_pixel_minds",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "vercel.json",
+      "source_location": "L5",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "vercel_services_app",
+      "target": "vercel_app_root",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "vercel.json",
+      "source_location": "L6",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "vercel_services_app",
+      "target": "vercel_app_framework",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "vercel.json",
+      "source_location": "L10",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "vercel_services_pixel_minds",
+      "target": "vercel_pixel_minds_framework",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "vercel.json",
+      "source_location": "L9",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "vercel_services_pixel_minds",
+      "target": "vercel_pixel_minds_root",
+      "confidence_score": 1.0
+    },
+    {
       "relation": "dynamic_import",
       "confidence": "EXTRACTED",
       "source_file": "src/services/announcements.ts",
@@ -21320,5 +21529,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "112cb95bdc164d1131516ed3020e5068417447f3"
+  "built_at_commit": "281fa1f410c52e9d4c99e60796fca25bc942ad12"
 }

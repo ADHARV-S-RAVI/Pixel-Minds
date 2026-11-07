@@ -1,7 +1,7 @@
 # Graph Report - Pixel Minds  (2026-11-07)
 
 ## Corpus Check
-- 86 files · ~102,854 words
+- 86 files · ~111,430 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
