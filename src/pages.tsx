@@ -47,6 +47,7 @@ import {
 } from 'lucide-react';
 import { SubmissionDetailModal } from './components/SubmissionDetailModal';
 import { ReportModal } from './components/ReportModal';
+import { FAQSection } from './components/FAQSection';
 import { getCategoryMeta } from './utils/meta';
 import { useApp } from './store';
 import {
@@ -616,6 +617,9 @@ export function Landing() {
             <Mini title="Monthly Ranks" />
           </div>
         </section>
+
+        {/* FAQ Section */}
+        <FAQSection />
 
         {/* Share CTA Banner */}
         <section className="rounded-3xl border border-white/90 pm-glass-card p-8 sm:p-12 text-center text-[#0e1b33] shadow-sm relative overflow-hidden">
@@ -5214,3 +5218,14 @@ export function Admin() {
 
 // Leaderboard and Referral Exports
 export { Leaderboard } from './pixels';
+
+// FAQ Page Export
+export function FAQ() {
+  return (
+    <div className="py-2">
+      <FAQSection />
+    </div>
+  );
+}
+export { FAQSection } from './components/FAQSection';
+
