@@ -10,6 +10,7 @@ import { AdminLogin } from './pages/AdminLogin';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { AdminRoute } from './components/AdminRoute';
 import { ErrorBoundary } from './components/ErrorBoundary';
+import { Analytics } from '@vercel/analytics/react';
 import { ReferralOnboardingModal } from './components/ReferralOnboardingModal';
 import { useAuth } from './contexts/AuthContext';
 
@@ -30,6 +31,7 @@ export default function App() {
 
   return (
     <ErrorBoundary>
+      <Analytics />
       <ReferralOnboardingModal />
       <Routes>
         <Route element={<Layout />}>
