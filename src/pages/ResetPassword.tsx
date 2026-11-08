@@ -218,14 +218,14 @@ export function ResetPassword() {
                   <div className="bg-amber-500/10 border border-amber-500/25 text-amber-200 px-4 py-3.5 rounded-2xl text-xs">
                     <p className="font-semibold mb-1">No active password reset session found.</p>
                     <p className="text-amber-300/80 text-[11px]">
-                      Please open the link sent to your email or request a fresh reset link below.
+                      Please enter your 6-digit recovery code on the Forgot Password page or request a fresh code below.
                     </p>
                   </div>
                   <Link
                     to="/forgot-password"
                     className="inline-flex items-center justify-center gap-2 w-full py-3 px-4 rounded-full text-xs font-bold text-white bg-sky-500 hover:bg-sky-400 transition"
                   >
-                    <span>Request Reset Link</span>
+                    <span>Enter 6-Digit Code / Request New Code</span>
                     <ArrowRight size={14} />
                   </Link>
                 </div>

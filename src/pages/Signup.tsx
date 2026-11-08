@@ -7,10 +7,13 @@ import {
   Tag,
   CheckCircle2,
   AlertCircle,
-  ArrowRight
+  ArrowRight,
+  ArrowLeft,
+  RotateCw
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { PixelMark } from '../components/PixelMark';
+import { OtpInput } from '../components/OtpInput';
 import { validateReferralCode, recordReferralSignup } from '../services/referrals';
 import { COURSE_OPTIONS, getBranchesForCourse } from '../data/academicOptions';
 
@@ -40,17 +43,39 @@ export function Signup() {
   } | null>(null);
   const [verifyingCode, setVerifyingCode] = useState(false);
 
+  // OTP Verification state
+  const [step, setStep] = useState<'form' | 'otp'>('form');
+  const [otp, setOtp] = useState('');
+  const [resendCooldown, setResendCooldown] = useState(0);
+  const [verifyingOtp, setVerifyingOtp] = useState(false);
+
   const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const { signupWithEmail, loginWithGoogle, user, loading: authLoading } = useAuth();
+  const {
+    signupWithEmail,
+    verifySignupOtp,
+    resendSignupOtp,
+    loginWithGoogle,
+    user,
+    loading: authLoading
+  } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams] = useSearchParams();
 
   const redirect = searchParams.get('redirect') || (location.state as any)?.from?.pathname || '/';
   const infoMsg = searchParams.get('msg') || ((searchParams.get('redirect') || (location.state as any)?.from) ? 'Please sign up or log in to continue.' : '');
+
+  // Cooldown countdown timer for resend OTP
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const interval = setInterval(() => {
+      setResendCooldown((prev) => (prev > 0 ? prev - 1 : 0));
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [resendCooldown]);
 
   // Automatically redirect if user is already authenticated
   useEffect(() => {
@@ -136,12 +161,21 @@ export function Signup() {
         ? customBranch.trim()
         : selectedBranch.trim();
 
-      await signupWithEmail(email, password, name, {
+      const result = await signupWithEmail(email, password, name, {
         college: college.trim(),
         course: finalCourse,
         yearOfStudy: yearOfStudy.trim(),
         branch: finalBranch
       });
+
+      if (result?.needsEmailVerification) {
+        setStep('otp');
+        setOtp('');
+        setResendCooldown(60);
+        setError('');
+        setSuccessMsg(`We have sent a 6-digit verification code to ${email}.`);
+        return;
+      }
 
       // If user session was immediately established and referral was verified, record it
       if (user?.id && activeReferral && referralStatus?.valid) {
@@ -168,12 +202,77 @@ export function Signup() {
       ) {
         setError('Password should be at least 6 characters.');
       } else if (msg.includes('Please check your email to confirm')) {
-        setSuccessMsg(msg);
+        setStep('otp');
+        setResendCooldown(60);
+        setSuccessMsg(`We have sent a 6-digit verification code to ${email}.`);
       } else {
         setError(msg || 'Unable to sign up. Please try again.');
       }
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleVerifyOtp = async (codeToVerify?: string) => {
+    const token = (codeToVerify || otp).trim();
+    if (token.length !== 6) {
+      setError('Please enter the full 6-digit verification code.');
+      return;
+    }
+
+    try {
+      setVerifyingOtp(true);
+      setError('');
+      setSuccessMsg('');
+
+      const finalCourse = selectedCourse === 'Other' ? customCourse.trim() : selectedCourse.trim();
+      const finalBranch = (selectedCourse === 'Other' || selectedBranch === 'Other')
+        ? customBranch.trim()
+        : selectedBranch.trim();
+
+      const verified = await verifySignupOtp(email, token, name, {
+        college: college.trim(),
+        course: finalCourse,
+        yearOfStudy: yearOfStudy.trim(),
+        branch: finalBranch
+      });
+
+      const newUserId = verified?.user?.id;
+      let activeReferral = referralCode.trim().toUpperCase();
+      if (newUserId && activeReferral && referralStatus?.valid) {
+        try {
+          await recordReferralSignup(activeReferral, newUserId);
+        } catch (refErr) {
+          console.warn('[Signup] Referral record note:', refErr);
+        }
+      }
+
+      navigate(redirect);
+    } catch (err: any) {
+      const msg = err?.message || '';
+      if (msg.toLowerCase().includes('expired')) {
+        setError('Verification code has expired. Please click "Resend code" below.');
+      } else if (msg.toLowerCase().includes('invalid') || msg.toLowerCase().includes('token')) {
+        setError('Invalid 6-digit code. Please check your email and spam folder, then try again.');
+      } else {
+        setError(msg || 'Failed to verify code. Please check and try again.');
+      }
+    } finally {
+      setVerifyingOtp(false);
+    }
+  };
+
+  const handleResendOtp = async () => {
+    if (resendCooldown > 0 || verifyingOtp) return;
+
+    try {
+      setError('');
+      setSuccessMsg('');
+      setResendCooldown(60);
+      await resendSignupOtp(email);
+      setSuccessMsg(`A new 6-digit code has been sent to ${email}.`);
+    } catch (err: any) {
+      setError(err?.message || 'Failed to resend code. Please try again.');
     }
   };
 
@@ -207,45 +306,143 @@ export function Signup() {
           {/* Decorative Corner Glow */}
           <div className="pointer-events-none absolute -right-16 -top-16 h-36 w-36 rounded-full bg-sky-400/10 blur-2xl" />
 
-          {/* Header Brand */}
-          <div className="flex flex-col items-center mb-6 text-center">
-            <div className="p-2.5 rounded-2xl bg-white/10 border border-white/15 mb-3 shadow-xs">
-              <PixelMark s={8} />
-            </div>
-            <h2 className="text-2xl font-extrabold tracking-tight text-white">
-              Create your account
-            </h2>
-            <p className="mt-1.5 text-xs text-slate-300">
-              Already have an account?{' '}
-              <Link
-                to={redirect !== '/' ? `/login?redirect=${encodeURIComponent(redirect)}` : '/login'}
-                className="font-semibold text-sky-400 hover:text-sky-300 hover:underline transition-colors"
-              >
-                Sign in
-              </Link>
-            </p>
-          </div>
+          {step === 'otp' ? (
+            /* OTP Verification Screen */
+            <>
+              <div className="flex flex-col items-center mb-6 text-center">
+                <div className="p-2.5 rounded-2xl bg-white/10 border border-white/15 mb-3 shadow-xs">
+                  <PixelMark s={8} />
+                </div>
+                <h2 className="text-2xl font-extrabold tracking-tight text-white">
+                  Verify your email
+                </h2>
+                <p className="mt-1.5 text-xs text-slate-300 max-w-sm">
+                  We sent a 6-digit verification code to <span className="font-semibold text-sky-400">{email}</span>
+                </p>
+              </div>
 
-          {infoMsg && (
-            <div className="mb-5 bg-sky-500/15 border border-sky-500/30 text-sky-200 px-4 py-3 rounded-2xl text-xs flex items-center gap-2" role="status">
-              <Info size={16} className="text-sky-400 shrink-0" />
-              <span>{infoMsg}</span>
-            </div>
-          )}
+              {error && (
+                <div className="mb-5 bg-rose-500/10 border border-rose-500/25 text-rose-300 px-4 py-3 rounded-2xl text-xs" role="alert">
+                  {error}
+                </div>
+              )}
 
-          {error && (
-            <div className="mb-5 bg-rose-500/10 border border-rose-500/25 text-rose-300 px-4 py-3 rounded-2xl text-xs" role="alert">
-              {error}
-            </div>
-          )}
+              {successMsg && (
+                <div className="mb-5 bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 px-4 py-3 rounded-2xl text-xs flex items-start gap-2" role="alert">
+                  <CheckCircle2 size={16} className="text-emerald-400 shrink-0 mt-0.5" />
+                  <span>{successMsg}</span>
+                </div>
+              )}
 
-          {successMsg && (
-            <div className="mb-5 bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 px-4 py-3 rounded-2xl text-xs" role="alert">
-              {successMsg}
-            </div>
-          )}
+              <div className="space-y-5">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-3 uppercase tracking-wider text-center">
+                    Enter 6-Digit Code
+                  </label>
+                  <OtpInput
+                    length={6}
+                    value={otp}
+                    onChange={(val) => {
+                      setOtp(val);
+                      if (error) setError('');
+                    }}
+                    onComplete={(completedOtp) => handleVerifyOtp(completedOtp)}
+                    disabled={verifyingOtp}
+                    hasError={Boolean(error)}
+                  />
+                </div>
 
-          <form className="space-y-4" onSubmit={handleSubmit}>
+                <button
+                  type="button"
+                  onClick={() => handleVerifyOtp()}
+                  disabled={verifyingOtp || otp.length !== 6}
+                  className="w-full flex justify-center items-center gap-2 py-3 px-4 rounded-full text-xs font-bold text-white bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-400 hover:to-blue-500 active:scale-[0.98] focus:outline-none disabled:opacity-50 transition-all shadow-[0_4px_16px_rgba(14,165,233,0.3)] cursor-pointer mt-2"
+                >
+                  {verifyingOtp ? (
+                    <>
+                      <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white/20 border-t-white" />
+                      <span>Verifying code...</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>Verify & Complete Registration</span>
+                      <ArrowRight size={14} />
+                    </>
+                  )}
+                </button>
+
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-4 border-t border-slate-700/60 text-xs">
+                  <button
+                    type="button"
+                    onClick={handleResendOtp}
+                    disabled={resendCooldown > 0 || verifyingOtp}
+                    className="inline-flex items-center gap-1.5 font-semibold text-sky-400 hover:text-sky-300 disabled:text-slate-500 transition-colors cursor-pointer disabled:cursor-not-allowed"
+                  >
+                    <RotateCw size={13} className={resendCooldown > 0 ? 'animate-spin' : ''} />
+                    <span>
+                      {resendCooldown > 0 ? `Resend code in ${resendCooldown}s` : 'Resend verification code'}
+                    </span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setStep('form');
+                      setOtp('');
+                      setError('');
+                      setSuccessMsg('');
+                    }}
+                    disabled={verifyingOtp}
+                    className="inline-flex items-center gap-1 text-slate-400 hover:text-white transition-colors cursor-pointer"
+                  >
+                    <ArrowLeft size={13} />
+                    <span>Change email address</span>
+                  </button>
+                </div>
+              </div>
+            </>
+          ) : (
+            /* Regular Signup Form */
+            <>
+              {/* Header Brand */}
+              <div className="flex flex-col items-center mb-6 text-center">
+                <div className="p-2.5 rounded-2xl bg-white/10 border border-white/15 mb-3 shadow-xs">
+                  <PixelMark s={8} />
+                </div>
+                <h2 className="text-2xl font-extrabold tracking-tight text-white">
+                  Create your account
+                </h2>
+                <p className="mt-1.5 text-xs text-slate-300">
+                  Already have an account?{' '}
+                  <Link
+                    to={redirect !== '/' ? `/login?redirect=${encodeURIComponent(redirect)}` : '/login'}
+                    className="font-semibold text-sky-400 hover:text-sky-300 hover:underline transition-colors"
+                  >
+                    Sign in
+                  </Link>
+                </p>
+              </div>
+
+              {infoMsg && (
+                <div className="mb-5 bg-sky-500/15 border border-sky-500/30 text-sky-200 px-4 py-3 rounded-2xl text-xs flex items-center gap-2" role="status">
+                  <Info size={16} className="text-sky-400 shrink-0" />
+                  <span>{infoMsg}</span>
+                </div>
+              )}
+
+              {error && (
+                <div className="mb-5 bg-rose-500/10 border border-rose-500/25 text-rose-300 px-4 py-3 rounded-2xl text-xs" role="alert">
+                  {error}
+                </div>
+              )}
+
+              {successMsg && (
+                <div className="mb-5 bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 px-4 py-3 rounded-2xl text-xs" role="alert">
+                  {successMsg}
+                </div>
+              )}
+
+              <form className="space-y-4" onSubmit={handleSubmit}>
             {/* 1. Full Name */}
             <div>
               <label htmlFor="name" className="block text-xs font-semibold text-slate-300 mb-1.5 uppercase tracking-wider">
@@ -581,8 +778,10 @@ export function Signup() {
               </button>
             </div>
           </div>
-        </div>
-      </div>
+        </>
+      )}
     </div>
+  </div>
+</div>
   );
 }

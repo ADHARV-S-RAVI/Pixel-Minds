@@ -168,7 +168,8 @@ export const recordOpportunityApplication = async (
 export const confirmOpportunityRegistration = async (
   userId: string,
   applicationId: string,
-  userEmail?: string
+  userEmail?: string,
+  userName?: string
 ): Promise<{ success: boolean; pixelsRewarded: number; message: string }> => {
   const localApps = getLocalStorageApplications(userId);
   const appIndex = localApps.findIndex(a => a.id === applicationId);
@@ -249,6 +250,7 @@ export const confirmOpportunityRegistration = async (
   if (userEmail && userEmail.includes('@') && dbSynced) {
     sendRegistrationConfirmationEmail({
       recipientEmail: userEmail,
+      recipientName: userName,
       opportunityTitle: app.opportunityTitle,
       opportunityId: app.opportunityId,
       organizer: app.organizer,

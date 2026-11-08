@@ -23,7 +23,7 @@
   "21": "Leaderboard.tsx",
   "22": "Profile",
   "23": "pixel-minds/vite.config.ts",
-  "24": "src/pages.tsx",
+  "24": "admin.ts",
   "25": "Pixel Minds Backend Integration Audit",
   "26": "Phase 3: Community Posts & Feed Supabase Migration Report",
   "27": "Pixel Minds - Auth & Profile Completion Update Report",
@@ -39,5 +39,12 @@
   "37": "@playwright/test",
   "38": "postcss",
   "39": "vite",
-  "40": "@vitejs/plugin-react"
+  "40": "@vitejs/plugin-react",
+  "41": "src/store.tsx",
+  "42": "src/pages.tsx",
+  "43": "announcements.ts",
+  "44": "reports.ts",
+  "45": "src/data.ts",
+  "46": "community.ts",
+  "47": "notifications.ts"
 }

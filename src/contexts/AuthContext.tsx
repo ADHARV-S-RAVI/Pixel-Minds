@@ -29,7 +29,20 @@ export interface AuthContextType {
       yearOfStudy?: string;
       branch?: string;
     }
-  ) => Promise<void>;
+  ) => Promise<{ needsEmailVerification: boolean; user?: any }>;
+  verifySignupOtp: (
+    email: string,
+    token: string,
+    name?: string,
+    studentDetails?: {
+      college?: string;
+      course?: string;
+      yearOfStudy?: string;
+      branch?: string;
+    }
+  ) => Promise<{ user: any; session: any }>;
+  resendSignupOtp: (email: string) => Promise<void>;
+  verifyRecoveryOtp: (email: string, token: string) => Promise<{ user: any; session: any }>;
   resetPasswordForEmail: (email: string) => Promise<void>;
   updatePassword: (newPassword: string) => Promise<void>;
   logout: () => Promise<void>;
@@ -44,7 +57,10 @@ const AuthContext = createContext<AuthContextType>({
   loading: true,
   loginWithGoogle: async (_targetRedirect?: string) => {},
   loginWithEmail: async () => {},
-  signupWithEmail: async () => {},
+  signupWithEmail: async () => ({ needsEmailVerification: false }),
+  verifySignupOtp: async () => ({ user: null, session: null }),
+  resendSignupOtp: async () => {},
+  verifyRecoveryOtp: async () => ({ user: null, session: null }),
   resetPasswordForEmail: async () => {},
   updatePassword: async () => {},
   logout: async () => {},
@@ -263,6 +279,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         yearOfStudy: studentDetails?.yearOfStudy,
         branch: studentDetails?.branch
       });
+      return { needsEmailVerification: false, user: data.user };
     } else if (data.user && !data.session) {
       // If email confirmation is enabled, insert profile directly or allow on trigger
       try {
@@ -278,8 +295,69 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       } catch {
         // Ignore potential duplicate or permission edge case
       }
-      throw new Error('Sign up successful! Please check your email to confirm your account before logging in, or disable email confirmations in your Supabase Auth dashboard.');
+      return { needsEmailVerification: true, user: data.user };
     }
+    return { needsEmailVerification: false, user: data.user };
+  };
+
+  const verifySignupOtp = async (
+    email: string,
+    token: string,
+    name?: string,
+    studentDetails?: {
+      college?: string;
+      course?: string;
+      yearOfStudy?: string;
+      branch?: string;
+    }
+  ) => {
+    const { data, error } = await supabase.auth.verifyOtp({
+      email: email.trim().toLowerCase(),
+      token: token.trim(),
+      type: 'signup'
+    });
+    if (error) throw error;
+    if (data.user) {
+      const authUser = formatAuthUser(data.user);
+      setCurrentUser(authUser);
+      try {
+        await createUserProfile(data.user.id, {
+          email: data.user.email || email,
+          displayName: name || data.user.user_metadata?.full_name || 'Pixel Builder',
+          photoURL: '',
+          college: studentDetails?.college || data.user.user_metadata?.college,
+          course: studentDetails?.course || data.user.user_metadata?.course,
+          yearOfStudy: studentDetails?.yearOfStudy || data.user.user_metadata?.year_of_study,
+          branch: studentDetails?.branch || data.user.user_metadata?.branch
+        });
+      } catch (profileErr) {
+        console.warn('[verifySignupOtp] Profile creation note:', profileErr);
+      }
+      await fetchProfile(data.user.id, data.user);
+    }
+    return data as { user: any; session: any };
+  };
+
+  const resendSignupOtp = async (email: string) => {
+    const { error } = await supabase.auth.resend({
+      type: 'signup',
+      email: email.trim().toLowerCase()
+    });
+    if (error) throw error;
+  };
+
+  const verifyRecoveryOtp = async (email: string, token: string) => {
+    const { data, error } = await supabase.auth.verifyOtp({
+      email: email.trim().toLowerCase(),
+      token: token.trim(),
+      type: 'recovery'
+    });
+    if (error) throw error;
+    if (data.user) {
+      const authUser = formatAuthUser(data.user);
+      setCurrentUser(authUser);
+    }
+    return data as { user: any; session: any };
   };
 
   const resetPasswordForEmail = async (email: string) => {
@@ -323,6 +401,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         loginWithGoogle,
         loginWithEmail,
         signupWithEmail,
+        verifySignupOtp,
+        resendSignupOtp,
+        verifyRecoveryOtp,
         resetPasswordForEmail,
         updatePassword,
         logout,

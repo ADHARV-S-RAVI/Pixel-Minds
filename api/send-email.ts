@@ -126,16 +126,17 @@ function buildRegistrationHtml(data: RegistrationData): string {
             <td style="padding: 32px 32px 20px;">
               <div style="background: rgba(16, 185, 129, 0.12); border: 1px solid rgba(16, 185, 129, 0.25); border-radius: 14px; padding: 16px 20px; margin-bottom: 24px;">
                 <h2 style="margin: 0 0 6px; font-size: 18px; font-weight: 700; color: #34d399;">
-                  ✓ Thank you for registering! Your registration has been received.
+                  ✓ Application Received
                 </h2>
                 <p style="margin: 0; font-size: 13px; color: #a7f3d0; line-height: 1.5;">
-                  Your registration for <strong>${title}</strong> is recorded and ready on your Pixel Minds profile.
+                  Your application for <strong>${title}</strong> has been successfully received.
                 </p>
               </div>
 
               <p style="font-size: 14px; line-height: 1.6; color: #cbd5e1; margin: 0 0 20px;">
                 Hi <strong>${name}</strong>,<br><br>
-                Thank you for registering through Pixel Minds! Below are your registration details and recommended next steps to get ready.
+                Thank you for applying to <strong>${title}</strong> through Pixel Minds!<br><br>
+                Your registration has been successfully received. We appreciate your interest and will share further updates with you through email.
               </p>
 
               <!-- Event Details Table -->
@@ -184,6 +185,11 @@ function buildRegistrationHtml(data: RegistrationData): string {
                   </td>
                 </tr>
               </table>
+
+              <p style="margin: 20px 0 0; font-size: 14px; color: #cbd5e1; line-height: 1.6;">
+                Best regards,<br>
+                <strong style="color: #38bdf8;">Pixel Minds Team</strong>
+              </p>
             </td>
           </tr>
 
@@ -483,7 +489,7 @@ export default async function handler(req: any, res: any) {
 
     if (type === 'registration_confirmation') {
       const regData = data as RegistrationData;
-      subject = `Registration Confirmed: ${regData.opportunityTitle || 'Event'} - Pixel Minds`;
+      subject = 'Your Event Application Has Been Received!';
       html = buildRegistrationHtml(regData);
     } else if (type === 'submission_confirmation') {
       const subData = data as SubmissionData;

@@ -1486,7 +1486,12 @@ export function Profile() {
     if (!user?.uid) return;
     setConfirmingAppId(appId);
     try {
-      const res = await confirmOpportunityRegistration(user.uid, appId, user.email || undefined);
+      const res = await confirmOpportunityRegistration(
+        user.uid,
+        appId,
+        user.email || undefined,
+        userProfile?.displayName || user.displayName || undefined
+      );
       say(res.message);
       if (res.success) {
         loadApplications();
