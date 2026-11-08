@@ -98,7 +98,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const hasTokenInHash = url.hash.includes('access_token=');
         const hasError = url.searchParams.has('error') || url.hash.includes('error=');
 
-        if (hasError) {
+        if (hasError && !window.location.pathname.includes('reset-password')) {
           const errorDesc = url.searchParams.get('error_description') || url.searchParams.get('error') || 'Authentication failed or was cancelled.';
           console.warn('[AuthContext] OAuth error in URL:', errorDesc);
           url.searchParams.delete('error');
@@ -230,10 +230,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       branch?: string;
     }
   ) => {
+    const origin = typeof window !== 'undefined' && window.location.origin
+      ? window.location.origin
+      : 'https://pixelmindss.vercel.app';
+    const emailRedirectTo = `${origin}/`;
+
     const { data, error } = await supabase.auth.signUp({
       email,
       password: pass,
       options: {
+        emailRedirectTo,
         data: {
           full_name: name,
           name: name,
@@ -277,7 +283,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const resetPasswordForEmail = async (email: string) => {
-    const redirectTo = `${window.location.origin}/reset-password`;
+    const origin = typeof window !== 'undefined' && window.location.origin
+      ? window.location.origin
+      : 'https://pixelmindss.vercel.app';
+    const redirectTo = `${origin}/reset-password`;
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo
     });

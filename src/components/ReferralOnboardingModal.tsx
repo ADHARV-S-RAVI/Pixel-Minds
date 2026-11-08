@@ -187,7 +187,7 @@ export const ReferralOnboardingModal: React.FC = () => {
                 setError('');
               }}
               disabled={submitting || Boolean(success)}
-              placeholder="e.g. PM-XXXXXX"
+              placeholder="Enter referral code (optional)"
               className="w-full px-4 py-3 bg-[#07101f] border border-slate-700 rounded-xl text-sm font-mono uppercase text-white placeholder-slate-500 focus:outline-none focus:border-sky-400 transition"
             />
           </div>

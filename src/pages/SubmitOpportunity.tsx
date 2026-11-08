@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { submitOpportunity } from '../services/opportunities';
 import { uploadOpportunityImage, validateOpportunityImageFile } from '../services/storage';
 import { parseDateInputToTimestamp, validateOpportunityDates } from '../utils/dateUtils';
+import { sendSubmissionConfirmationEmail } from '../services/emailService';
 import { Upload, CheckCircle } from 'lucide-react';
 
 const CATEGORIES = ['Hackathon', 'Tech Event', 'Workshop', 'Internship', 'Competition', 'Scholarship', 'Course', 'Startup Program', 'Conference', 'Other'];
@@ -79,7 +80,7 @@ export function SubmitOpportunity() {
         finalImageUrl = await uploadOpportunityImage(imageFile, currentUser.uid);
       }
 
-      await submitOpportunity(currentUser.uid, {
+      const submitted = await submitOpportunity(currentUser.uid, {
         ...formData,
         imageUrl: finalImageUrl,
         deadline: parseDateInputToTimestamp(formData.deadline),
@@ -87,6 +88,23 @@ export function SubmitOpportunity() {
         endDate: formData.endDate ? parseDateInputToTimestamp(formData.endDate) : Date.now() + 86400000,
         skills: formData.skills.split(',').map(s => s.trim()).filter(Boolean)
       });
+
+      if (currentUser?.email) {
+        sendSubmissionConfirmationEmail({
+          recipientEmail: currentUser.email,
+          recipientName: currentUser.displayName || undefined,
+          opportunityTitle: formData.title,
+          submissionId: submitted?.id,
+          organizer: formData.organizer,
+          category: formData.category,
+          mode: formData.mode,
+          deadline: formData.deadline,
+          submissionPixels: 20,
+          approvalPixels: 50
+        }).catch((emailErr) => {
+          console.warn('[SubmitOpportunity] Email notification note:', emailErr);
+        });
+      }
 
       setSuccess(true);
       window.scrollTo(0, 0);

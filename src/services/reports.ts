@@ -17,8 +17,8 @@ export interface ReportItem {
   details?: string;
   status: 'pending' | 'resolved' | 'dismissed';
   notes?: string;
-  adminNotes?: string;
-  resolvedBy?: string;
+  adminNotes?: string | null;
+  resolvedBy?: string | null;
   createdAt: number;
 }
 
@@ -41,8 +41,11 @@ const saveLocalReports = (reports: ReportItem[]) => {
   }
 };
 
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 /**
  * Submit a report for an opportunity or community post.
+ * Inserts directly to Supabase `reports` table with RLS enforcement.
  */
 export const createReport = async (payload: {
   reporterId: string;
@@ -53,43 +56,65 @@ export const createReport = async (payload: {
   targetTitle: string;
   targetContent?: string;
   reason: string;
+  details?: string;
 }): Promise<ReportItem> => {
+  // Validate reporterId is a genuine UUID
+  if (!payload.reporterId || !UUID_REGEX.test(payload.reporterId)) {
+    throw new Error('Authentication required: You must be signed in with a valid account to submit a report.');
+  }
+
+  const fullReason = payload.details && payload.details.trim()
+    ? `${payload.reason} - Details: ${payload.details.trim()}`
+    : payload.reason;
+
+  const formattedReason = payload.targetTitle
+    ? `[${payload.targetTitle}] ${fullReason}`
+    : fullReason;
+
+  // Insert to Supabase reports table (let PostgreSQL assign gen_random_uuid())
+  const { data, error } = await supabase
+    .from('reports')
+    .insert({
+      reporter_id: payload.reporterId,
+      target_type: payload.targetType,
+      target_id: payload.targetId,
+      reason: formattedReason,
+      status: 'pending'
+    })
+    .select()
+    .single();
+
+  if (error) {
+    console.error('[createReport] Supabase error:', error);
+    if (error.code === '42501') {
+      throw new Error('Permission denied: You must be signed in with your Pixel Minds account to submit reports.');
+    }
+    throw new Error(error.message || 'Failed to submit report. Please try again.');
+  }
+
   const newReport: ReportItem = {
-    id: `rep_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
-    reporterId: payload.reporterId,
+    id: data.id,
+    reporterId: data.reporter_id,
     reporterName: payload.reporterName || 'Community Member',
     reporterEmail: payload.reporterEmail || '',
-    targetType: payload.targetType,
-    targetId: payload.targetId,
+    targetType: data.target_type as 'opportunity' | 'post',
+    targetId: data.target_id,
     targetTitle: payload.targetTitle,
     targetContent: payload.targetContent || '',
     reason: payload.reason,
-    status: 'pending',
-    createdAt: Date.now()
+    details: payload.details,
+    status: data.status as 'pending' | 'resolved' | 'dismissed',
+    createdAt: new Date(data.created_at).getTime()
   };
 
   const currentLocal = getLocalReports();
   saveLocalReports([newReport, ...currentLocal]);
 
-  // Attempt to sync to Supabase reports table
-  try {
-    await supabase.from('reports').insert({
-      id: newReport.id,
-      reporter_id: payload.reporterId,
-      target_type: payload.targetType,
-      target_id: payload.targetId,
-      reason: `${payload.targetTitle ? `[${payload.targetTitle}] ` : ''}${payload.reason}`,
-      status: 'pending'
-    });
-  } catch (err) {
-    console.warn('Could not sync report to Supabase:', err);
-  }
-
   return newReport;
 };
 
 /**
- * Admin: Get all reports.
+ * Admin: Get all reports from Supabase.
  */
 export const getAllReports = async (): Promise<ReportItem[]> => {
   const localReports = getLocalReports();
@@ -101,23 +126,45 @@ export const getAllReports = async (): Promise<ReportItem[]> => {
       .order('created_at', { ascending: false });
 
     if (!error && data && data.length > 0) {
-      const remoteReports: ReportItem[] = data.map((row: any) => ({
-        id: row.id,
-        reporterId: row.reporter_id,
-        reporterName: row.reporter_name || 'Community Member',
-        reporterEmail: row.reporter_email || '',
-        targetType: (row.target_type === 'opportunity' ? 'opportunity' : 'post') as 'opportunity' | 'post',
-        targetId: row.target_id,
-        targetTitle: row.target_title || `Reported ${row.target_type}`,
-        targetContent: row.target_content || row.reason,
-        reason: row.reason,
-        status: row.status || 'pending',
-        adminNotes: row.admin_notes,
-        resolvedBy: row.resolved_by,
-        createdAt: new Date(row.created_at).getTime()
-      }));
+      const remoteReports: ReportItem[] = data.map((row: any) => {
+        let extractedTitle = `Reported ${row.target_type}`;
+        let cleanReason = row.reason || '';
+        let cleanDetails: string | undefined = undefined;
 
-      // Merge remote with local
+        if (row.reason) {
+          const titleMatch = row.reason.match(/^\[(.*?)\]\s*(.*)$/);
+          if (titleMatch) {
+            extractedTitle = titleMatch[1];
+            cleanReason = titleMatch[2];
+          }
+          const detailsMatch = cleanReason.match(/^(.*?)\s*-\s*Details:\s*(.*)$/);
+          if (detailsMatch) {
+            cleanReason = detailsMatch[1];
+            cleanDetails = detailsMatch[2];
+          }
+        }
+
+        return {
+          id: row.id,
+          reporterId: row.reporter_id,
+          reporterName: 'Community Member',
+          reporterEmail: '',
+          targetType: (row.target_type === 'opportunity' ? 'opportunity' : 'post') as 'opportunity' | 'post',
+          targetId: row.target_id,
+          targetTitle: extractedTitle,
+          targetContent: row.reason,
+          targetSnippet: row.reason,
+          reason: cleanReason,
+          details: cleanDetails,
+          status: (row.status || 'pending') as 'pending' | 'resolved' | 'dismissed',
+          notes: row.admin_notes || '',
+          adminNotes: row.admin_notes || '',
+          resolvedBy: row.resolved_by,
+          createdAt: new Date(row.created_at).getTime()
+        };
+      });
+
+      // Merge remote with local cache
       const map = new Map<string, ReportItem>();
       remoteReports.forEach(r => map.set(r.id, r));
       localReports.forEach(r => {
@@ -152,15 +199,18 @@ export const resolveReport = async (
     saveLocalReports(reports);
   }
 
-  try {
-    await supabase.from('reports').update({
-      status: 'resolved',
-      admin_notes: adminNotes,
-      resolved_by: adminUser?.uid,
-      updated_at: new Date().toISOString()
-    }).eq('id', reportId);
-  } catch (err) {
-    console.warn('Failed to update report status in Supabase:', err);
+  const resolvedByUuid = adminUser?.uid && UUID_REGEX.test(adminUser.uid) ? adminUser.uid : null;
+
+  const { error } = await supabase.from('reports').update({
+    status: 'resolved',
+    admin_notes: adminNotes || null,
+    resolved_by: resolvedByUuid,
+    updated_at: new Date().toISOString()
+  }).eq('id', reportId);
+
+  if (error) {
+    console.warn('Failed to update report status in Supabase:', error);
+    throw new Error(error.message || 'Failed to update report in database');
   }
 
   if (adminUser) {
@@ -169,7 +219,7 @@ export const resolveReport = async (
         adminId: adminUser.uid,
         adminEmail: adminUser.email,
         action: 'Resolved report',
-        targetType: 'user' as any,
+        targetType: 'opportunity',
         targetId: reportId,
         reason: adminNotes || 'Admin marked report as resolved'
       });
@@ -192,14 +242,17 @@ export const dismissReport = async (
     saveLocalReports(reports);
   }
 
-  try {
-    await supabase.from('reports').update({
-      status: 'dismissed',
-      resolved_by: adminUser?.uid,
-      updated_at: new Date().toISOString()
-    }).eq('id', reportId);
-  } catch (err) {
-    console.warn('Failed to dismiss report in Supabase:', err);
+  const resolvedByUuid = adminUser?.uid && UUID_REGEX.test(adminUser.uid) ? adminUser.uid : null;
+
+  const { error } = await supabase.from('reports').update({
+    status: 'dismissed',
+    resolved_by: resolvedByUuid,
+    updated_at: new Date().toISOString()
+  }).eq('id', reportId);
+
+  if (error) {
+    console.warn('Failed to dismiss report in Supabase:', error);
+    throw new Error(error.message || 'Failed to dismiss report in database');
   }
 
   if (adminUser) {
@@ -208,7 +261,7 @@ export const dismissReport = async (
         adminId: adminUser.uid,
         adminEmail: adminUser.email,
         action: 'Dismissed report',
-        targetType: 'user' as any,
+        targetType: 'opportunity',
         targetId: reportId,
         reason: 'Report dismissed by admin'
       });
@@ -246,4 +299,3 @@ export const deleteReportedItem = async (
     } catch {}
   }
 };
-

@@ -1128,20 +1128,20 @@ export function OppDetail() {
 
             <ReferBtn title={o.title} path={'/opportunities/' + o.id} className="w-full !py-3 !rounded-full" />
 
-            <div className="flex items-center gap-2">
-              <Btn
-                v="outline"
-                className="flex-1 min-w-0 !py-2.5 !text-xs !rounded-full !min-h-10"
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
                 onClick={() => toggle(String(o.id))}
+                className="inline-flex min-h-10 items-center justify-center gap-1.5 rounded-full border border-slate-200/90 dark:border-white/10 bg-white/80 hover:bg-white text-slate-700 hover:text-[#0e1b33] px-3.5 py-2.5 text-xs font-bold transition shadow-xs cursor-pointer select-none active:scale-[0.98] truncate"
               >
-                <Bookmark size={15} fill={isSaved ? '#38BDF8' : 'none'} className={`shrink-0 ${isSaved ? 'text-sky-400' : ''}`} />
-                <span className="truncate">{isSaved ? 'Saved in Bookmarks' : 'Save Bookmark'}</span>
-              </Btn>
+                <Bookmark size={14} fill={isSaved ? '#38BDF8' : 'none'} className={`shrink-0 ${isSaved ? 'text-sky-400' : 'text-slate-400'}`} />
+                <span className="truncate">{isSaved ? 'Saved' : 'Save Bookmark'}</span>
+              </button>
               <button
                 type="button"
                 onClick={() => setShowReportModal(true)}
                 title="Report Opportunity"
-                className="inline-flex items-center justify-center gap-1.5 min-h-10 px-4 py-2.5 rounded-full border border-slate-200 bg-white/80 hover:bg-rose-50 hover:border-rose-300 text-slate-500 hover:text-rose-600 transition-colors text-xs font-bold cursor-pointer shrink-0 shadow-2xs select-none active:scale-[0.98]"
+                className="inline-flex items-center justify-center gap-1.5 min-h-10 px-3.5 py-2.5 rounded-full border border-slate-200/90 dark:border-white/10 bg-white/80 hover:bg-rose-50 hover:border-rose-300 text-slate-600 hover:text-rose-600 transition text-xs font-bold cursor-pointer shrink-0 shadow-xs select-none active:scale-[0.98] truncate"
               >
                 <Flag size={14} className="shrink-0" />
                 <span>Report</span>

@@ -5,7 +5,7 @@
   "3": "Phase 4A: Pixel Rewards & Transaction Ledger Supabase Migration Report",
   "4": "compilerOptions",
   "5": "pixel-minds/src/pages.tsx",
-  "6": "devDependencies",
+  "6": "dependencies",
   "7": "plugins",
   "8": "src/ui.tsx",
   "9": "tsconfig.json",
@@ -29,8 +29,15 @@
   "27": "Pixel Minds - Auth & Profile Completion Update Report",
   "28": "1. Verified Opportunities Directory (By Category)",
   "29": "audit-test.mjs",
-  "30": "src/store.tsx",
+  "30": "storage.ts",
   "31": "2. Features Inspected & Audit Findings",
   "32": "vercel.json",
-  "34": "src/pixels.tsx"
+  "33": "devDependencies",
+  "34": "GooeyNav.tsx",
+  "35": "send-email.ts",
+  "36": "package.json",
+  "37": "@playwright/test",
+  "38": "postcss",
+  "39": "vite",
+  "40": "@vitejs/plugin-react"
 }

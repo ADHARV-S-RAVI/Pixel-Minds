@@ -135,15 +135,20 @@ export const AppProvider: FC<{ children: ReactNode }> = ({ children }) => {
 
     if (user?.uid) {
       try {
-        await recordOpportunityApplication(user.uid, {
-          id: oppIdStr,
-          title: opp.title,
-          organizer: opp.organizer,
-          category: opp.category,
-          mode: opp.mode,
-          deadline: opp.deadline,
-          officialUrl: opp.officialUrl
-        });
+        await recordOpportunityApplication(
+          user.uid,
+          {
+            id: oppIdStr,
+            title: opp.title,
+            organizer: opp.organizer,
+            category: opp.category,
+            mode: opp.mode,
+            deadline: opp.deadline,
+            officialUrl: opp.officialUrl
+          },
+          user.email || undefined,
+          userProfile?.displayName || undefined
+        );
       } catch (err) {
         console.warn('Could not record application:', err);
       }

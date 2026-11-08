@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { getOpportunityById, incrementOpportunityViews, incrementApplyClicks, recordOpportunityShare } from '../services/opportunities';
+import { recordOpportunityApplication } from '../services/applications';
 import { parseOpportunityImages } from '../services/storage';
 import type { Opportunity } from '../types';
-import { Calendar, MapPin, Trophy, Users, ArrowUpRight, Share2, Eye, ArrowLeft, Clock, Globe } from 'lucide-react';
+import { Calendar, MapPin, Trophy, Users, ArrowUpRight, Share2, Eye, ArrowLeft, Clock, Globe, Flag } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { ReportModal } from '../components/ReportModal';
 
 export function OpportunityDetails() {
   const { id } = useParams<{ id: string }>();
@@ -15,6 +17,7 @@ export function OpportunityDetails() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [selectedImgIdx, setSelectedImgIdx] = useState(0);
+  const [showReport, setShowReport] = useState(false);
 
   useEffect(() => {
     const fetchOpp = async () => {
@@ -40,6 +43,24 @@ export function OpportunityDetails() {
 
   const handleApply = async () => {
     if (id && opportunity?.officialUrl) {
+      if (currentUser?.uid) {
+        recordOpportunityApplication(
+          currentUser.uid,
+          {
+            id: opportunity.id,
+            title: opportunity.title,
+            organizer: opportunity.organizer,
+            category: opportunity.category,
+            mode: opportunity.mode,
+            deadline: opportunity.deadline ? new Date(opportunity.deadline).toLocaleDateString() : undefined,
+            officialUrl: opportunity.officialUrl
+          },
+          currentUser.email || undefined,
+          currentUser.displayName || undefined
+        ).catch((err) => {
+          console.warn('[OpportunityDetails] Could not record application:', err);
+        });
+      }
       await incrementApplyClicks(id);
       window.open(opportunity.officialUrl, '_blank', 'noopener,noreferrer');
     }
@@ -275,24 +296,46 @@ export function OpportunityDetails() {
               <div className="mt-6 pt-5 border-t border-slate-100 space-y-3">
                 <button
                   onClick={handleApply}
-                  className="w-full flex items-center justify-center space-x-2 bg-sky-500 hover:bg-sky-600 text-white px-5 py-3 rounded-xl font-semibold text-sm transition-all shadow-sm hover:shadow-md"
+                  className="w-full flex items-center justify-center space-x-2 bg-sky-500 hover:bg-sky-600 text-white px-5 py-3 rounded-xl font-semibold text-sm transition-all shadow-sm hover:shadow-md cursor-pointer"
                 >
                   <span>Apply on Official Site</span>
                   <ArrowUpRight className="w-4 h-4" />
                 </button>
 
-                <button
-                  onClick={handleShare}
-                  className="w-full flex items-center justify-center space-x-2 bg-slate-50 hover:bg-slate-100 text-slate-700 px-5 py-3 rounded-xl font-medium text-sm transition-colors border border-slate-200"
-                >
-                  <Share2 className="w-4 h-4" />
-                  <span>Share{currentUser ? ' & Earn Pixels' : ''}</span>
-                </button>
+                <div className="grid grid-cols-2 gap-2.5">
+                  <button
+                    onClick={handleShare}
+                    className="flex items-center justify-center space-x-1.5 bg-slate-50 hover:bg-slate-100 text-slate-700 px-3.5 py-2.5 rounded-xl font-semibold text-xs transition-colors border border-slate-200 cursor-pointer"
+                  >
+                    <Share2 className="w-3.5 h-3.5 shrink-0" />
+                    <span className="truncate">Share{currentUser ? ' (+25)' : ''}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setShowReport(true)}
+                    className="flex items-center justify-center space-x-1.5 bg-slate-50 hover:bg-rose-50 hover:border-rose-300 text-slate-600 hover:text-rose-600 px-3.5 py-2.5 rounded-xl font-semibold text-xs transition-colors border border-slate-200 cursor-pointer"
+                  >
+                    <Flag className="w-3.5 h-3.5 shrink-0" />
+                    <span>Report</span>
+                  </button>
+                </div>
               </div>
             </div>
           </div>
         </div>
       </div>
+
+      {opportunity && (
+        <ReportModal
+          isOpen={showReport}
+          onClose={() => setShowReport(false)}
+          targetType="opportunity"
+          targetId={opportunity.id}
+          targetTitle={opportunity.title}
+          targetContent={`${opportunity.organizer} · ${opportunity.category} · ${opportunity.description || ''}`}
+        />
+      )}
     </div>
   );
 }

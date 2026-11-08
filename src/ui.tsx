@@ -213,6 +213,7 @@ export const OppCard: FC<{ o: Opp; variant?: 'light' | 'dark' }> = ({ o, variant
           </span>
           <div className="flex items-center gap-1.5 shrink-0">
             <button
+              type="button"
               aria-label="Report"
               title="Report Opportunity"
               onClick={(e) => {
@@ -220,18 +221,19 @@ export const OppCard: FC<{ o: Opp; variant?: 'light' | 'dark' }> = ({ o, variant
                 e.stopPropagation();
                 setShowReport(true);
               }}
-              className="grid h-8 w-8 place-items-center rounded-full bg-white/80 hover:bg-rose-50 border border-slate-200/80 text-slate-400 hover:text-rose-600 transition-colors shadow-2xs cursor-pointer shrink-0"
+              className="grid h-8 w-8 place-items-center rounded-full bg-white/80 hover:bg-rose-50 border border-slate-200/80 text-slate-400 hover:text-rose-600 transition-colors shadow-2xs cursor-pointer shrink-0 select-none active:scale-95"
             >
               <Flag size={13} />
             </button>
             <button
+              type="button"
               aria-label={on ? 'Unsave' : 'Save'}
               onClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
                 toggle(String(o.id));
               }}
-              className="grid h-8 w-8 place-items-center rounded-full bg-white/80 hover:bg-white border border-slate-200/80 text-slate-500 hover:text-blue-600 transition-colors shadow-2xs cursor-pointer shrink-0"
+              className="grid h-8 w-8 place-items-center rounded-full bg-white/80 hover:bg-white border border-slate-200/80 text-slate-500 hover:text-blue-600 transition-colors shadow-2xs cursor-pointer shrink-0 select-none active:scale-95"
             >
               <Bookmark size={15} fill={on ? '#2563eb' : 'none'} className={on ? 'text-blue-600' : 'text-slate-500'} />
             </button>
@@ -344,6 +346,7 @@ export const OppCard: FC<{ o: Opp; variant?: 'light' | 'dark' }> = ({ o, variant
 
           <div className="flex items-center gap-1.5 shrink-0">
             <button
+              type="button"
               aria-label="Report"
               title="Report Opportunity"
               onClick={(e) => {
@@ -351,18 +354,19 @@ export const OppCard: FC<{ o: Opp; variant?: 'light' | 'dark' }> = ({ o, variant
                 e.stopPropagation();
                 setShowReport(true);
               }}
-              className="grid h-7 w-7 place-items-center rounded-full bg-white/70 hover:bg-rose-50 border border-white/80 text-slate-400 hover:text-rose-600 transition-colors shadow-2xs cursor-pointer shrink-0"
+              className="grid h-7 w-7 place-items-center rounded-full bg-white/70 hover:bg-rose-50 border border-white/80 text-slate-400 hover:text-rose-600 transition-colors shadow-2xs cursor-pointer shrink-0 select-none active:scale-95"
             >
               <Flag size={12} />
             </button>
             <button
+              type="button"
               aria-label={on ? 'Unsave' : 'Save'}
               onClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
                 toggle(String(o.id));
               }}
-              className="grid h-7 w-7 place-items-center rounded-full bg-white/70 hover:bg-white border border-white/80 text-slate-500 hover:text-blue-600 transition-colors shadow-2xs cursor-pointer shrink-0"
+              className="grid h-7 w-7 place-items-center rounded-full bg-white/70 hover:bg-white border border-white/80 text-slate-500 hover:text-blue-600 transition-colors shadow-2xs cursor-pointer shrink-0 select-none active:scale-95"
             >
               <Bookmark size={14} fill={on ? '#2563eb' : 'none'} className={on ? 'text-blue-600' : 'text-slate-500'} />
             </button>
@@ -991,9 +995,10 @@ export const PostCard: FC<{ p: any; onPostDeleted?: (id: string) => void }> = ({
         </Link>
         <div className="flex items-center gap-1">
           <button
+            type="button"
             onClick={() => setShowReport(true)}
             title="Report Post"
-            className="text-slate-400 hover:text-rose-500 transition p-1.5 rounded-lg hover:bg-rose-50 cursor-pointer"
+            className="text-slate-400 hover:text-rose-500 transition p-1.5 rounded-lg hover:bg-rose-50 cursor-pointer select-none active:scale-95"
           >
             <Flag size={14} />
           </button>

@@ -504,7 +504,7 @@ export function Signup() {
                       setReferralCode(e.target.value.toUpperCase());
                       setReferralStatus(null);
                     }}
-                    placeholder="e.g. PM-XXXXXX"
+                    placeholder="Enter referral code (optional)"
                     className="flex-1 px-3.5 py-2.5 bg-[#0B1628] border border-slate-700 rounded-xl text-xs font-mono uppercase text-white placeholder-slate-500 focus:outline-none focus:border-sky-400"
                   />
                   <button

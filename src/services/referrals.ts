@@ -234,7 +234,7 @@ export const validateReferralCode = async (
   ) {
     return {
       valid: false,
-      message: 'Coupons are currently unavailable. Please enter a valid Pixel Minds referral code (format: PM-XXXXXX).'
+      message: 'Coupons are currently unavailable. Please enter a valid Pixel Minds referral code.'
     };
   }
 

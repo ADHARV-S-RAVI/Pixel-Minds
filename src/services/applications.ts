@@ -1,5 +1,6 @@
 import { supabase } from '../lib/supabase';
 import { adjustUserPixels } from './admin';
+import { sendRegistrationConfirmationEmail } from './emailService';
 
 export interface UserApplication {
   id: string;
@@ -106,7 +107,9 @@ export const recordOpportunityApplication = async (
     mode?: string;
     deadline?: string;
     officialUrl?: string;
-  }
+  },
+  _userEmail?: string,
+  _userName?: string
 ): Promise<UserApplication> => {
   const localApps = getLocalStorageApplications(userId);
   const existing = localApps.find(a => String(a.opportunityId) === String(opp.id));
@@ -208,8 +211,9 @@ export const confirmOpportunityRegistration = async (
   saveLocalStorageApplications(userId, localApps);
 
   // Sync to Supabase
+  let dbSynced = false;
   try {
-    await (supabase.from('user_applications' as any) as any).upsert({
+    const { error: syncError } = await (supabase.from('user_applications' as any) as any).upsert({
       id: updatedApp.id,
       user_id: userId,
       opportunity_id: updatedApp.opportunityId,
@@ -219,6 +223,12 @@ export const confirmOpportunityRegistration = async (
       reward_claimed: true,
       pixels_rewarded: rewardPixels
     }, { onConflict: 'user_id,opportunity_id' });
+
+    if (!syncError) {
+      dbSynced = true;
+    } else {
+      console.warn('Could not sync confirmed status to Supabase:', syncError);
+    }
   } catch (err) {
     console.warn('Could not sync confirmed status to Supabase:', err);
   }
@@ -233,6 +243,22 @@ export const confirmOpportunityRegistration = async (
     );
   } catch (err) {
     console.warn('Failed to adjust user pixels via service:', err);
+  }
+
+  // Send registration confirmation email ONLY after successful registration sync (deduplication prevents repeats)
+  if (userEmail && userEmail.includes('@') && dbSynced) {
+    sendRegistrationConfirmationEmail({
+      recipientEmail: userEmail,
+      opportunityTitle: app.opportunityTitle,
+      opportunityId: app.opportunityId,
+      organizer: app.organizer,
+      category: app.category,
+      mode: app.mode,
+      deadline: app.deadline,
+      officialUrl: app.officialUrl
+    }).catch((emailErr) => {
+      console.warn('[applications] Email confirmation dispatch note:', emailErr);
+    });
   }
 
   return {
