@@ -2,6 +2,7 @@ import React, { useEffect, useLayoutEffect, useRef, useMemo } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import {
   Home,
+  Compass,
   MessageSquare,
   Trophy,
   Rocket,
@@ -227,6 +228,7 @@ export interface NavItemDef {
 
 const PRIMARY_ITEMS: NavItemDef[] = [
   { to: '/', label: 'Home', icon: Home, exact: true },
+  { to: '/explore', label: 'Explore', icon: Compass, exact: false },
   { to: '/feed', label: 'Feed', icon: MessageSquare, exact: false },
   { to: '/opportunities', label: 'Opportunities', icon: Trophy, exact: false },
   { to: '/opportunities?cat=Hackathons', label: 'Hackathons', icon: Rocket, exact: false },

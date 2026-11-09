@@ -5284,4 +5284,5 @@ export function Support() {
   );
 }
 export { FAQSection } from './components/FAQSection';
+export { Explore } from './pages/Explore';
 
