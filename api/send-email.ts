@@ -467,7 +467,7 @@ export default async function handler(req: any, res: any) {
     // Graceful fallback if credentials are not configured in environment variables
     if (!pass) {
       console.warn('[send-email] SMTP password is not configured (SMTP_PASS or GMAIL_APP_PASSWORD). Notification logged without sending.');
-      return res.status(200).json({
+      return res.status(503).json({
         success: false,
         code: 'SMTP_NOT_CONFIGURED',
         message: 'SMTP credentials not configured yet. Configure SMTP_PASS in Vercel environment variables to send live emails.'

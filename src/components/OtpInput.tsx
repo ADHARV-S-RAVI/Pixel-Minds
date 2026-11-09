@@ -61,7 +61,7 @@ export const OtpInput: React.FC<OtpInputProps> = ({
     }
 
     // If all digits filled, fire onComplete
-    if (newOtp.length === length && !newOtp.includes('')) {
+    if (newOtp.length === length && !newDigits.includes('')) {
       onComplete?.(newOtp);
     }
   };
@@ -105,7 +105,7 @@ export const OtpInput: React.FC<OtpInputProps> = ({
     const nextIndex = Math.min(startIndex + cleaned.length, length - 1);
     inputRefs.current[nextIndex]?.focus();
 
-    if (newOtp.length === length) {
+    if (newOtp.length === length && !newDigits.includes('')) {
       onComplete?.(newOtp);
     }
   };

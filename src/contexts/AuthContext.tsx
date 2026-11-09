@@ -47,6 +47,7 @@ export interface AuthContextType {
   updatePassword: (newPassword: string) => Promise<void>;
   logout: () => Promise<void>;
   refreshProfile: () => Promise<void>;
+  incrementPixels: (delta: number) => void;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -65,6 +66,7 @@ const AuthContext = createContext<AuthContextType>({
   updatePassword: async () => {},
   logout: async () => {},
   refreshProfile: async () => {},
+  incrementPixels: (_delta: number) => {},
 });
 
 export const useAuth = () => useContext(AuthContext);
@@ -390,6 +392,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const incrementPixels = (delta: number) => {
+    setUserData((prev) => (prev ? { ...prev, pixels: Math.max(0, (prev.pixels || 0) + delta) } : prev));
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -407,7 +413,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         resetPasswordForEmail,
         updatePassword,
         logout,
-        refreshProfile
+        refreshProfile,
+        incrementPixels
       }}
     >
       {!loading ? (

@@ -1446,7 +1446,7 @@ export function Feed() {
 import { ReferralPanel as RP } from './pixels';
 
 export function Profile() {
-  const { userProfile, user, refreshProfile, updatePassword } = useAuth();
+  const { userProfile, user, refreshProfile, updatePassword, incrementPixels } = useAuth();
   const [searchParams] = useSearchParams();
   const location = useLocation();
   const [tab, setTab] = useState(location.pathname === '/applications' ? 'My Applications' : 'Posts');
@@ -1494,6 +1494,9 @@ export function Profile() {
       );
       say(res.message);
       if (res.success) {
+        if (incrementPixels && res.pixelsRewarded > 0) {
+          incrementPixels(res.pixelsRewarded);
+        }
         loadApplications();
         if (refreshProfile) await refreshProfile();
       }
