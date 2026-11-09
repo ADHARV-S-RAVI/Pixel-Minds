@@ -82,7 +82,7 @@ export const FAQSection: React.FC = () => {
       {/* ============================================================ */}
       {/* TOP SUPPORT & QUERIES BANNER */}
       {/* ============================================================ */}
-      <div className="rounded-3xl border border-white/90 dark:border-white/10 pm-glass-card p-5 sm:p-7 shadow-sm relative overflow-hidden transition-all">
+      <div id="support" className="rounded-3xl border border-white/90 dark:border-white/10 pm-glass-card p-5 sm:p-7 shadow-sm relative overflow-hidden transition-all">
         {/* Subtle decorative glow */}
         <div className="pointer-events-none absolute -right-12 -top-12 h-44 w-44 rounded-full bg-blue-500/15 blur-3xl dark:bg-blue-600/20" />
         <div className="pointer-events-none absolute -left-12 -bottom-12 h-44 w-44 rounded-full bg-sky-400/10 blur-3xl" />

@@ -272,7 +272,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       } catch {
         // Ignore potential duplicate or permission edge case
       }
-      throw new Error('Sign up successful! Please check your email to confirm your account before logging in, or disable email confirmations in your Supabase Auth dashboard.');
+      throw new Error('Sign up successful! Please check your email to confirm your account before logging in.');
     }
   };
 

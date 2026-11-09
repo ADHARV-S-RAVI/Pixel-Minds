@@ -81,7 +81,11 @@ CREATE TABLE IF NOT EXISTS public.opportunities (
   shares INTEGER NOT NULL DEFAULT 0,
   created_by UUID REFERENCES auth.users(id) ON DELETE SET NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
+  CONSTRAINT chk_opportunities_end_date_after_start_date CHECK (end_date IS NULL OR start_date IS NULL OR end_date >= start_date),
+  CONSTRAINT chk_opportunities_deadline_year CHECK (EXTRACT(YEAR FROM deadline) BETWEEN 1000 AND 9999),
+  CONSTRAINT chk_opportunities_start_date_year CHECK (start_date IS NULL OR EXTRACT(YEAR FROM start_date) BETWEEN 1000 AND 9999),
+  CONSTRAINT chk_opportunities_end_date_year CHECK (end_date IS NULL OR EXTRACT(YEAR FROM end_date) BETWEEN 1000 AND 9999)
 );
 
 CREATE INDEX IF NOT EXISTS idx_opportunities_status ON public.opportunities(status);
@@ -117,7 +121,11 @@ CREATE TABLE IF NOT EXISTS public.submissions (
   reviewed_by UUID REFERENCES auth.users(id) ON DELETE SET NULL,
   opportunity_id UUID REFERENCES public.opportunities(id) ON DELETE SET NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
+  CONSTRAINT chk_submissions_end_date_after_start_date CHECK (end_date IS NULL OR start_date IS NULL OR end_date >= start_date),
+  CONSTRAINT chk_submissions_deadline_year CHECK (deadline IS NULL OR EXTRACT(YEAR FROM deadline) BETWEEN 1000 AND 9999),
+  CONSTRAINT chk_submissions_start_date_year CHECK (start_date IS NULL OR EXTRACT(YEAR FROM start_date) BETWEEN 1000 AND 9999),
+  CONSTRAINT chk_submissions_end_date_year CHECK (end_date IS NULL OR EXTRACT(YEAR FROM end_date) BETWEEN 1000 AND 9999)
 );
 
 CREATE INDEX IF NOT EXISTS idx_submissions_user_id ON public.submissions(user_id);

@@ -1325,10 +1325,17 @@ export const Layout: FC = () => {
       {/* ============================================================ */}
       {/* 1. LEFT VERTICAL SIDEBAR (Desktop matching reference image) */}
       {/* ============================================================ */}
-      <aside className="hidden lg:flex w-56 xl:w-64 shrink-0 flex-col justify-between pm-glass rounded-[28px] p-4 xl:p-5 sticky top-6 self-start min-h-[calc(100vh-3rem)] shadow-lg shadow-blue-900/5">
-        <div>
+      {/* Document flow spacer to preserve layout geometry & prevent main content overlap */}
+      <div className="hidden lg:block w-56 xl:w-64 shrink-0 pointer-events-none" aria-hidden="true" />
+
+      {/* Pinned Fixed Sidebar */}
+      <aside
+        style={{ top: '24px', left: '24px', height: 'calc(100vh - 48px)' }}
+        className="hidden lg:flex w-56 xl:w-64 shrink-0 flex-col justify-between pm-glass rounded-[28px] p-4 xl:p-5 fixed z-30 shadow-lg shadow-blue-900/5 overflow-hidden"
+      >
+        <div className="flex flex-col min-h-0 overflow-hidden shrink-0">
           {/* Logo */}
-          <div className="px-2 pt-1 pb-6">
+          <div className="px-2 pt-1 pb-3 xl:pb-4 shrink-0">
             <Logo />
           </div>
 
@@ -1337,26 +1344,26 @@ export const Layout: FC = () => {
 
           {/* Admin Console Quick Access (For Administrators) */}
           {isAdmin && (
-            <div className="pt-3">
+            <div className="pt-2.5 shrink-0">
               <Link
                 to="/admin"
-                className="flex items-center justify-between px-3.5 py-2.5 rounded-2xl bg-[#16171D] hover:bg-[#20222a] text-[#DFB76C] border border-[#C5A059]/40 hover:border-[#DFB76C] shadow-md shadow-black/10 transition group"
+                className="flex items-center justify-between px-3.5 py-2 rounded-xl bg-[#16171D] hover:bg-[#20222a] text-[#DFB76C] border border-[#C5A059]/40 hover:border-[#DFB76C] shadow-md shadow-black/10 transition group"
               >
-                <span className="flex items-center gap-2 text-xs font-extrabold">
-                  <ShieldCheck size={16} className="text-[#C5A059]" />
-                  Admin Console
+                <span className="flex items-center gap-2.5 text-xs font-extrabold truncate">
+                  <ShieldCheck size={16} className="text-[#C5A059] shrink-0" />
+                  <span className="truncate">Admin Console</span>
                 </span>
-                <ChevronRight size={14} className="text-[#DFB76C] group-hover:translate-x-0.5 transition" />
+                <ChevronRight size={13} className="text-[#DFB76C] group-hover:translate-x-0.5 transition shrink-0" />
               </Link>
             </div>
           )}
         </div>
 
         {/* Bottom User Profile Widget */}
-        <div className="pt-4 border-t border-slate-200/50">
+        <div className="pt-3.5 border-t border-slate-200/50 dark:border-slate-800/50 shrink-0 mt-auto">
           <Link
             to={user ? '/profile' : '/login'}
-            className="flex items-center gap-3 p-2 rounded-2xl bg-white/40 hover:bg-white/90 border border-white/60 hover:border-white/90 transition shadow-xs group"
+            className="flex items-center gap-3 p-2 xl:p-2.5 rounded-2xl bg-white/40 hover:bg-white/90 dark:bg-slate-800/40 dark:hover:bg-slate-800/90 border border-white/60 dark:border-white/10 hover:border-white/90 transition shadow-xs group"
           >
             <Avatar
               name={displayName}
@@ -1371,7 +1378,7 @@ export const Layout: FC = () => {
                 {user ? 'View Profile' : 'Sign In'}
               </p>
             </div>
-            <ChevronRight size={15} className="text-slate-400 group-hover:text-blue-600 group-hover:translate-x-0.5 transition" />
+            <ChevronRight size={14} className="text-slate-400 group-hover:text-blue-600 group-hover:translate-x-0.5 transition shrink-0" />
           </Link>
         </div>
       </aside>

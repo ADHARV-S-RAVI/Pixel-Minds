@@ -183,7 +183,7 @@ export function AdminLogin() {
             <Link to="/" className="text-slate-400 hover:text-white inline-flex items-center gap-1 font-medium transition">
               <ArrowLeft size={13} /> <span>Return to Home</span>
             </Link>
-            <span className="text-slate-500 text-[11px]">Protected by Supabase Auth</span>
+            <span className="text-slate-500 text-[11px]">Protected by Secure Auth</span>
           </div>
         </div>
       </div>

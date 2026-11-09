@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import type { FC } from 'react';
 import { Link } from 'react-router-dom';
 import {
@@ -18,11 +18,14 @@ import {
   FileText,
   Award,
   Flame,
-  Users
+  Users,
+  Rocket
 } from 'lucide-react';
 import { Avatar } from './ui';
 import { PixelMark } from './components/PixelMark';
-import { tierInfo, rankOf } from './data';
+import { tierInfo, rankOf, tiers } from './data';
+import { PixelProgressIllustration } from './components/PixelProgressIllustration';
+import { LevelUpOverlay } from './components/LevelUpOverlay';
 import { getLeaderboardUsers, getUserGlobalRank, type LeaderboardUserEntry } from './services/users';
 import { useAuth } from './contexts/AuthContext';
 import { getUserReferrals } from './services/referrals';
@@ -57,53 +60,22 @@ export const Count: FC<{ n: number; pre?: string }> = ({ n, pre = '' }) => {
   );
 };
 
-const evts: [number, string][] = [
-  [50, 'Shared Smart India Hackathon'],
-  [25, 'Friend joined via your link'],
-  [10, 'Posted in community feed'],
-  [50, 'Opportunity verified & approved'],
-  [25, 'Referral milestone reached'],
-  [15, '7-day active streak bonus']
-];
-
-const Bar: FC<{ pct: number; on: boolean }> = ({ pct, on }) => (
-  <div className="h-2.5 overflow-hidden rounded-full bg-slate-200/80">
+export const Bar: FC<{ pct: number; on: boolean }> = ({ pct, on }) => (
+  <div className="h-2 w-full overflow-hidden rounded-full bg-slate-200/70 dark:bg-slate-700/60 border border-slate-300/40 dark:border-slate-600/40 relative">
     <div
-      style={{ width: on ? pct + '%' : '0%' }}
-      className="h-full rounded-full bg-gradient-to-r from-sky-400 via-blue-500 to-indigo-600 transition-[width] duration-1000 ease-out shadow-[0_0_10px_rgba(37,99,235,0.3)]"
+      style={{ width: on ? `${Math.min(100, Math.max(0, pct))}%` : '0%' }}
+      className="h-full rounded-full bg-gradient-to-r from-cyan-400 via-blue-500 to-indigo-600 transition-[width] duration-1000 ease-out shadow-[0_0_10px_rgba(56,189,248,0.4)]"
     />
   </div>
 );
 
 export function PixelGrid({ pct }: { pct: number }) {
-  const lit = Math.round((pct / 100) * 80);
-  const [h, setH] = useState<string>('');
   return (
-    <div>
-      <div className="grid grid-cols-10 gap-1.5 sm:gap-2" onMouseLeave={() => setH('')}>
-        {Array.from({ length: 80 }, (_, i) => {
-          const [p, e] = evts[i % 6];
-          const on = i < lit;
-          return (
-            <button
-              key={i}
-              aria-label={on ? `+${p} Pixels · ${e}` : 'Locked Pixel'}
-              onMouseEnter={() => setH(on ? `+${p} Pixels · ${e}` : 'Keep contributing to illuminate this Pixel')}
-              onFocus={() => setH(on ? `+${p} Pixels · ${e}` : 'Locked Pixel')}
-              style={on ? { animationDelay: `${i * 20}ms` } : undefined}
-              className={`aspect-square rounded-[4px] sm:rounded-md transition-all duration-300 ${
-                on
-                  ? 'pm-light bg-gradient-to-br from-sky-400 to-blue-600 shadow-[0_0_8px_rgba(56,189,248,0.5)] hover:scale-110'
-                  : 'bg-slate-200/70 border border-slate-300/50 hover:bg-slate-300/80'
-              }`}
-            />
-          );
-        })}
-      </div>
-      <p className="mt-3 h-5 text-xs font-semibold text-slate-500">
-        {h || `${lit} of 80 Pixels illuminated toward your next rank`}
-      </p>
-    </div>
+    <PixelProgressIllustration
+      pct={pct}
+      levelName="Pixel Progression"
+      levelNumber={1}
+    />
   );
 }
 
@@ -327,8 +299,93 @@ export function Leaderboard() {
     };
   }, [user?.uid, userProfile?.pixels]);
 
+  // Level-Up Celebration Modal State
+  const storageKey = `pm_level_celebrated_${user?.uid || 'guest'}`;
+  const [celebrationModal, setCelebrationModal] = useState<{
+    isOpen: boolean;
+    prevLevel: number;
+    unlockedLevel: number;
+  }>({
+    isOpen: false,
+    prevLevel: 1,
+    unlockedLevel: 2
+  });
+
+  // Track if holding previous completed level in view before clicking continue
+  const [pendingLevelUp, setPendingLevelUp] = useState<{
+    prevLevel: number;
+    unlockedLevel: number;
+  } | null>(null);
+
   const mine = userProfile?.pixels ?? 0;
   const ti = tierInfo(mine);
+
+  // Auto-detect real level upgrade & trigger celebration only once per level
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem(storageKey);
+      if (!stored) {
+        // Initialize with user's current level so existing levels aren't spammed
+        localStorage.setItem(storageKey, ti.level.toString());
+        return;
+      }
+
+      const lastCelebrated = parseInt(stored, 10);
+      if (ti.level > lastCelebrated) {
+        // User has upgraded to a new level!
+        setPendingLevelUp({
+          prevLevel: ti.level - 1,
+          unlockedLevel: ti.level
+        });
+        setCelebrationModal({
+          isOpen: true,
+          prevLevel: ti.level - 1,
+          unlockedLevel: ti.level
+        });
+      }
+    } catch {
+      // Handle restricted environments gracefully
+    }
+  }, [ti.level, storageKey]);
+
+  // When holding pending level-up, show previous completed tier at 100% with final glowing animation
+  const effectiveTier = useMemo(() => {
+    if (pendingLevelUp) {
+      const prevLvl = pendingLevelUp.prevLevel;
+      const prevIdx = Math.max(0, prevLvl - 1);
+      const prevMin = tiers[prevIdx][0];
+      const prevNext = tiers[prevIdx + 1] ? tiers[prevIdx + 1][0] : 10000;
+      return {
+        name: tiers[prevIdx][1],
+        level: prevLvl,
+        maxLevel: tiers.length,
+        minPixels: prevMin,
+        nextPixels: prevNext,
+        next: tiers[prevIdx + 1] ? tiers[prevIdx + 1][1] : null,
+        toGo: 0,
+        pct: 100, // Completed at 100% with final glowing animation!
+        isMaxLevel: false
+      };
+    }
+    return ti;
+  }, [pendingLevelUp, ti]);
+
+  const displayedPixels = useMemo(() => {
+    if (pendingLevelUp) {
+      const prevIdx = Math.max(0, pendingLevelUp.prevLevel - 1);
+      return tiers[prevIdx + 1] ? tiers[prevIdx + 1][0] : 10000;
+    }
+    return mine;
+  }, [pendingLevelUp, mine]);
+
+  const handleContinueLevelUp = () => {
+    try {
+      localStorage.setItem(storageKey, ti.level.toString());
+    } catch {}
+    setPendingLevelUp(null);
+    setCelebrationModal((prev) => ({ ...prev, isOpen: false }));
+  };
+
   const remainingCount = Math.max(0, totalCount - leaderboardUsers.length);
 
   return (
@@ -343,7 +400,7 @@ export function Leaderboard() {
       </div>
 
       {/* User Pixel Balance Card */}
-      <div className="relative overflow-hidden rounded-3xl pm-glass-card bg-white/85 backdrop-blur-2xl border border-white/90 p-6 sm:p-8 shadow-sm text-[#0e1b33]">
+      <div className="relative overflow-hidden rounded-3xl pm-glass-card bg-white/85 dark:bg-slate-900/85 backdrop-blur-2xl border border-white/90 dark:border-white/10 p-6 sm:p-8 shadow-sm text-[#0e1b33] dark:text-white transition-all">
         <div aria-hidden className="pointer-events-none absolute inset-0">
           {Array.from({ length: 14 }, (_, i) => (
             <i
@@ -360,45 +417,143 @@ export function Leaderboard() {
           ))}
         </div>
 
-        <div className="relative z-10 grid gap-6 md:grid-cols-2 items-center">
-          <div>
-            <p className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-blue-600">
-              <PixelMark s={6} />
-              <span>Your Pixel Balance</span>
-            </p>
+        <div className="relative z-10 grid gap-8 lg:grid-cols-12 items-center">
+          {/* Left Column: Progress Info, Metrics & Thin Progress Bar */}
+          <div className="lg:col-span-7 flex flex-col justify-between space-y-5">
+            <div>
+              {/* Header Label and Global Rank */}
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-blue-600 dark:text-sky-400">
+                  <PixelMark s={6} />
+                  <span>Pixel Progression</span>
+                </p>
 
-            <div className="relative mt-2 flex items-baseline gap-3">
-              <p className="text-5xl font-black tracking-tight text-[#0e1b33] sm:text-6xl">
-                <Count n={mine} />
-              </p>
-              <span className="text-sm font-bold text-slate-500">Pixels</span>
+                <div className="flex items-center gap-2">
+                  <span className="inline-flex items-center rounded-full bg-blue-100/90 dark:bg-blue-950/80 border border-blue-200/80 dark:border-blue-800/80 px-2.5 py-0.5 text-xs font-bold text-blue-700 dark:text-blue-300">
+                    {myRank ? `Rank #${myRank}` : (user ? 'Unranked' : 'Sign in to view rank')}
+                  </span>
+                </div>
+              </div>
+
+              {/* Current Pixel Balance */}
+              <div className="relative mt-2 flex items-baseline gap-3">
+                <p className="text-5xl font-black tracking-tight text-[#0e1b33] dark:text-white sm:text-6xl">
+                  <Count n={displayedPixels} />
+                </p>
+                <span className="text-sm sm:text-base font-bold text-slate-500 dark:text-slate-400">Pixels</span>
+              </div>
             </div>
 
-            <div className="mt-3.5 flex flex-wrap items-center gap-2">
-              <span className="inline-flex items-center rounded-full bg-blue-100/90 border border-blue-200/80 px-3 py-1 text-xs font-bold text-blue-700">
-                {myRank ? `Rank #${myRank}` : (user ? 'Unranked' : 'Sign in to view rank')}
-              </span>
-              <span className="inline-flex items-center rounded-full bg-white/90 border border-slate-200/80 px-3 py-1 text-xs font-semibold text-slate-700 shadow-2xs">
-                {ti.name}
-              </span>
+            {/* Level & Progression Card */}
+            <div className="p-4 sm:p-5 rounded-2xl bg-white/70 dark:bg-slate-800/60 border border-white/80 dark:border-slate-700/60 shadow-2xs">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div>
+                  <div className="inline-flex items-center gap-1.5 text-xs font-extrabold uppercase tracking-wider text-blue-600 dark:text-sky-400">
+                    <Rocket size={13} className="text-blue-500" />
+                    <span>Level {effectiveTier.level} of {effectiveTier.maxLevel}</span>
+                  </div>
+                  <h3 className="text-xl sm:text-2xl font-black text-[#0e1b33] dark:text-white tracking-tight mt-0.5">
+                    {effectiveTier.name}
+                  </h3>
+                </div>
+
+                <div className="text-left sm:text-right">
+                  <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 block">
+                    {effectiveTier.isMaxLevel ? 'Status' : 'Target'}
+                  </span>
+                  <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                    {effectiveTier.isMaxLevel ? (
+                      <span className="text-amber-600 dark:text-amber-400 flex items-center sm:justify-end gap-1 font-extrabold">
+                        <Trophy size={13} /> Peak Rank Achieved
+                      </span>
+                    ) : (
+                      `Level ${effectiveTier.level + 1}: ${effectiveTier.next}`
+                    )}
+                  </span>
+                </div>
+              </div>
+
+              {/* Progress Bar & Details */}
+              <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-700/50">
+                <div className="mb-2 flex items-center justify-between text-xs font-bold">
+                  <span className="text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                    <Sparkles size={13} className="text-blue-500" />
+                    <span>Progress to Next Rank</span>
+                  </span>
+                  <span className="text-blue-600 dark:text-sky-400 font-extrabold">
+                    {effectiveTier.pct}%
+                  </span>
+                </div>
+
+                {/* Thin Progress Bar */}
+                <div className="h-2 w-full overflow-hidden rounded-full bg-slate-200/70 dark:bg-slate-700/60 border border-slate-300/40 dark:border-slate-600/40 relative">
+                  <div
+                    style={{ width: on ? `${effectiveTier.pct}%` : '0%' }}
+                    className="h-full rounded-full bg-gradient-to-r from-cyan-400 via-blue-500 to-indigo-600 transition-all duration-1000 ease-out shadow-[0_0_10px_rgba(56,189,248,0.5)]"
+                  />
+                </div>
+
+                <div className="mt-2 flex items-center justify-between text-[11px] font-semibold text-slate-500 dark:text-slate-400">
+                  <span>{effectiveTier.minPixels.toLocaleString('en-IN')} Pixels</span>
+                  <span>
+                    {effectiveTier.isMaxLevel
+                      ? '0 Pixels remaining · Maximum Level'
+                      : `${effectiveTier.toGo.toLocaleString('en-IN')} Pixels to Level ${effectiveTier.level + 1}`}
+                  </span>
+                </div>
+              </div>
             </div>
 
-            <div className="mt-5">
-              <div className="mb-1.5 flex justify-between text-xs font-semibold">
-                <span className="text-slate-700">{ti.name}</span>
-                <span className="text-slate-500">
-                  {ti.next ? `${ti.toGo.toLocaleString('en-IN')} Pixels to ${ti.next}` : 'Peak Rank Achieved 🏆'}
+            {/* Achievement / Max Level State or Milestone Tips */}
+            {effectiveTier.isMaxLevel ? (
+              <div className="p-4 rounded-2xl bg-gradient-to-r from-amber-500/10 via-sky-500/10 to-indigo-500/10 border border-amber-300/60 dark:border-amber-500/30 flex items-start gap-3.5 shadow-2xs">
+                <div className="h-10 w-10 rounded-xl bg-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0 shadow-xs">
+                  <Crown size={20} />
+                </div>
+                <div>
+                  <h4 className="text-xs font-black text-amber-800 dark:text-amber-300 uppercase tracking-wider flex items-center gap-1.5">
+                    <span>Maximum-Level Achievement State</span>
+                    <Trophy size={13} className="text-amber-600" />
+                  </h4>
+                  <p className="text-xs text-slate-600 dark:text-slate-300 mt-1 leading-relaxed">
+                    You have unlocked the highest tier in the community! All illustration blocks are fully illuminated with maximum cosmic energy and permanent leaderboard prestige.
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div className="flex flex-wrap items-center gap-2 text-xs text-slate-600 dark:text-slate-400">
+                <span className="font-semibold text-slate-500">Earn Pixels:</span>
+                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white/70 dark:bg-slate-800/60 border border-slate-200/70 dark:border-slate-700/60 text-[11px] font-bold text-[#0e1b33] dark:text-slate-200">
+                  <Zap size={11} className="text-blue-500" /> +25 Invite Peer
+                </span>
+                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white/70 dark:bg-slate-800/60 border border-slate-200/70 dark:border-slate-700/60 text-[11px] font-bold text-[#0e1b33] dark:text-slate-200">
+                  <Sparkles size={11} className="text-indigo-500" /> +50 Share Opportunity
                 </span>
               </div>
-              <Bar pct={ti.pct} on={on} />
-            </div>
+            )}
           </div>
 
-          <div className="bg-white/60 p-4 rounded-2xl border border-white/80 backdrop-blur-md shadow-2xs">
-            <PixelGrid pct={ti.pct} />
+          {/* Right Column: Unique Pixel-Art Illustration */}
+          <div className="lg:col-span-5 flex flex-col items-center justify-center">
+            <PixelProgressIllustration
+              pct={effectiveTier.pct}
+              levelName={effectiveTier.name}
+              levelNumber={effectiveTier.level}
+              isMaxLevel={effectiveTier.isMaxLevel}
+              nextLevelName={effectiveTier.next}
+              pixelsToGo={effectiveTier.toGo}
+            />
           </div>
         </div>
       </div>
+
+      {/* Level-Up Celebration Overlay */}
+      <LevelUpOverlay
+        isOpen={celebrationModal.isOpen}
+        prevLevelNumber={celebrationModal.prevLevel}
+        unlockedLevelNumber={celebrationModal.unlockedLevel}
+        onContinue={handleContinueLevelUp}
+      />
 
       {/* Leaderboard Header */}
       <div className="flex items-center justify-between">
@@ -408,11 +563,6 @@ export function Leaderboard() {
             <span>Top 20 Builders</span>
           </h2>
           <p className="text-xs text-slate-500 mt-0.5">Rankings based on total verified Pixels earned</p>
-        </div>
-
-        <div className="flex items-center gap-1.5 text-xs text-slate-500 font-medium">
-          <Sparkles size={14} className="text-blue-500" />
-          <span>Real-time Supabase rankings</span>
         </div>
       </div>
 

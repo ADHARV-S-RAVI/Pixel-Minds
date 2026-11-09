@@ -3,6 +3,7 @@ import type { Opportunity, OpportunityStatus } from '../types';
 import type { Database } from '../types/database';
 import { createReviewNotification } from './notifications';
 import { VERIFIED_OPPORTUNITIES } from '../data/verifiedOpportunities';
+import { validateOpportunityDates, parseDateInputToTimestamp } from '../utils/dateUtils';
 
 const DELETED_OPPS_KEY = 'pm_admin_deleted_opps';
 const MODIFIED_OPPS_KEY = 'pm_admin_modified_opps';
@@ -122,9 +123,9 @@ const toUpdatePayload = (data: Partial<Opportunity>): OpportunityUpdate => {
   if (data.description !== undefined) row.description = data.description;
   if (data.category !== undefined) row.category = data.category;
   if (data.organizer !== undefined) row.organizer = data.organizer;
-  if (data.deadline !== undefined) row.deadline = new Date(data.deadline).toISOString();
-  if (data.startDate !== undefined) row.start_date = new Date(data.startDate).toISOString();
-  if (data.endDate !== undefined) row.end_date = new Date(data.endDate).toISOString();
+  if (data.deadline !== undefined) row.deadline = new Date(parseDateInputToTimestamp(data.deadline)).toISOString();
+  if (data.startDate !== undefined) row.start_date = new Date(parseDateInputToTimestamp(data.startDate)).toISOString();
+  if (data.endDate !== undefined) row.end_date = new Date(parseDateInputToTimestamp(data.endDate)).toISOString();
   if (data.location !== undefined) row.location = data.location;
   if (data.mode !== undefined) row.mode = data.mode;
   if (data.prize !== undefined) row.prize = data.prize;
@@ -346,15 +347,29 @@ export const submitOpportunity = async (userId: string, data: Partial<Opportunit
     throw new Error('Application deadline is required.');
   }
 
+  // Strict backend date validation
+  const dateVal = validateOpportunityDates({
+    startDate: data.startDate,
+    endDate: data.endDate,
+    deadline: data.deadline
+  });
+  if (!dateVal.valid) {
+    throw new Error(dateVal.error || 'Invalid opportunity dates.');
+  }
+
+  const parsedDeadline = parseDateInputToTimestamp(data.deadline);
+  const parsedStartDate = data.startDate ? parseDateInputToTimestamp(data.startDate) : Date.now();
+  const parsedEndDate = data.endDate ? parseDateInputToTimestamp(data.endDate) : (data.startDate ? parsedStartDate + 86400000 : Date.now() + 86400000);
+
   const payload = {
     user_id: actualUserId,
     title: data.title.trim(),
     description: data.description.trim(),
     category: data.category || 'Other',
     organizer: data.organizer.trim(),
-    deadline: new Date(data.deadline).toISOString(),
-    start_date: data.startDate ? new Date(data.startDate).toISOString() : new Date().toISOString(),
-    end_date: data.endDate ? new Date(data.endDate).toISOString() : new Date(Date.now() + 86400000).toISOString(),
+    deadline: new Date(parsedDeadline).toISOString(),
+    start_date: new Date(parsedStartDate).toISOString(),
+    end_date: new Date(parsedEndDate).toISOString(),
     location: data.location?.trim() || '',
     mode: data.mode || 'online',
     prize: data.prize?.trim() || '',
@@ -820,14 +835,28 @@ export const updateOpportunityAdmin = async (
  * Admin: Create a new opportunity directly (bypasses submission queue).
  */
 export const submitOpportunityAdmin = async (userId: string, data: Partial<Opportunity>) => {
+  // Validate dates
+  const dateVal = validateOpportunityDates({
+    startDate: data.startDate,
+    endDate: data.endDate,
+    deadline: data.deadline
+  });
+  if (!dateVal.valid) {
+    throw new Error(dateVal.error || 'Invalid opportunity dates.');
+  }
+
+  const parsedDeadline = data.deadline ? parseDateInputToTimestamp(data.deadline) : Date.now() + 86400000 * 7;
+  const parsedStartDate = data.startDate ? parseDateInputToTimestamp(data.startDate) : Date.now();
+  const parsedEndDate = data.endDate ? parseDateInputToTimestamp(data.endDate) : (data.startDate ? parsedStartDate + 86400000 : Date.now() + 86400000);
+
   const payload: OpportunityInsert = {
     title: data.title || '',
     description: data.description || '',
     category: data.category || 'Other',
     organizer: data.organizer || '',
-    deadline: data.deadline ? new Date(data.deadline).toISOString() : new Date(Date.now() + 86400000 * 7).toISOString(),
-    start_date: data.startDate ? new Date(data.startDate).toISOString() : new Date().toISOString(),
-    end_date: data.endDate ? new Date(data.endDate).toISOString() : new Date(Date.now() + 86400000).toISOString(),
+    deadline: new Date(parsedDeadline).toISOString(),
+    start_date: new Date(parsedStartDate).toISOString(),
+    end_date: new Date(parsedEndDate).toISOString(),
     location: data.location || '',
     mode: data.mode || 'online',
     prize: data.prize || '',

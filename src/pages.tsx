@@ -3,7 +3,6 @@ import type { FC } from 'react';
 import { Link, useParams, useSearchParams, useNavigate, useLocation } from 'react-router-dom';
 import {
   Search,
-  Zap,
   Award,
   FileText,
   Users as U,
@@ -101,7 +100,7 @@ import { uploadImage, deleteStorageFile, validateOpportunityImageFile, parseOppo
 import {
   formatTimestampToDateInput,
   parseDateInputToTimestamp,
-  getTodayInputString,
+  formatDateToDDMMYYYY,
   validateOpportunityDates
 } from './utils/dateUtils';
 import { updateUserProfile, getUserProfile, getLeaderboardUsers, getUserGlobalRank, type LeaderboardUserEntry } from './services/users';
@@ -295,12 +294,6 @@ export function Landing() {
           <div className="pm-glass rounded-[28px] p-5 sm:p-8 relative overflow-hidden border border-white/90 shadow-sm flex flex-col justify-between max-w-full">
             {/* Ambient subtle light-blue glow */}
             <div className="pointer-events-none absolute -top-16 -right-16 w-72 sm:w-80 h-72 sm:h-80 rounded-full bg-blue-400/15 blur-3xl max-w-full" />
-
-            {/* Pill badge at top */}
-            <div className="inline-flex items-center gap-1.5 rounded-full bg-amber-100/90 border border-amber-300/80 px-3.5 py-1 text-xs font-semibold text-amber-900 shadow-2xs mb-5 self-start max-w-full">
-              <Zap size={13} className="text-amber-600 fill-amber-500 shrink-0" />
-              <span className="truncate">Pixel Minds Tech Ecosystem · 800+ Members</span>
-            </div>
 
             {/* Flex container between Text & 3D Crystal Orb */}
             <div className="flex flex-col md:flex-row items-center justify-between gap-6">
@@ -938,6 +931,8 @@ export function OppDetail() {
     }
   }, [id]);
 
+  const [selectedImgIdx, setSelectedImgIdx] = useState(0);
+
   const defaultOpp = initialOpps.find((x) => String(x.id) === String(id));
   const o = firestoreOpp || defaultOpp;
 
@@ -959,7 +954,6 @@ export function OppDetail() {
   const isDone = applied.includes(o.id);
   const ref = link('/opportunities/' + o.id);
   const images = parseOpportunityImages(o.imageUrl);
-  const [selectedImgIdx, setSelectedImgIdx] = useState(0);
 
   const handleApply = () => {
     if (!user) {
@@ -2566,7 +2560,7 @@ export function Profile() {
                 Change Password
               </h2>
               <p className="text-xs text-slate-500 mb-4">
-                Update your account password securely using Supabase Authentication.
+                Update your account password securely.
               </p>
 
               {pwdError && (
@@ -2906,30 +2900,57 @@ export function Submit() {
           <input
             type="date"
             value={startDate}
-            min={getTodayInputString()}
+            min="1000-01-01"
+            max="9999-12-31"
             onChange={(e) => setStartDate(e.target.value)}
             className={inpStyle}
           />
+          <div className="mt-1 flex items-center justify-between text-[11px]">
+            <span className="text-[#7D756C]">Format: DD/MM/YYYY</span>
+            {startDate && formatDateToDDMMYYYY(startDate) && (
+              <span className="font-semibold text-[#16171D]">
+                Display: {formatDateToDDMMYYYY(startDate)}
+              </span>
+            )}
+          </div>
         </FormField>
         <FormField label="End Date">
           <input
             type="date"
             value={endDate}
-            min={startDate || getTodayInputString()}
+            min={startDate || "1000-01-01"}
+            max="9999-12-31"
             onChange={(e) => setEndDate(e.target.value)}
             className={inpStyle}
           />
+          <div className="mt-1 flex items-center justify-between text-[11px]">
+            <span className="text-[#7D756C]">Format: DD/MM/YYYY</span>
+            {endDate && formatDateToDDMMYYYY(endDate) && (
+              <span className="font-semibold text-[#16171D]">
+                Display: {formatDateToDDMMYYYY(endDate)}
+              </span>
+            )}
+          </div>
         </FormField>
         <div className="sm:col-span-2">
           <FormField label="Application Deadline" required>
             <input
               type="date"
               value={deadline}
-              min={getTodayInputString()}
-              max={endDate || undefined}
+              min="1000-01-01"
+              max={endDate || "9999-12-31"}
               onChange={(e) => setDeadline(e.target.value)}
               className={inpStyle}
+              required
             />
+            <div className="mt-1 flex items-center justify-between text-[11px]">
+              <span className="text-[#7D756C]">Format: DD/MM/YYYY</span>
+              {deadline && formatDateToDDMMYYYY(deadline) && (
+                <span className="font-semibold text-[#16171D]">
+                  Display: {formatDateToDDMMYYYY(deadline)}
+                </span>
+              )}
+            </div>
           </FormField>
         </div>
       </SectionCard>
@@ -3394,30 +3415,57 @@ const AdminOpportunityForm = ({ opp, onBack }: any) => {
               <input
                 type="date"
                 value={startDate}
-                min={getTodayInputString()}
+                min="1000-01-01"
+                max="9999-12-31"
                 onChange={e=>setStartDate(e.target.value)}
                 className={inpStyle}
               />
+              <div className="mt-1 flex items-center justify-between text-[10px]">
+                <span className="text-slate-400">Format: DD/MM/YYYY</span>
+                {startDate && formatDateToDDMMYYYY(startDate) && (
+                  <span className="font-semibold text-slate-700">
+                    Display: {formatDateToDDMMYYYY(startDate)}
+                  </span>
+                )}
+              </div>
             </FormField>
             <FormField label="End Date">
               <input
                 type="date"
                 value={endDate}
-                min={startDate || getTodayInputString()}
+                min={startDate || "1000-01-01"}
+                max="9999-12-31"
                 onChange={e=>setEndDate(e.target.value)}
                 className={inpStyle}
               />
+              <div className="mt-1 flex items-center justify-between text-[10px]">
+                <span className="text-slate-400">Format: DD/MM/YYYY</span>
+                {endDate && formatDateToDDMMYYYY(endDate) && (
+                  <span className="font-semibold text-slate-700">
+                    Display: {formatDateToDDMMYYYY(endDate)}
+                  </span>
+                )}
+              </div>
             </FormField>
           </div>
           <FormField label="Application Deadline" required>
             <input
               type="date"
               value={deadline}
-              min={getTodayInputString()}
-              max={endDate || undefined}
+              min="1000-01-01"
+              max={endDate || "9999-12-31"}
               onChange={e=>setDeadline(e.target.value)}
               className={inpStyle}
+              required
             />
+            <div className="mt-1 flex items-center justify-between text-[10px]">
+              <span className="text-slate-400">Format: DD/MM/YYYY</span>
+              {deadline && formatDateToDDMMYYYY(deadline) && (
+                <span className="font-semibold text-slate-700">
+                  Display: {formatDateToDDMMYYYY(deadline)}
+                </span>
+              )}
+            </div>
           </FormField>
           
           <div className="grid grid-cols-2 gap-3">
@@ -5219,8 +5267,16 @@ export function Admin() {
 // Leaderboard and Referral Exports
 export { Leaderboard } from './pixels';
 
-// FAQ Page Export
+// FAQ & Support Page Exports
 export function FAQ() {
+  return (
+    <div className="py-2">
+      <FAQSection />
+    </div>
+  );
+}
+
+export function Support() {
   return (
     <div className="py-2">
       <FAQSection />
