@@ -2,6 +2,7 @@ import React, { useEffect, useLayoutEffect, useRef, useMemo } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import {
   Home,
+  Compass,
   MessageSquare,
   Trophy,
   Rocket,
@@ -9,6 +10,7 @@ import {
   BarChart2,
   Bookmark,
   FileText,
+  CircleHelp,
 } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 import './GooeyNav.css';
@@ -226,6 +228,7 @@ export interface NavItemDef {
 
 const PRIMARY_ITEMS: NavItemDef[] = [
   { to: '/', label: 'Home', icon: Home, exact: true },
+  { to: '/explore', label: 'Explore', icon: Compass, exact: false },
   { to: '/feed', label: 'Feed', icon: MessageSquare, exact: false },
   { to: '/opportunities', label: 'Opportunities', icon: Trophy, exact: false },
   { to: '/opportunities?cat=Hackathons', label: 'Hackathons', icon: Rocket, exact: false },
@@ -236,6 +239,10 @@ const PRIMARY_ITEMS: NavItemDef[] = [
 const SECONDARY_ITEMS: NavItemDef[] = [
   { to: '/opportunities?saved=true', label: 'Bookmarks', icon: Bookmark, exact: false, isSemibold: true },
   { to: '/profile?tab=applications', label: 'My Applications', icon: FileText, exact: false, isSemibold: true },
+];
+
+const SUPPORT_ITEMS: NavItemDef[] = [
+  { to: '/faq', label: 'Help & Support', icon: CircleHelp, exact: false },
 ];
 
 function getSidebarActiveIndex(items: NavItemDef[], pathname: string, search: string): number {
@@ -259,6 +266,9 @@ function getSidebarActiveIndex(items: NavItemDef[], pathname: string, search: st
       if (item.to === '/opportunities' && (search.includes('saved=true') || search.includes('cat='))) {
         continue;
       }
+      if (item.to === '/faq' && (pathname === '/faq' || pathname === '/support')) {
+        return i;
+      }
       if (pathname === item.to || pathname.startsWith(item.to + '/')) {
         return i;
       }
@@ -278,7 +288,7 @@ export const SidebarGooeyNav: React.FC = () => {
 
   const allItems = useMemo<NavItemDef[]>(() => {
     // Admin console is strictly hidden from dashboard navigation
-    return [...PRIMARY_ITEMS, ...SECONDARY_ITEMS];
+    return [...PRIMARY_ITEMS, ...SECONDARY_ITEMS, ...SUPPORT_ITEMS];
   }, []);
 
   const activeIndex = useMemo(
@@ -851,15 +861,17 @@ export const SidebarGooeyNav: React.FC = () => {
               <Link
                 to={item.to}
                 aria-current={activeIndex === i ? 'page' : undefined}
-                className={`flex items-center gap-3 px-3.5 py-2.5 rounded-2xl text-xs font-bold transition w-full select-none ${activeIndex === i ? 'text-white' : 'text-slate-900 dark:text-slate-100 hover:text-blue-600 dark:hover:text-white hover:bg-slate-100/80 dark:hover:bg-white/10'}`}
+                className={`flex items-center gap-3.5 px-3.5 py-2 xl:py-2.5 rounded-2xl text-xs font-bold transition w-full select-none whitespace-nowrap ${activeIndex === i ? 'text-white' : 'text-slate-900 dark:text-slate-100 hover:text-blue-600 dark:hover:text-white hover:bg-slate-100/80 dark:hover:bg-white/10'}`}
               >
-                <item.icon size={17} className="text-slate-700 dark:text-slate-300 shrink-0" />
-                <span>{item.label}</span>
+                <span className="w-5 flex items-center justify-center shrink-0">
+                  <item.icon size={17} className="text-slate-700 dark:text-slate-300" />
+                </span>
+                <span className="truncate">{item.label}</span>
               </Link>
             </li>
           ))}
 
-          <li key="divider" className="my-3 h-px bg-slate-300/60 dark:bg-slate-700/60 w-full" aria-hidden="true" />
+          <li key="divider-1" className="gooey-nav__divider my-3 xl:my-4 h-px bg-slate-300/60 dark:bg-slate-700/60 w-full shrink-0" aria-hidden="true" />
 
           {SECONDARY_ITEMS.map((item, i) => {
             const globalIndex = PRIMARY_ITEMS.length + i;
@@ -873,41 +885,81 @@ export const SidebarGooeyNav: React.FC = () => {
                 <Link
                   to={item.to}
                   aria-current={activeIndex === globalIndex ? 'page' : undefined}
-                  className={`flex items-center gap-3 px-3.5 py-2.5 rounded-2xl text-xs font-bold transition w-full select-none ${activeIndex === globalIndex ? 'text-white' : 'text-slate-900 dark:text-slate-100 hover:text-blue-600 dark:hover:text-white hover:bg-slate-100/80 dark:hover:bg-white/10'}`}
+                  className={`flex items-center gap-3.5 px-3.5 py-2 xl:py-2.5 rounded-2xl text-xs font-bold transition w-full select-none whitespace-nowrap ${activeIndex === globalIndex ? 'text-white' : 'text-slate-900 dark:text-slate-100 hover:text-blue-600 dark:hover:text-white hover:bg-slate-100/80 dark:hover:bg-white/10'}`}
                 >
-                  <item.icon size={17} className="text-slate-700 dark:text-slate-300 shrink-0" />
-                  <span>{item.label}</span>
+                  <span className="w-5 flex items-center justify-center shrink-0">
+                    <item.icon size={17} className="text-slate-700 dark:text-slate-300" />
+                  </span>
+                  <span className="truncate">{item.label}</span>
                 </Link>
               </li>
             );
           })}
 
-          
+          <li key="divider-2" className="gooey-nav__divider my-3 xl:my-4 h-px bg-slate-300/60 dark:bg-slate-700/60 w-full shrink-0" aria-hidden="true" />
+
+          {SUPPORT_ITEMS.map((item, i) => {
+            const globalIndex = PRIMARY_ITEMS.length + SECONDARY_ITEMS.length + i;
+            return (
+              <li
+                key={item.to}
+                data-gooey-index={globalIndex}
+                data-active={activeIndex === globalIndex ? '' : undefined}
+                className="gooey-nav__item"
+              >
+                <Link
+                  to={item.to}
+                  aria-current={activeIndex === globalIndex ? 'page' : undefined}
+                  className={`flex items-center gap-3.5 px-3.5 py-2 xl:py-2.5 rounded-2xl text-xs font-bold transition w-full select-none whitespace-nowrap ${activeIndex === globalIndex ? 'text-white' : 'text-slate-900 dark:text-slate-100 hover:text-blue-600 dark:hover:text-white hover:bg-slate-100/80 dark:hover:bg-white/10'}`}
+                >
+                  <span className="w-5 flex items-center justify-center shrink-0">
+                    <item.icon size={17} className="text-slate-700 dark:text-slate-300" />
+                  </span>
+                  <span className="truncate">{item.label}</span>
+                </Link>
+              </li>
+            );
+          })}
         </ul>
 
         {/* 2. Overlay Clipped Active Indicator List */}
         <ul ref={overlayRef} className="gooey-nav__list gooey-nav__list--active" aria-hidden="true">
           {PRIMARY_ITEMS.map(item => (
             <li key={item.to} className="gooey-nav__item">
-              <div className="flex items-center gap-3 px-3.5 py-2.5 rounded-2xl text-xs font-bold w-full select-none text-white">
-                <item.icon size={17} className="text-white shrink-0" />
-                <span className="text-white">{item.label}</span>
+              <div className="flex items-center gap-3.5 px-3.5 py-2 xl:py-2.5 rounded-2xl text-xs font-bold w-full select-none text-white whitespace-nowrap">
+                <span className="w-5 flex items-center justify-center shrink-0">
+                  <item.icon size={17} className="text-white" />
+                </span>
+                <span className="text-white truncate">{item.label}</span>
               </div>
             </li>
           ))}
 
-          <li key="divider" className="my-3 h-px invisible w-full" aria-hidden="true" />
+          <li key="divider-1" className="gooey-nav__divider my-3 xl:my-4 h-px invisible w-full shrink-0" aria-hidden="true" />
 
           {SECONDARY_ITEMS.map(item => (
             <li key={item.to} className="gooey-nav__item">
-              <div className="flex items-center gap-3 px-3.5 py-2.5 rounded-2xl text-xs font-bold w-full select-none text-white">
-                <item.icon size={17} className="text-white shrink-0" />
-                <span className="text-white">{item.label}</span>
+              <div className="flex items-center gap-3.5 px-3.5 py-2 xl:py-2.5 rounded-2xl text-xs font-bold w-full select-none text-white whitespace-nowrap">
+                <span className="w-5 flex items-center justify-center shrink-0">
+                  <item.icon size={17} className="text-white" />
+                </span>
+                <span className="text-white truncate">{item.label}</span>
               </div>
             </li>
           ))}
 
-          
+          <li key="divider-2" className="gooey-nav__divider my-3 xl:my-4 h-px invisible w-full shrink-0" aria-hidden="true" />
+
+          {SUPPORT_ITEMS.map(item => (
+            <li key={item.to} className="gooey-nav__item">
+              <div className="flex items-center gap-3.5 px-3.5 py-2 xl:py-2.5 rounded-2xl text-xs font-bold w-full select-none text-white whitespace-nowrap">
+                <span className="w-5 flex items-center justify-center shrink-0">
+                  <item.icon size={17} className="text-white" />
+                </span>
+                <span className="text-white truncate">{item.label}</span>
+              </div>
+            </li>
+          ))}
         </ul>
       </div>
     </nav>

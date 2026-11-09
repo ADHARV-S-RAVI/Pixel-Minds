@@ -297,67 +297,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       } catch {
         // Ignore potential duplicate or permission edge case
       }
-      return { needsEmailVerification: true, user: data.user };
-    }
-    return { needsEmailVerification: false, user: data.user };
-  };
-
-  const verifySignupOtp = async (
-    email: string,
-    token: string,
-    name?: string,
-    studentDetails?: {
-      college?: string;
-      course?: string;
-      yearOfStudy?: string;
-      branch?: string;
-    }
-  ) => {
-    const { data, error } = await supabase.auth.verifyOtp({
-      email: email.trim().toLowerCase(),
-      token: token.trim(),
-      type: 'signup'
-    });
-    if (error) throw error;
-    if (data.user) {
-      const authUser = formatAuthUser(data.user);
-      setCurrentUser(authUser);
-      try {
-        await createUserProfile(data.user.id, {
-          email: data.user.email || email,
-          displayName: name || data.user.user_metadata?.full_name || 'Pixel Builder',
-          photoURL: '',
-          college: studentDetails?.college || data.user.user_metadata?.college,
-          course: studentDetails?.course || data.user.user_metadata?.course,
-          yearOfStudy: studentDetails?.yearOfStudy || data.user.user_metadata?.year_of_study,
-          branch: studentDetails?.branch || data.user.user_metadata?.branch
-        });
-      } catch (profileErr) {
-        console.warn('[verifySignupOtp] Profile creation note:', profileErr);
-      }
-      await fetchProfile(data.user.id, data.user);
-    }
-    return data as { user: any; session: any };
-  };
-
-  const resendSignupOtp = async (email: string) => {
-    const { error } = await supabase.auth.resend({
-      type: 'signup',
-      email: email.trim().toLowerCase()
-    });
-    if (error) throw error;
-  };
-
-  const verifyRecoveryOtp = async (email: string, token: string) => {
-    const { data, error } = await supabase.auth.verifyOtp({
-      email: email.trim().toLowerCase(),
-      token: token.trim(),
-      type: 'recovery'
-    });
-    if (error) throw error;
-    if (data.user) {
-      const authUser = formatAuthUser(data.user);
-      setCurrentUser(authUser);
+      throw new Error('Sign up successful! Please check your email to confirm your account before logging in, or disable email confirmations in your Supabase Auth dashboard.');
     }
     return data as { user: any; session: any };
   };

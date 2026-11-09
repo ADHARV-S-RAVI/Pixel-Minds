@@ -3,6 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { getOpportunityById, incrementOpportunityViews, incrementApplyClicks, recordOpportunityShare } from '../services/opportunities';
 import { recordOpportunityApplication } from '../services/applications';
 import { parseOpportunityImages } from '../services/storage';
+import { formatDateToDDMMYYYY } from '../utils/dateUtils';
 import type { Opportunity } from '../types';
 import { Calendar, MapPin, Trophy, Users, ArrowUpRight, Share2, Eye, ArrowLeft, Clock, Globe, Flag } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
@@ -247,7 +248,7 @@ export function OpportunityDetails() {
                     <Calendar className="w-4 h-4 mt-0.5 text-sky-500 flex-shrink-0" />
                     <div>
                       <p className="text-xs text-slate-400 uppercase tracking-wider font-medium">Deadline</p>
-                      <p className="text-sm text-slate-700 font-medium">{new Date(opportunity.deadline).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
+                      <p className="text-sm text-slate-700 font-medium">{formatDateToDDMMYYYY(opportunity.deadline)}</p>
                     </div>
                   </div>
 
@@ -285,7 +286,7 @@ export function OpportunityDetails() {
                       <div>
                         <p className="text-xs text-slate-400 uppercase tracking-wider font-medium">Event Dates</p>
                         <p className="text-sm text-slate-700 font-medium">
-                          {new Date(opportunity.startDate).toLocaleDateString()} – {new Date(opportunity.endDate).toLocaleDateString()}
+                          {formatDateToDDMMYYYY(opportunity.startDate)} – {formatDateToDDMMYYYY(opportunity.endDate)}
                         </p>
                       </div>
                     </div>

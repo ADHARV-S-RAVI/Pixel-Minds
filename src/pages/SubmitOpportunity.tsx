@@ -4,7 +4,6 @@ import { useAuth } from '../contexts/AuthContext';
 import { submitOpportunity } from '../services/opportunities';
 import { uploadOpportunityImage, validateOpportunityImageFile } from '../services/storage';
 import { parseDateInputToTimestamp, validateOpportunityDates } from '../utils/dateUtils';
-import { sendSubmissionConfirmationEmail } from '../services/emailService';
 import { Upload, CheckCircle } from 'lucide-react';
 
 const CATEGORIES = ['Hackathon', 'Tech Event', 'Workshop', 'Internship', 'Competition', 'Scholarship', 'Course', 'Startup Program', 'Conference', 'Other'];
@@ -190,15 +189,67 @@ export function SubmitOpportunity() {
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div>
                 <label htmlFor="deadline" className={labelClass}>Application Deadline <span className="text-red-400">*</span></label>
-                <input type="date" name="deadline" id="deadline" required value={formData.deadline} onChange={handleChange} className={inputClass} />
+                <input
+                  type="date"
+                  name="deadline"
+                  id="deadline"
+                  required
+                  min="1000-01-01"
+                  max={formData.endDate || "9999-12-31"}
+                  value={formData.deadline}
+                  onChange={handleChange}
+                  className={inputClass}
+                />
+                <div className="mt-1 flex items-center justify-between text-xs text-slate-500">
+                  <span>Format: DD/MM/YYYY</span>
+                  {formData.deadline && formatDateToDDMMYYYY(formData.deadline) && (
+                    <span className="font-semibold text-slate-800">
+                      Display: {formatDateToDDMMYYYY(formData.deadline)}
+                    </span>
+                  )}
+                </div>
               </div>
               <div>
                 <label htmlFor="startDate" className={labelClass}>Start Date</label>
-                <input type="date" name="startDate" id="startDate" value={formData.startDate} onChange={handleChange} className={inputClass} />
+                <input
+                  type="date"
+                  name="startDate"
+                  id="startDate"
+                  min="1000-01-01"
+                  max="9999-12-31"
+                  value={formData.startDate}
+                  onChange={handleChange}
+                  className={inputClass}
+                />
+                <div className="mt-1 flex items-center justify-between text-xs text-slate-500">
+                  <span>Format: DD/MM/YYYY</span>
+                  {formData.startDate && formatDateToDDMMYYYY(formData.startDate) && (
+                    <span className="font-semibold text-slate-800">
+                      Display: {formatDateToDDMMYYYY(formData.startDate)}
+                    </span>
+                  )}
+                </div>
               </div>
               <div>
                 <label htmlFor="endDate" className={labelClass}>End Date</label>
-                <input type="date" name="endDate" id="endDate" value={formData.endDate} onChange={handleChange} className={inputClass} />
+                <input
+                  type="date"
+                  name="endDate"
+                  id="endDate"
+                  min={formData.startDate || "1000-01-01"}
+                  max="9999-12-31"
+                  value={formData.endDate}
+                  onChange={handleChange}
+                  className={inputClass}
+                />
+                <div className="mt-1 flex items-center justify-between text-xs text-slate-500">
+                  <span>Format: DD/MM/YYYY</span>
+                  {formData.endDate && formatDateToDDMMYYYY(formData.endDate) && (
+                    <span className="font-semibold text-slate-800">
+                      Display: {formatDateToDDMMYYYY(formData.endDate)}
+                    </span>
+                  )}
+                </div>
               </div>
               <div>
                 <label htmlFor="mode" className={labelClass}>Mode <span className="text-red-400">*</span></label>

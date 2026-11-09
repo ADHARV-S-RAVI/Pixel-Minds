@@ -98,17 +98,48 @@ export const tiers: [number, string][] = [
   [7500, 'Pixel Legend']
 ];
 
-export const tierInfo = (p: number) => {
+export interface TierInfoResult {
+  name: string;
+  level: number;
+  maxLevel: number;
+  minPixels: number;
+  nextPixels: number | null;
+  next: string | null;
+  toGo: number;
+  pct: number;
+  isMaxLevel: boolean;
+}
+
+export const tierInfo = (p: number): TierInfoResult => {
+  const safeP = typeof p === 'number' && !isNaN(p) ? Math.max(0, p) : 0;
   let i = 0;
   tiers.forEach(([m], j) => {
-    if (p >= m) i = j;
+    if (safeP >= m) i = j;
   });
-  const n = tiers[i + 1];
+
+  const currentTier = tiers[i];
+  const nextTier = tiers[i + 1];
+
+  const minPixels = currentTier[0];
+  const isFinalTier = !nextTier;
+  // For final tier (Level 6: Pixel Legend), 7500 to 10000 Pixels defines mastery progression
+  const nextPixels = nextTier ? nextTier[0] : 10000;
+
+  const span = Math.max(1, nextPixels - minPixels);
+  const earnedInLevel = safeP - minPixels;
+  const pct = Math.min(100, Math.max(0, Math.round((earnedInLevel / span) * 100)));
+  const toGo = Math.max(0, nextPixels - safeP);
+
   return {
-    name: tiers[i][1],
-    next: n ? n[1] : null,
-    toGo: n ? n[0] - p : 0,
-    pct: n ? Math.round(((p - tiers[i][0]) / (n[0] - tiers[i][0])) * 100) : 100
+    name: currentTier[1],
+    level: i + 1,
+    maxLevel: tiers.length,
+    minPixels,
+    nextPixels: isFinalTier ? 10000 : nextPixels,
+    next: nextTier ? nextTier[1] : null,
+    toGo,
+    pct,
+    isMaxLevel: isFinalTier && pct >= 100
   };
 };
 

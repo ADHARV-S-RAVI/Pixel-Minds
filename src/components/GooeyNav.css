@@ -3,11 +3,13 @@
   display: flex;
   flex-direction: column;
   width: 100%;
+  overflow: hidden;
 }
 
 .sidebar-gooey-nav .gooey-nav__stage {
   position: relative;
   width: 100%;
+  overflow: hidden;
 }
 
 .sidebar-gooey-nav .gooey-nav__canvas {
@@ -41,6 +43,36 @@
   list-style: none;
   width: 100%;
   z-index: 1;
+}
+
+@media (min-height: 780px) {
+  .sidebar-gooey-nav .gooey-nav__list {
+    gap: 8px;
+  }
+  .sidebar-gooey-nav .gooey-nav__divider {
+    margin-top: 1rem !important;
+    margin-bottom: 1rem !important;
+  }
+}
+
+@media (min-height: 900px) {
+  .sidebar-gooey-nav .gooey-nav__list {
+    gap: 11px;
+  }
+  .sidebar-gooey-nav .gooey-nav__divider {
+    margin-top: 1.25rem !important;
+    margin-bottom: 1.25rem !important;
+  }
+}
+
+@media (min-height: 1020px) {
+  .sidebar-gooey-nav .gooey-nav__list {
+    gap: 13px;
+  }
+  .sidebar-gooey-nav .gooey-nav__divider {
+    margin-top: 1.5rem !important;
+    margin-bottom: 1.5rem !important;
+  }
 }
 
 .sidebar-gooey-nav .gooey-nav__list--active {
@@ -84,4 +116,15 @@
 .dark .sidebar-gooey-nav .gooey-nav__fallback {
   background: #2563EB;
   box-shadow: 0 4px 16px rgba(37, 99, 235, 0.45);
+}
+
+/* Suppress all scrollbars in sidebar navigation */
+.sidebar-gooey-nav,
+.sidebar-gooey-nav * {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.sidebar-gooey-nav::-webkit-scrollbar,
+.sidebar-gooey-nav *::-webkit-scrollbar {
+  display: none;
 }

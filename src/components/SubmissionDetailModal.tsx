@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { formatDateToDDMMYYYY } from '../utils/dateUtils';
 import {
   X,
   ExternalLink,
@@ -42,11 +43,7 @@ export const SubmissionDetailModal: React.FC<SubmissionDetailModalProps> = ({
 
   const formatDate = (timestamp?: number) => {
     if (!timestamp) return 'Not provided';
-    return new Date(timestamp).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    });
+    return formatDateToDDMMYYYY(timestamp) || 'Not provided';
   };
 
   const formatDateTime = (timestamp?: number) => {

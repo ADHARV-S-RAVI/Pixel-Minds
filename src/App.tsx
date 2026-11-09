@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { Routes, Route, useNavigate } from 'react-router-dom';
 import { Layout } from './ui';
-import { Landing, Opportunities, OppDetail, Feed, Profile, Leaderboard, Submit, Admin } from './pages';
+import { Landing, Opportunities, OppDetail, Feed, Profile, Leaderboard, Submit, Admin, FAQ, Support, Explore } from './pages';
 import { Login } from './pages/Login';
 import { Signup } from './pages/Signup';
 import { ForgotPassword } from './pages/ForgotPassword';
@@ -37,12 +37,15 @@ export default function App() {
         <Route element={<Layout />}>
           {/* Public Routes */}
           <Route path="/" element={<Landing />} />
+          <Route path="/explore" element={<Explore />} />
           <Route path="/opportunities" element={<Opportunities />} />
           <Route path="/opportunities/:id" element={<OppDetail />} />
           <Route path="/bookmarks" element={<Opportunities />} />
           <Route path="/applications" element={<Profile />} />
           <Route path="/feed" element={<Feed />} />
           <Route path="/leaderboard" element={<Leaderboard />} />
+          <Route path="/faq" element={<FAQ />} />
+          <Route path="/support" element={<Support />} />
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
