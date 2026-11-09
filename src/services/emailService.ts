@@ -120,11 +120,19 @@ async function dispatchEmail(type: 'registration_confirmation' | 'submission_con
       console.warn('[emailService] Server responded with error:', errData);
       return {
         success: false,
-        error: errData?.error || `HTTP ${response.status}: Failed to send email`
+        error: errData?.error || errData?.message || `HTTP ${response.status}: Failed to send email`
       };
     }
 
     const resData = await response.json().catch(() => ({}));
+    if (resData && resData.success === false) {
+      console.warn('[emailService] Server could not dispatch email:', resData.message || resData.error || resData.code);
+      return {
+        success: false,
+        error: resData.message || resData.error || 'Email dispatch failed'
+      };
+    }
+
     return {
       success: true,
       reason: resData?.message
