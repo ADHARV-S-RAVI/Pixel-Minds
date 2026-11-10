@@ -99,6 +99,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (profile) {
         setUserData(profile);
       }
+
+      // Automatically attribute pending referral code if available (e.g. Google OAuth signup)
+      if (typeof window !== 'undefined' && profile) {
+        const onboardedKey = `pm_ref_onboarded_${uid}`;
+        const hasOnboarded = localStorage.getItem(onboardedKey) === 'true' || (authUser as any)?.user_metadata?.referral_onboarded;
+        const pendingRef = sessionStorage.getItem('pm_ref_code') || localStorage.getItem('pm_ref_code');
+
+        if (!hasOnboarded && pendingRef && pendingRef.trim()) {
+          try {
+            const { recordReferralSignup } = await import('../services/referrals');
+            const res = await recordReferralSignup(pendingRef.trim(), uid);
+            if (res.success || res.message?.toLowerCase().includes('already') || res.message?.toLowerCase().includes('self-referral')) {
+              localStorage.setItem(onboardedKey, 'true');
+              sessionStorage.removeItem('pm_ref_code');
+              localStorage.removeItem('pm_ref_code');
+            }
+          } catch (refErr) {
+            console.warn('[AuthContext] Automatic referral attribution note:', refErr);
+          }
+        }
+      }
     } catch (err) {
       console.error('Failed to load profile:', err);
     }
@@ -297,7 +318,67 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       } catch {
         // Ignore potential duplicate or permission edge case
       }
-      throw new Error('Sign up successful! Please check your email to confirm your account before logging in, or disable email confirmations in your Supabase Auth dashboard.');
+      return { needsEmailVerification: true, user: data.user };
+    }
+    return { needsEmailVerification: false, user: data.user };
+  };
+
+  const verifySignupOtp = async (
+    email: string,
+    token: string,
+    name?: string,
+    studentDetails?: {
+      college?: string;
+      course?: string;
+      yearOfStudy?: string;
+      branch?: string;
+    }
+  ) => {
+    const { data, error } = await supabase.auth.verifyOtp({
+      email: email.trim().toLowerCase(),
+      token: token.trim(),
+      type: 'signup'
+    });
+    if (error) throw error;
+    if (data.user) {
+      const authUser = formatAuthUser(data.user);
+      setCurrentUser(authUser);
+      try {
+        await createUserProfile(data.user.id, {
+          email: data.user.email || email,
+          displayName: name || data.user.user_metadata?.full_name || 'Pixel Builder',
+          photoURL: '',
+          college: studentDetails?.college || data.user.user_metadata?.college,
+          course: studentDetails?.course || data.user.user_metadata?.course,
+          yearOfStudy: studentDetails?.yearOfStudy || data.user.user_metadata?.year_of_study,
+          branch: studentDetails?.branch || data.user.user_metadata?.branch
+        });
+      } catch (profileErr) {
+        console.warn('[verifySignupOtp] Profile creation note:', profileErr);
+      }
+      await fetchProfile(data.user.id, data.user);
+    }
+    return data as { user: any; session: any };
+  };
+
+  const resendSignupOtp = async (email: string) => {
+    const { error } = await supabase.auth.resend({
+      type: 'signup',
+      email: email.trim().toLowerCase()
+    });
+    if (error) throw error;
+  };
+
+  const verifyRecoveryOtp = async (email: string, token: string) => {
+    const { data, error } = await supabase.auth.verifyOtp({
+      email: email.trim().toLowerCase(),
+      token: token.trim(),
+      type: 'recovery'
+    });
+    if (error) throw error;
+    if (data.user) {
+      const authUser = formatAuthUser(data.user);
+      setCurrentUser(authUser);
     }
     return data as { user: any; session: any };
   };
