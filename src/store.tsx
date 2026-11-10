@@ -64,9 +64,11 @@ export const AppProvider: FC<{ children: ReactNode }> = ({ children }) => {
   useEffect(() => {
     try {
       const urlParams = new URLSearchParams(window.location.search);
-      const refParam = urlParams.get('ref');
+      const refParam = urlParams.get('ref') || urlParams.get('referral');
       if (refParam && refParam.trim()) {
-        localStorage.setItem('pm_ref_code', refParam.trim().toUpperCase());
+        const clean = refParam.trim().toUpperCase();
+        localStorage.setItem('pm_ref_code', clean);
+        sessionStorage.setItem('pm_ref_code', clean);
       }
     } catch {
       // ignore

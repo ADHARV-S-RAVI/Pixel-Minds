@@ -19,7 +19,9 @@ import {
   Award,
   Flame,
   Users,
-  Rocket
+  Rocket,
+  Copy,
+  Check
 } from 'lucide-react';
 import { Avatar } from './ui';
 import { PixelMark } from './components/PixelMark';
@@ -28,6 +30,7 @@ import { PixelProgressIllustration } from './components/PixelProgressIllustratio
 import { LevelUpOverlay } from './components/LevelUpOverlay';
 import { getLeaderboardUsers, getUserGlobalRank, type LeaderboardUserEntry } from './services/users';
 import { useAuth } from './contexts/AuthContext';
+import { useApp } from './store';
 import { getUserReferrals } from './services/referrals';
 import type { Referral } from './types';
 
@@ -87,10 +90,24 @@ const steps: [any, string, string][] = [
 ];
 
 export function ReferralPanel() {
-  const { user } = useAuth();
+  const { user, userProfile } = useAuth();
+  const { copy } = useApp();
+  const [copied, setCopied] = useState(false);
   const [k, setK] = useState(0);
   const [referrals, setReferrals] = useState<Referral[]>([]);
   const [loading, setLoading] = useState(true);
+
+  const myReferralCode = userProfile?.referralId || '';
+  const myReferralLink = typeof window !== 'undefined'
+    ? `${window.location.origin}/signup?ref=${myReferralCode}`
+    : `https://pixelminds.org/signup?ref=${myReferralCode}`;
+
+  const handleCopyLink = () => {
+    if (!myReferralLink) return;
+    copy(myReferralLink);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   useEffect(() => {
     let isMounted = true;
@@ -139,6 +156,46 @@ export function ReferralPanel() {
           </div>
         ))}
       </div>
+
+      {/* Your Unique Referral Code & Link Card */}
+      {myReferralCode && (
+        <div className="rounded-3xl pm-glass-card bg-gradient-to-br from-blue-50/90 via-sky-50/70 to-white/90 backdrop-blur-xl border border-blue-200/80 p-5 sm:p-6 shadow-sm text-[#0e1b33]">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <div className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-blue-600">
+                <Sparkles size={14} />
+                <span>Your Unique Referral Link</span>
+              </div>
+              <p className="text-xs text-slate-600 mt-0.5">
+                Share this link or your code <b className="font-mono text-blue-900 bg-blue-100/80 px-1.5 py-0.5 rounded-md">{myReferralCode}</b> with friends. Earn <span className="font-bold text-amber-600">+25 Pixels</span> when they sign up!
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="hidden sm:inline-flex items-center gap-1 px-3 py-1 rounded-full bg-blue-100/70 text-blue-700 text-xs font-bold border border-blue-200">
+                +25 Pixels / Signup
+              </span>
+            </div>
+          </div>
+
+          <div className="mt-3.5 flex items-center gap-2">
+            <input
+              readOnly
+              value={myReferralLink}
+              onFocus={(e) => e.target.select()}
+              className="min-w-0 flex-1 rounded-xl border border-blue-200/90 bg-white/95 px-3.5 py-2 text-xs font-mono text-[#0e1b33] outline-none select-all shadow-2xs"
+            />
+            <button
+              onClick={handleCopyLink}
+              className={`inline-flex min-h-9 shrink-0 items-center gap-1.5 rounded-xl px-4 text-xs font-semibold text-white transition shadow-sm active:scale-95 cursor-pointer ${
+                copied ? 'bg-emerald-600' : 'bg-blue-600 hover:bg-blue-700'
+              }`}
+            >
+              {copied ? <Check size={14} /> : <Copy size={14} />}
+              <span>{copied ? 'Copied!' : 'Copy Link'}</span>
+            </button>
+          </div>
+        </div>
+      )}
 
       <div className="rounded-3xl pm-glass-card bg-white/85 backdrop-blur-xl border border-white/90 p-5 sm:p-6 shadow-sm text-[#0e1b33]">
         <div className="flex items-center justify-between">

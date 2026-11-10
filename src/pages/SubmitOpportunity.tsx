@@ -3,7 +3,8 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { submitOpportunity } from '../services/opportunities';
 import { uploadOpportunityImage, validateOpportunityImageFile } from '../services/storage';
-import { parseDateInputToTimestamp, validateOpportunityDates } from '../utils/dateUtils';
+import { parseDateInputToTimestamp, validateOpportunityDates, formatDateToDDMMYYYY } from '../utils/dateUtils';
+import { sendSubmissionConfirmationEmail } from '../services/emailService';
 import { Upload, CheckCircle } from 'lucide-react';
 
 const CATEGORIES = ['Hackathon', 'Tech Event', 'Workshop', 'Internship', 'Competition', 'Scholarship', 'Course', 'Startup Program', 'Conference', 'Other'];
@@ -100,7 +101,7 @@ export function SubmitOpportunity() {
           deadline: formData.deadline,
           submissionPixels: 20,
           approvalPixels: 50
-        }).catch((emailErr) => {
+        }).catch((emailErr: unknown) => {
           console.warn('[SubmitOpportunity] Email notification note:', emailErr);
         });
       }

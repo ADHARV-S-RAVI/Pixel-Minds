@@ -87,6 +87,34 @@ export function Signup() {
     }
   }, [user, authLoading, navigate, redirect]);
 
+  // Auto-detect and populate referral code from URL or persisted storage
+  useEffect(() => {
+    const urlRef = searchParams.get('ref') || searchParams.get('referral');
+    const storedRef = urlRef || sessionStorage.getItem('pm_ref_code') || localStorage.getItem('pm_ref_code');
+    if (storedRef && storedRef.trim()) {
+      const clean = storedRef.trim().toUpperCase();
+      setReferralCode(clean);
+      sessionStorage.setItem('pm_ref_code', clean);
+      localStorage.setItem('pm_ref_code', clean);
+      setVerifyingCode(true);
+      validateReferralCode(clean)
+        .then((res) => {
+          setReferralStatus({
+            checked: true,
+            valid: res.valid,
+            message: res.message,
+            referrerName: res.referrerName
+          });
+        })
+        .catch(() => {
+          // ignore auto-validation failure
+        })
+        .finally(() => {
+          setVerifyingCode(false);
+        });
+    }
+  }, [searchParams]);
+
   const handleVerifyReferral = async () => {
     if (!referralCode.trim()) {
       setReferralStatus({
@@ -137,17 +165,27 @@ export function Signup() {
       return;
     }
 
-    // If a referral code was entered but not verified yet, verify it now
-    let activeReferral = referralCode.trim().toUpperCase();
-    if (activeReferral && (!referralStatus || !referralStatus.checked)) {
-      const res = await validateReferralCode(activeReferral);
-      if (!res.valid) {
-        setError(res.message);
+    // If a referral code was entered or stored in session/local storage
+    const activeReferral = referralCode.trim().toUpperCase() ||
+      sessionStorage.getItem('pm_ref_code') ||
+      localStorage.getItem('pm_ref_code') ||
+      '';
+
+    if (activeReferral) {
+      if (!referralStatus || !referralStatus.checked) {
+        const res = await validateReferralCode(activeReferral);
         setReferralStatus({
           checked: true,
-          valid: false,
-          message: res.message
+          valid: res.valid,
+          message: res.message,
+          referrerName: res.referrerName
         });
+        if (!res.valid) {
+          setError(res.message);
+          return;
+        }
+      } else if (!referralStatus.valid) {
+        setError(referralStatus.message || 'Please enter a valid referral code or clear the field.');
         return;
       }
       localStorage.setItem('pm_ref_code', activeReferral);
@@ -238,10 +276,22 @@ export function Signup() {
       });
 
       const newUserId = verified?.user?.id;
-      let activeReferral = referralCode.trim().toUpperCase();
-      if (newUserId && activeReferral && referralStatus?.valid) {
+      const activeReferral = referralCode.trim().toUpperCase() ||
+        sessionStorage.getItem('pm_ref_code') ||
+        localStorage.getItem('pm_ref_code') ||
+        '';
+
+      if (newUserId && activeReferral) {
         try {
-          await recordReferralSignup(activeReferral, newUserId);
+          const refResult = await recordReferralSignup(activeReferral, newUserId);
+          if (refResult.success) {
+            console.log('[Signup] Referral attributed successfully:', refResult.message);
+            localStorage.setItem(`pm_ref_onboarded_${newUserId}`, 'true');
+            sessionStorage.removeItem('pm_ref_code');
+            localStorage.removeItem('pm_ref_code');
+          } else {
+            console.warn('[Signup] Referral signup note:', refResult.message);
+          }
         } catch (refErr) {
           console.warn('[Signup] Referral record note:', refErr);
         }
@@ -283,10 +333,13 @@ export function Signup() {
       const target = redirect || '/';
       sessionStorage.setItem('pm_auth_redirect', target);
       localStorage.setItem('pm_auth_redirect', target);
-      if (referralCode.trim()) {
-        const clean = referralCode.trim().toUpperCase();
-        localStorage.setItem('pm_ref_code', clean);
-        sessionStorage.setItem('pm_ref_code', clean);
+      const activeRef = referralCode.trim().toUpperCase() ||
+        sessionStorage.getItem('pm_ref_code') ||
+        localStorage.getItem('pm_ref_code') ||
+        '';
+      if (activeRef) {
+        localStorage.setItem('pm_ref_code', activeRef);
+        sessionStorage.setItem('pm_ref_code', activeRef);
       }
       await loginWithGoogle(target);
       // OAuth redirects browser to Google; do not navigate client-side

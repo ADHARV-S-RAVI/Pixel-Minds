@@ -80,10 +80,14 @@ export const createUserProfile = async (uid: string, data: Partial<User>): Promi
 
   // Check and process pending referral code if available
   try {
-    const pendingRef = typeof window !== 'undefined' ? localStorage.getItem('pm_ref_code') : null;
+    const pendingRef = typeof window !== 'undefined'
+      ? (sessionStorage.getItem('pm_ref_code') || localStorage.getItem('pm_ref_code'))
+      : null;
     if (pendingRef) {
       const { recordReferralSignup } = await import('./referrals');
       await recordReferralSignup(pendingRef, uid);
+      localStorage.setItem(`pm_ref_onboarded_${uid}`, 'true');
+      sessionStorage.removeItem('pm_ref_code');
       localStorage.removeItem('pm_ref_code');
     }
   } catch (err) {
