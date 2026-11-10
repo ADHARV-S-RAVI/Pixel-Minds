@@ -131,8 +131,8 @@ import { uploadAnnouncementImage } from './services/announcements';
 import { getUserApplications, confirmOpportunityRegistration, type UserApplication } from './services/applications';
 import { getAllReports, resolveReport, dismissReport, deleteReportedItem, type ReportItem } from './services/reports';
 
-const W: FC<{ children: any; className?: string }> = ({ children, className = '' }) => (
-  <main className={`mx-auto max-w-6xl px-4 ${className}`}>{children}</main>
+const W: FC<{ children: any; className?: string; id?: string }> = ({ children, className = '', id }) => (
+  <main id={id} className={`mx-auto max-w-6xl px-4 ${className}`}>{children}</main>
 );
 
 const Mini: FC<{ title?: string }> = ({ title = 'Top Contributors' }) => {
@@ -677,6 +677,15 @@ export function Opportunities() {
   }, [sp]);
 
   useEffect(() => {
+    if (location.hash === '#discover-opportunities') {
+      const el = document.getElementById('discover-opportunities');
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth' });
+      }
+    }
+  }, [location.hash]);
+
+  useEffect(() => {
     let isCurrent = true;
     setLoading(true);
     getPublishedOpportunities(undefined, 50, c !== 'All' ? c : undefined, debouncedQ || undefined)
@@ -769,7 +778,7 @@ export function Opportunities() {
     'rounded-full border-2 border-slate-300 dark:border-slate-600 bg-white dark:bg-[#162B45] px-4 py-2 text-xs font-bold text-slate-900 dark:text-white outline-none focus:border-blue-500 shadow-xs cursor-pointer hover:border-blue-400 transition';
 
   return (
-    <W className="py-8 space-y-7">
+    <W id="discover-opportunities" className="py-8 space-y-7 scroll-mt-6">
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>
           <div className="inline-flex items-center gap-2 rounded-full border border-black/8 bg-white/70 px-3 py-1 text-[11px] font-semibold text-[#6E655C] backdrop-blur-md mb-2 shadow-xs">
@@ -783,7 +792,7 @@ export function Opportunities() {
                 <span>Saved Bookmarks</span>
               </>
             ) : (
-              <span>Explore Opportunities</span>
+              <span>Discover Opportunities</span>
             )}
           </h1>
           <p className="text-xs sm:text-sm text-[#7D756C] mt-1 max-w-xl">
@@ -879,7 +888,7 @@ export function Opportunities() {
       </div>
 
       {/* Dropdown Filters & Counter */}
-      <div className="flex flex-wrap items-center gap-2.5">
+      <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0 sm:flex-wrap">
         <select className={sel} value={m} onChange={(e) => setM(e.target.value)}>
           {['Any mode', 'Online', 'Onsite', 'Hybrid', 'Remote'].map((x) => (
             <option key={x} value={x.startsWith('Any') ? 'Any' : x} className="bg-white dark:bg-[#162B45] text-[#0e1b33] dark:text-white">
@@ -899,7 +908,7 @@ export function Opportunities() {
           <option value="new" className="bg-white dark:bg-[#162B45] text-[#0e1b33] dark:text-white">Sort: Newest</option>
         </select>
 
-        <span className="ml-auto self-center text-xs font-bold text-slate-800 dark:text-slate-200">
+        <span className="shrink-0 sm:ml-auto self-center text-xs font-bold text-slate-800 dark:text-slate-200 whitespace-nowrap pl-2">
           <b className="text-blue-600 dark:text-sky-400 font-extrabold">{list.length}</b> opportunities available
         </span>
       </div>
