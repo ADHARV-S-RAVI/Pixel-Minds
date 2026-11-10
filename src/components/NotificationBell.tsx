@@ -301,7 +301,7 @@ export const NotificationBell: React.FC<{ className?: string }> = ({ className =
 
       {/* Pop-up Toast Banner when notification arrives or unread */}
       {showPopup && popupNotification && !isOpen && (
-        <div className="absolute right-0 top-12 z-50 w-72 sm:w-80 max-w-[calc(100vw-2rem)] rounded-2xl bg-[#0B1628]/95 backdrop-blur-xl text-white p-3.5 shadow-2xl border border-sky-400/40 animate-in fade-in slide-in-from-top-2 duration-300">
+        <div className="fixed inset-x-3.5 top-16 z-50 w-auto sm:absolute sm:inset-x-auto sm:right-0 sm:top-12 sm:w-80 sm:max-w-[320px] rounded-2xl bg-[#0B1628]/95 backdrop-blur-xl text-white p-3.5 shadow-2xl border border-sky-400/40 animate-in fade-in slide-in-from-top-2 duration-300">
           <div className="flex items-start gap-2.5">
             <div className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-blue-500/20 text-sky-400 mt-0.5">
               <Bell size={15} />
@@ -321,10 +321,10 @@ export const NotificationBell: React.FC<{ className?: string }> = ({ className =
                   <X size={12} />
                 </button>
               </div>
-              <p className="text-xs font-bold text-white mt-0.5 truncate">
+              <p className="text-xs font-bold text-white mt-0.5 break-words line-clamp-2">
                 {popupNotification.title}
               </p>
-              <p className="text-[11px] text-slate-300 line-clamp-2 mt-0.5 leading-snug">
+              <p className="text-[11px] text-slate-300 line-clamp-3 mt-0.5 leading-snug break-words">
                 {popupNotification.message}
               </p>
               <div className="mt-2.5 flex items-center justify-between">
@@ -352,116 +352,124 @@ export const NotificationBell: React.FC<{ className?: string }> = ({ className =
 
       {/* Dropdown Panel in Professional Dark Navy */}
       {isOpen && (
-        <div className="absolute right-0 mt-3 w-[calc(100vw-2rem)] sm:w-96 max-w-[384px] rounded-3xl border border-sky-500/20 bg-[#0B1628]/95 backdrop-blur-2xl shadow-2xl z-50 overflow-hidden text-white pm-in">
-          {/* Header */}
-          <div className="flex items-center justify-between border-b border-white/10 px-4 py-3 bg-white/5">
-            <div className="flex items-center gap-2">
-              <h3 className="text-sm font-bold text-white">Notifications</h3>
-              {unreadCount > 0 && (
-                <span className="rounded-full bg-sky-500/20 border border-sky-500/30 px-2 py-0.5 text-[10px] font-bold text-sky-300">
-                  {unreadCount} new
-                </span>
-              )}
-            </div>
-            <div className="flex items-center gap-2">
-              {unreadCount > 0 && (
+        <>
+          {/* Mobile Backdrop to catch taps outside and prevent layout interference */}
+          <div
+            className="fixed inset-0 z-40 sm:hidden bg-slate-900/30 backdrop-blur-2xs"
+            onClick={() => setIsOpen(false)}
+            aria-hidden="true"
+          />
+          <div className="fixed inset-x-3.5 top-16 z-50 w-auto sm:absolute sm:inset-x-auto sm:right-0 sm:top-full sm:mt-2.5 sm:w-96 sm:max-w-[384px] rounded-3xl border border-sky-500/20 bg-[#0B1628]/95 backdrop-blur-2xl shadow-2xl overflow-hidden text-white pm-in max-h-[calc(100vh-5.5rem)] flex flex-col">
+            {/* Header */}
+            <div className="flex items-center justify-between border-b border-white/10 px-4 py-3 bg-white/5 shrink-0">
+              <div className="flex items-center gap-2">
+                <h3 className="text-sm font-bold text-white">Notifications</h3>
+                {unreadCount > 0 && (
+                  <span className="rounded-full bg-sky-500/20 border border-sky-500/30 px-2 py-0.5 text-[10px] font-bold text-sky-300">
+                    {unreadCount} new
+                  </span>
+                )}
+              </div>
+              <div className="flex items-center gap-2">
+                {unreadCount > 0 && (
+                  <button
+                    onClick={handleMarkAll}
+                    disabled={loading}
+                    className="inline-flex items-center gap-1 text-[11px] font-semibold text-sky-400 hover:text-sky-300 hover:underline disabled:opacity-50 cursor-pointer"
+                    title="Mark all as read"
+                  >
+                    <CheckCheck size={13} />
+                    <span>Mark all read</span>
+                  </button>
+                )}
                 <button
-                  onClick={handleMarkAll}
-                  disabled={loading}
-                  className="inline-flex items-center gap-1 text-[11px] font-semibold text-sky-400 hover:text-sky-300 hover:underline disabled:opacity-50 cursor-pointer"
-                  title="Mark all as read"
+                  onClick={() => setIsOpen(false)}
+                  className="text-zinc-400 hover:text-white p-1 rounded-lg hover:bg-white/10 cursor-pointer"
                 >
-                  <CheckCheck size={13} />
-                  <span>Mark all read</span>
+                  <X size={14} />
                 </button>
-              )}
-              <button
-                onClick={() => setIsOpen(false)}
-                className="text-zinc-400 hover:text-white p-1 rounded-lg hover:bg-white/10 cursor-pointer"
-              >
-                <X size={14} />
-              </button>
-            </div>
-          </div>
-
-          {/* Sync / Database Error Alert */}
-          {fetchError && (
-            <div className="bg-rose-500/10 border-b border-rose-500/20 p-3 flex items-start gap-2.5 text-rose-300">
-              <AlertCircle size={15} className="text-rose-400 shrink-0 mt-0.5" />
-              <div className="flex-1 min-w-0">
-                <p className="text-xs font-semibold">Notification sync alert</p>
-                <p className="text-[11px] text-rose-300 leading-snug mt-0.5 break-words">
-                  {fetchError}
-                </p>
               </div>
-              <button
-                onClick={() => fetchNotifications()}
-                className="shrink-0 text-[11px] font-bold text-rose-300 underline hover:text-white cursor-pointer"
-              >
-                Retry
-              </button>
             </div>
-          )}
 
-          {/* Notifications List */}
-          <div className="max-h-[380px] overflow-y-auto divide-y divide-white/5">
-            {notifications.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-10 px-4 text-center">
-                <div className="grid h-12 w-12 place-items-center rounded-full bg-white/5 text-zinc-400 mb-2">
-                  <Bell size={22} className="opacity-50" />
+            {/* Sync / Database Error Alert */}
+            {fetchError && (
+              <div className="bg-rose-500/10 border-b border-rose-500/20 p-3 flex items-start gap-2.5 text-rose-300 shrink-0">
+                <AlertCircle size={15} className="text-rose-400 shrink-0 mt-0.5" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-semibold">Notification sync alert</p>
+                  <p className="text-[11px] text-rose-300 leading-snug mt-0.5 break-words">
+                    {fetchError}
+                  </p>
                 </div>
-                <p className="text-xs font-bold text-white">No notifications yet</p>
-                <p className="text-[11px] text-zinc-400 mt-0.5">
-                  You're all caught up! Updates regarding your submissions will appear here.
-                </p>
-              </div>
-            ) : (
-              notifications.map((n) => (
-                <div
-                  key={n.id}
-                  onClick={() => handleNotificationClick(n)}
-                  className={`flex items-start gap-3 p-3.5 transition-colors cursor-pointer text-left ${
-                    !n.isRead
-                      ? 'bg-white/10 hover:bg-white/15'
-                      : 'hover:bg-white/5'
-                  }`}
+                <button
+                  onClick={() => fetchNotifications()}
+                  className="shrink-0 text-[11px] font-bold text-rose-300 underline hover:text-white cursor-pointer"
                 >
-                  <div className="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-white/10 border border-white/10 shadow-2xs mt-0.5 text-sky-400">
-                    {getIcon(n.type)}
+                  Retry
+                </button>
+              </div>
+            )}
+
+            {/* Notifications List */}
+            <div className="overflow-y-auto divide-y divide-white/5 flex-1 min-h-0">
+              {notifications.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-10 px-4 text-center">
+                  <div className="grid h-12 w-12 place-items-center rounded-full bg-white/5 text-zinc-400 mb-2">
+                    <Bell size={22} className="opacity-50" />
                   </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center justify-between gap-1">
-                      <p className={`text-xs font-bold truncate ${!n.isRead ? 'text-white' : 'text-zinc-300'}`}>
-                        {n.title}
-                      </p>
-                      <span className="shrink-0 text-[10px] text-zinc-400 font-medium">
-                        {formatTimeAgo(n.createdAt)}
-                      </span>
+                  <p className="text-xs font-bold text-white">No notifications yet</p>
+                  <p className="text-[11px] text-zinc-400 mt-0.5">
+                    You're all caught up! Updates regarding your submissions will appear here.
+                  </p>
+                </div>
+              ) : (
+                notifications.map((n) => (
+                  <div
+                    key={n.id}
+                    onClick={() => handleNotificationClick(n)}
+                    className={`flex items-start gap-3 p-3.5 transition-colors cursor-pointer text-left ${
+                      !n.isRead
+                        ? 'bg-white/10 hover:bg-white/15'
+                        : 'hover:bg-white/5'
+                    }`}
+                  >
+                    <div className="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-white/10 border border-white/10 shadow-2xs mt-0.5 text-sky-400">
+                      {getIcon(n.type)}
                     </div>
-                    <p className="mt-0.5 text-xs text-zinc-300 line-clamp-2 leading-relaxed">
-                      {n.message}
-                    </p>
-                    {n.link && (
-                      <span className="mt-1 inline-flex items-center gap-1 text-[11px] font-semibold text-sky-400 hover:underline">
-                        <span>View Details</span>
-                        <ExternalLink size={10} />
-                      </span>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-start justify-between gap-1.5">
+                        <p className={`text-xs font-bold break-words line-clamp-2 ${!n.isRead ? 'text-white' : 'text-zinc-300'}`}>
+                          {n.title}
+                        </p>
+                        <span className="shrink-0 text-[10px] text-zinc-400 font-medium whitespace-nowrap pl-1">
+                          {formatTimeAgo(n.createdAt)}
+                        </span>
+                      </div>
+                      <p className="mt-0.5 text-xs text-zinc-300 break-words line-clamp-3 leading-relaxed">
+                        {n.message}
+                      </p>
+                      {n.link && (
+                        <span className="mt-1 inline-flex items-center gap-1 text-[11px] font-semibold text-sky-400 hover:underline">
+                          <span>View Details</span>
+                          <ExternalLink size={10} />
+                        </span>
+                      )}
+                    </div>
+                    {!n.isRead && (
+                      <button
+                        onClick={(e) => handleMarkOne(e, n)}
+                        title="Mark as read"
+                        className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-sky-500/20 text-sky-400 hover:bg-sky-500/30 transition cursor-pointer"
+                      >
+                        <Check size={11} strokeWidth={2.5} />
+                      </button>
                     )}
                   </div>
-                  {!n.isRead && (
-                    <button
-                      onClick={(e) => handleMarkOne(e, n)}
-                      title="Mark as read"
-                      className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-sky-500/20 text-sky-400 hover:bg-sky-500/30 transition cursor-pointer"
-                    >
-                      <Check size={11} strokeWidth={2.5} />
-                    </button>
-                  )}
-                </div>
-              ))
-            )}
+                ))
+              )}
+            </div>
           </div>
-        </div>
+        </>
       )}
     </div>
   );
