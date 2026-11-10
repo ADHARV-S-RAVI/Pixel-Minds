@@ -37,6 +37,7 @@ import {
   ShieldCheck,
   Compass,
   HelpCircle,
+  Layers,
   X
 } from 'lucide-react';
 import { opps } from './data';
@@ -1319,7 +1320,7 @@ export const PostCard: FC<{ p: any; onPostDeleted?: (id: string) => void }> = ({
 
 const navItems = [
   ['/', 'Home', Home],
-  ['/opportunities', 'Explore', Trophy],
+  ['/opportunities', 'Explore', Compass],
   ['/submit', 'Create', PlusSquare],
   ['/feed', 'Feed', MessageSquare],
   ['/profile', 'Profile', User]
@@ -1333,6 +1334,26 @@ export const Layout: FC = () => {
   const location = useLocation();
   const searchInputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
+
+  // Floating Interactive Story Stack button state (persisted in sessionStorage per session)
+  const [showStoryStackBtn, setShowStoryStackBtn] = useState(() => {
+    try {
+      return typeof window !== 'undefined' && sessionStorage.getItem('pm_story_stack_dismissed') !== 'true';
+    } catch {
+      return true;
+    }
+  });
+
+  const handleDismissStoryStack = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setShowStoryStackBtn(false);
+    try {
+      sessionStorage.setItem('pm_story_stack_dismissed', 'true');
+    } catch {
+      // ignore storage write errors
+    }
+  };
 
   // Close profile dropdown on navigation
   useEffect(() => {
@@ -1601,10 +1622,10 @@ export const Layout: FC = () => {
                         <span>Bookmarks</span>
                       </Link>
                       <Link
-                        to="/opportunities"
+                        to="/explore"
                         className="flex items-center gap-2.5 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100/70 dark:hover:bg-slate-800/70 hover:text-sky-600 transition min-h-[40px] active:bg-slate-100 dark:active:bg-slate-800"
                       >
-                        <Compass size={15} className="text-[#C5A059] shrink-0" />
+                        <Compass size={15} className="text-sky-500 shrink-0" />
                         <span>Explore</span>
                       </Link>
                       <Link
@@ -1637,6 +1658,15 @@ export const Layout: FC = () => {
               </div>
             ) : (
               <div className="flex items-center gap-1 sm:gap-2 shrink-0">
+                {/* Guest Profile Menu Button on Mobile */}
+                <button
+                  type="button"
+                  onClick={() => setShowUserMenu(!showUserMenu)}
+                  aria-label="Guest profile menu"
+                  className="sm:hidden grid h-8 w-8 place-items-center rounded-full bg-white/80 hover:bg-white text-slate-700 border border-slate-200/90 shadow-xs transition active:scale-95 cursor-pointer shrink-0"
+                >
+                  <User size={16} />
+                </button>
                 <Link
                   to="/login"
                   className="inline-flex items-center justify-center rounded-full bg-white/80 hover:bg-white text-[#0e1b33] font-bold text-[11px] sm:text-xs px-2.5 sm:px-4 py-1.5 sm:py-2 border border-slate-200/80 shadow-xs transition active:scale-[0.98] shrink-0"
@@ -1645,7 +1675,7 @@ export const Layout: FC = () => {
                 </Link>
                 <Link
                   to="/signup"
-                  className="inline-flex items-center justify-center rounded-full bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-400 hover:to-blue-500 text-white font-bold text-[11px] sm:text-xs px-2.5 sm:px-4 py-1.5 sm:py-2 shadow-md shadow-sky-500/20 transition active:scale-[0.98] shrink-0 whitespace-nowrap"
+                  className="hidden sm:inline-flex items-center justify-center rounded-full bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-400 hover:to-blue-500 text-white font-bold text-[11px] sm:text-xs px-2.5 sm:px-4 py-1.5 sm:py-2 shadow-md shadow-sky-500/20 transition active:scale-[0.98] shrink-0 whitespace-nowrap"
                 >
                   Sign Up
                 </Link>
@@ -1687,9 +1717,9 @@ export const Layout: FC = () => {
         </main>
       </div>
 
-      {/* Mobile Profile Dropdown / Slide-Up Sheet */}
+      {/* Mobile Profile Dropdown / Sheet (Opened via Top Header Profile Icon) */}
       {showUserMenu && (
-        <div className="fixed inset-0 z-50 lg:hidden flex flex-col justify-end p-3 pb-[calc(4.5rem+env(safe-area-inset-bottom,0px))]">
+        <div className="fixed inset-0 z-50 lg:hidden flex flex-col items-end justify-start p-3 pt-16 sm:pt-20">
           {/* Dimmed backdrop */}
           <div
             className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs transition-opacity"
@@ -1698,7 +1728,7 @@ export const Layout: FC = () => {
           />
 
           {/* Mobile Profile Menu Card */}
-          <div className="relative w-full max-w-sm mx-auto rounded-3xl border border-white/90 bg-white/95 dark:bg-[#0f1d33]/95 backdrop-blur-2xl p-3 shadow-2xl z-10 text-[#0e1b33] dark:text-white animate-in slide-in-from-bottom-4 duration-200">
+          <div className="relative w-full max-w-[280px] rounded-3xl border border-white/90 bg-white/95 dark:bg-[#0f1d33]/95 backdrop-blur-2xl p-3 shadow-2xl z-10 text-[#0e1b33] dark:text-white animate-in fade-in slide-in-from-top-3 duration-200 max-h-[calc(100vh-5.5rem)] overflow-y-auto">
             {/* Header info */}
             <div className="px-3.5 py-2.5 border-b border-slate-200/60 dark:border-slate-800/60 flex items-center justify-between">
               <div className="min-w-0 flex-1">
@@ -1740,6 +1770,7 @@ export const Layout: FC = () => {
                   <span className="text-[10px] uppercase tracking-wider bg-[#DFB76C]/20 text-[#DFB76C] px-1.5 py-0.5 rounded font-black">Admin</span>
                 </Link>
               )}
+              {/* 1. My Profile */}
               <Link
                 to="/profile"
                 onClick={() => setShowUserMenu(false)}
@@ -1748,6 +1779,7 @@ export const Layout: FC = () => {
                 <User size={15} className="text-slate-400 shrink-0" />
                 <span>My Profile</span>
               </Link>
+              {/* 2. Bookmarks */}
               <Link
                 to="/bookmarks"
                 onClick={() => setShowUserMenu(false)}
@@ -1756,14 +1788,16 @@ export const Layout: FC = () => {
                 <Bookmark size={15} className="text-slate-400 shrink-0" />
                 <span>Bookmarks</span>
               </Link>
+              {/* 3. Explore (Interactive Story Stack) */}
               <Link
-                to="/opportunities"
+                to="/explore"
                 onClick={() => setShowUserMenu(false)}
                 className="flex items-center gap-2.5 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100/70 dark:hover:bg-slate-800/70 hover:text-sky-600 transition min-h-[40px] active:bg-slate-100 dark:active:bg-slate-800"
               >
-                <Compass size={15} className="text-[#C5A059] shrink-0" />
+                <Compass size={15} className="text-sky-500 shrink-0" />
                 <span>Explore</span>
               </Link>
+              {/* 4. Leaderboard */}
               <Link
                 to="/leaderboard"
                 onClick={() => setShowUserMenu(false)}
@@ -1772,6 +1806,7 @@ export const Layout: FC = () => {
                 <Trophy size={15} className="text-amber-500 shrink-0" />
                 <span>Leaderboard</span>
               </Link>
+              {/* 5. Help & Support */}
               <Link
                 to="/support"
                 onClick={() => setShowUserMenu(false)}
@@ -1782,6 +1817,7 @@ export const Layout: FC = () => {
               </Link>
             </div>
 
+            {/* 6. Sign Out / Sign In */}
             <div className="border-t border-slate-200/60 dark:border-slate-800/60 pt-1.5 mt-1">
               {user ? (
                 <button
@@ -1810,52 +1846,63 @@ export const Layout: FC = () => {
         </div>
       )}
 
+      {/* Floating Interactive Story Stack Button (Mobile Only) */}
+      {showStoryStackBtn && location.pathname !== '/explore' && (
+        <div className="fixed bottom-[calc(4.5rem+env(safe-area-inset-bottom,0px))] right-3.5 sm:right-5 z-30 lg:hidden flex items-center shadow-lg shadow-sky-500/20 rounded-full animate-in fade-in slide-in-from-bottom-2 duration-300">
+          <Link
+            to="/explore"
+            className="flex items-center gap-2 pl-3.5 pr-2.5 py-2 rounded-l-full bg-gradient-to-r from-[#112240] to-[#1e3a8a] text-white border-y border-l border-sky-400/40 text-xs font-bold active:scale-95 transition shadow-sm select-none"
+            aria-label="Interactive Story Stack"
+          >
+            <span className="grid h-6 w-6 place-items-center rounded-full bg-sky-500/25 text-sky-300 border border-sky-400/30 shrink-0">
+              <Layers size={13} />
+            </span>
+            <span className="tracking-tight whitespace-nowrap font-extrabold text-[11px] sm:text-xs">Story Stack</span>
+          </Link>
+          <button
+            type="button"
+            onClick={handleDismissStoryStack}
+            aria-label="Dismiss Story Stack button"
+            className="grid h-[38px] w-7 place-items-center rounded-r-full bg-[#112240] hover:bg-[#1a335e] text-slate-400 hover:text-white border-y border-r border-sky-400/40 transition cursor-pointer select-none active:bg-slate-800"
+            title="Dismiss"
+          >
+            <X size={13} />
+          </button>
+        </div>
+      )}
+
       {/* Mobile Bottom Navigation Bar in Frosted Glass */}
       <nav
         style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
-        className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-5 border-t border-white/90 bg-white/85 backdrop-blur-2xl lg:hidden text-slate-500 shadow-xl"
+        className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-5 border-t border-white/90 dark:border-slate-800/80 bg-white/85 dark:bg-[#0f1d33]/90 backdrop-blur-2xl lg:hidden text-slate-500 shadow-xl"
       >
-        {navItems.map(([to, l, I]) => {
-          if (l === 'Profile') {
-            return (
-              <button
-                key={to}
-                type="button"
-                onClick={() => setShowUserMenu(!showUserMenu)}
-                className={`flex flex-col items-center justify-center gap-1 py-2 text-[10px] font-semibold transition cursor-pointer ${
-                  showUserMenu || location.pathname === '/profile'
-                    ? 'text-[#2563eb]'
-                    : 'text-slate-500 hover:text-[#0e1b33]'
-                }`}
-                aria-label="Toggle profile menu"
-              >
-                <I size={18} />
-                <span>{l}</span>
-              </button>
-            );
-          }
-          return (
-            <NavLink
-              key={to}
-              to={to}
-              end={to === '/'}
-              className={({ isActive }) =>
-                `flex flex-col items-center justify-center gap-1 py-2 text-[10px] font-semibold transition ${
-                  isActive ? 'text-[#2563eb]' : 'text-slate-500 hover:text-[#0e1b33]'
-                }`
-              }
-            >
+        {navItems.map(([to, l, I]) => (
+          <NavLink
+            key={to}
+            to={to}
+            end={to === '/'}
+            className={({ isActive }) =>
+              `flex flex-col items-center justify-center min-h-[58px] py-1.5 px-0.5 w-full text-[10px] font-semibold transition active:scale-95 ${
+                isActive
+                  ? 'text-[#2563eb] dark:text-sky-400 font-bold'
+                  : 'text-slate-500 dark:text-slate-400 hover:text-[#0e1b33] dark:hover:text-white'
+              }`
+            }
+          >
+            <div className="h-7 w-full flex items-center justify-center shrink-0">
               {l === 'Create' ? (
-                <span className="grid h-8 w-8 place-items-center rounded-full bg-[#112240] text-white shadow-md shadow-slate-900/15">
-                  <I size={16} />
+                <span className="grid h-7 w-7 place-items-center rounded-full bg-[#112240] dark:bg-sky-500 text-white shadow-sm">
+                  <I size={14} />
                 </span>
               ) : (
-                <I size={18} />
+                <I size={18} className="shrink-0" />
               )}
-              <span>{l}</span>
-            </NavLink>
-          );
-        })}
+            </div>
+            <span className="truncate max-w-full tracking-tight leading-none mt-1 select-none text-center">
+              {l}
+            </span>
+          </NavLink>
+        ))}
       </nav>
     </div>
   );
