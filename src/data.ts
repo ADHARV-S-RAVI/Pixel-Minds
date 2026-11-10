@@ -1,4 +1,5 @@
 import { VERIFIED_OPPORTUNITIES, type VerifiedOpportunity } from './data/verifiedOpportunities';
+import { getOpportunityDeadlineInfo } from './utils/dateUtils';
 
 export interface Opp {
   id: string | number;
@@ -8,6 +9,8 @@ export interface Opp {
   mode: string;
   deadline: string;
   days: number;
+  rawDeadline?: string | number;
+  isExpired?: boolean;
   prize: string;
   skills: string[];
   tint?: string;
@@ -43,10 +46,7 @@ export const cats = [
 const tints = ['#e0f2fe', '#e0e7ff', '#dcfce7', '#fef3c7', '#fce7f3', '#ccfbf1'];
 
 export const initialOpps: Opp[] = VERIFIED_OPPORTUNITIES.map((v: VerifiedOpportunity, i: number) => {
-  const deadlineDate = new Date(v.deadline);
-  const now = Date.now();
-  const diffDays = Math.max(1, Math.ceil((deadlineDate.getTime() - now) / (1000 * 60 * 60 * 24)));
-  const formattedDeadline = deadlineDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  const deadlineInfo = getOpportunityDeadlineInfo(v.deadline);
 
   return {
     id: v.id,
@@ -54,8 +54,10 @@ export const initialOpps: Opp[] = VERIFIED_OPPORTUNITIES.map((v: VerifiedOpportu
     org: v.organizer,
     cat: v.category,
     mode: v.mode.charAt(0).toUpperCase() + v.mode.slice(1),
-    deadline: formattedDeadline,
-    days: diffDays,
+    deadline: deadlineInfo.formattedDeadline,
+    days: deadlineInfo.daysRemaining,
+    rawDeadline: v.deadline,
+    isExpired: deadlineInfo.isExpired,
     prize: v.prize !== 'Not specified' ? v.prize : (v.stipend !== 'Not specified' ? v.stipend : 'Certificate'),
     skills: v.skills,
     description: v.description,

@@ -34,19 +34,21 @@ import {
   Code2,
   GraduationCap,
   Flag,
-  ShieldCheck
+  ShieldCheck,
+  X
 } from 'lucide-react';
 import { opps } from './data';
 import type { Opp } from './data';
 import { AnnouncementModal } from './components/AnnouncementModal';
 import { ReportModal } from './components/ReportModal';
+import { AuthPromptModal } from './components/AuthPromptModal';
 import { SidebarGooeyNav } from './components/GooeyNav';
 import { grad, getCategoryMeta } from './utils/meta';
 import { useApp } from './store';
 import { NotificationBell } from './components/NotificationBell';
 import { useAuth } from './contexts/AuthContext';
 import { useTheme } from './contexts/ThemeContext';
-import { createCommunityPost, updateCommunityPost, deleteCommunityPost, formatTimeAgo } from './services/community';
+import { createCommunityPost, deleteCommunityPost, formatTimeAgo, togglePostLike, getPostComments, addPostComment } from './services/community';
 
 const cls = (v: string, c = '') =>
   `inline-flex items-center justify-center gap-2 min-h-10 rounded-full px-5 py-2.5 text-xs font-bold transition cursor-pointer select-none ${
@@ -254,7 +256,14 @@ export const OppCard: FC<{ o: Opp; variant?: 'light' | 'dark' }> = ({ o, variant
         <div className="flex flex-wrap items-center gap-x-3.5 gap-y-1.5 text-xs text-slate-600 mb-3.5 relative z-10">
           <span className="flex items-center gap-1.5 shrink-0">
             <Calendar size={13} className="text-blue-600" />
-            <span>{o.deadline} {o.days ? `· ${o.days}d left` : ''}</span>
+            <span>
+              {o.deadline}{' '}
+              {o.isExpired || o.days <= 0 ? (
+                <span className="font-semibold text-rose-600">· Closed</span>
+              ) : (
+                `· ${o.days === 1 ? '1d left' : `${o.days}d left`}`
+              )}
+            </span>
           </span>
           <span className="flex items-center gap-1.5 shrink-0">
             <MapPin size={13} className="text-blue-600" />
@@ -387,7 +396,14 @@ export const OppCard: FC<{ o: Opp; variant?: 'light' | 'dark' }> = ({ o, variant
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-600 mt-2">
           <span className="flex items-center gap-1.5 shrink-0">
             <Calendar size={13} className="text-slate-400" />
-            <span>{o.deadline} {o.days ? `· ${o.days}d left` : ''}</span>
+            <span>
+              {o.deadline}{' '}
+              {o.isExpired || o.days <= 0 ? (
+                <span className="font-semibold text-rose-600">· Closed</span>
+              ) : (
+                `· ${o.days === 1 ? '1d left' : `${o.days}d left`}`
+              )}
+            </span>
           </span>
           <span className="flex items-center gap-1.5 shrink-0">
             <MapPin size={13} className="text-slate-400" />
@@ -790,6 +806,8 @@ export const PostCard: FC<{ p: any; onPostDeleted?: (id: string) => void }> = ({
   const { saved, toggle, say } = useApp();
   const { userProfile, user } = useAuth();
   const [showReport, setShowReport] = useState(false);
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [authActionText, setAuthActionText] = useState('interact with community posts');
   const o = opps.find((x) => String(x.id) === String(p.opp));
 
   // Likes state with localStorage persistence
@@ -802,7 +820,7 @@ export const PostCard: FC<{ p: any; onPostDeleted?: (id: string) => void }> = ({
   });
   const [likesCount, setLikesCount] = useState<number>(p.likes || 0);
 
-  // Comments state with localStorage persistence
+  // Comments state with Supabase and localStorage persistence
   const [open, setOpen] = useState(false);
   const [comments, setComments] = useState<PostCommentItem[]>(() => {
     try {
@@ -814,43 +832,66 @@ export const PostCard: FC<{ p: any; onPostDeleted?: (id: string) => void }> = ({
   const [commentText, setCommentText] = useState('');
   const [submittingComment, setSubmittingComment] = useState(false);
 
+  useEffect(() => {
+    if (open) {
+      getPostComments(String(p.id))
+        .then((items) => {
+          if (items && items.length > 0) setComments(items);
+        })
+        .catch(() => {});
+    }
+  }, [open, p.id]);
+
   const [deleting, setDeleting] = useState(false);
   const isSaved = saved.includes('p' + p.id);
   const currentUserName = userProfile?.displayName || user?.displayName || 'Community Member';
   const canDelete = user && (user.uid === p.userId || userProfile?.role === 'admin');
 
-  // Handle Like toggle
+  // Handle Like toggle with strict authentication check
   const handleLike = async () => {
-    const nextLiked = !liked;
-    const nextCount = Math.max(0, likesCount + (nextLiked ? 1 : -1));
-    setLiked(nextLiked);
-    setLikesCount(nextCount);
+    if (!user) {
+      setAuthActionText('like community posts');
+      setShowAuthModal(true);
+      return;
+    }
+
     try {
-      localStorage.setItem(`pm_post_liked_${p.id}`, String(nextLiked));
-      await updateCommunityPost(String(p.id), { likes: nextCount });
+      const res = await togglePostLike(String(p.id), user.uid, liked, likesCount);
+      setLiked(res.liked);
+      setLikesCount(res.likesCount);
+      localStorage.setItem(`pm_post_liked_${p.id}`, String(res.liked));
     } catch (err) {
       console.warn('Could not sync like to server:', err);
     }
   };
 
-  // Handle send comment
+  // Handle send comment with strict authentication check
   const handleSendComment = async () => {
+    if (!user) {
+      setAuthActionText('join this discussion and post comments');
+      setShowAuthModal(true);
+      return;
+    }
+
     if (!commentText.trim()) return;
     setSubmittingComment(true);
-    const newComment: PostCommentItem = {
-      id: 'c_' + Date.now(),
-      authorName: currentUserName,
-      authorRole: userProfile?.role || 'Pixel Member',
-      authorId: user?.uid,
-      text: commentText.trim(),
-      createdAt: Date.now()
-    };
-    const updated = [...comments, newComment];
-    setComments(updated);
-    setCommentText('');
+
     try {
+      const created = await addPostComment(
+        String(p.id),
+        commentText.trim(),
+        {
+          id: user.uid,
+          name: currentUserName,
+          role: userProfile?.role || 'Pixel Member',
+          avatar: userProfile?.photoURL || user?.photoURL || undefined
+        },
+        comments.length
+      );
+      const updated = [...comments, created];
+      setComments(updated);
+      setCommentText('');
       localStorage.setItem(`pm_post_comments_${p.id}`, JSON.stringify(updated));
-      await updateCommunityPost(String(p.id), { comments: updated.length });
       say('Comment posted (+2 Pixels)');
     } catch (err) {
       console.warn('Could not sync comment to server:', err);
@@ -1234,8 +1275,14 @@ export const PostCard: FC<{ p: any; onPostDeleted?: (id: string) => void }> = ({
             <input
               value={commentText}
               onChange={(e) => setCommentText(e.target.value)}
+              onFocus={() => {
+                if (!user) {
+                  setAuthActionText('join this discussion and post comments');
+                  setShowAuthModal(true);
+                }
+              }}
               onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleSendComment()}
-              placeholder="Add a comment to this discussion…"
+              placeholder={user ? "Add a comment to this discussion…" : "Sign in to add a comment…"}
               className="min-w-0 flex-1 rounded-full bg-white/70 border border-white/90 px-4 py-2 text-xs outline-none focus:border-blue-500 text-[#0e1b33] placeholder-slate-400"
             />
             <button
@@ -1257,6 +1304,12 @@ export const PostCard: FC<{ p: any; onPostDeleted?: (id: string) => void }> = ({
         targetId={String(p.id)}
         targetTitle={`Post by ${p.user}`}
         targetContent={p.text}
+      />
+
+      <AuthPromptModal
+        isOpen={showAuthModal}
+        onClose={() => setShowAuthModal(false)}
+        actionText={authActionText}
       />
     </div>
   );
@@ -1311,11 +1364,26 @@ export const Layout: FC = () => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
+  const [navSearchQuery, setNavSearchQuery] = useState('');
+
+  // Sync search state with URL query parameter
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const qParam = params.get('q');
+    if (location.pathname.startsWith('/opportunities') && qParam !== null) {
+      setNavSearchQuery(qParam);
+    } else if (!location.pathname.startsWith('/opportunities')) {
+      setNavSearchQuery('');
+    }
+  }, [location.pathname, location.search]);
+
   const handleSearchSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const target = e.currentTarget.elements.namedItem('q') as HTMLInputElement;
-    if (target && target.value) {
-      navigate(`/opportunities?q=${encodeURIComponent(target.value)}`);
+    const clean = navSearchQuery.trim();
+    if (clean) {
+      navigate(`/opportunities?q=${encodeURIComponent(clean)}`);
+    } else {
+      navigate('/opportunities');
     }
   };
 
@@ -1405,12 +1473,28 @@ export const Layout: FC = () => {
             <input
               ref={searchInputRef}
               name="q"
+              value={navSearchQuery}
+              onChange={(e) => setNavSearchQuery(e.target.value)}
               placeholder="Search opportunities, events, tags..."
               className="w-full rounded-full bg-white/70 hover:bg-white/90 focus:bg-white border border-white/90 py-2.5 pl-11 pr-16 text-xs text-[#0e1b33] placeholder-slate-400 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15 transition shadow-xs"
             />
-            <span className="absolute right-4 top-2.5 rounded-md bg-white/90 px-1.5 py-0.5 text-[10px] font-bold text-slate-400 border border-slate-200 select-none shadow-2xs">
-              Ctrl K
-            </span>
+            {navSearchQuery ? (
+              <button
+                type="button"
+                onClick={() => {
+                  setNavSearchQuery('');
+                  navigate('/opportunities');
+                }}
+                className="absolute right-4 top-2.5 p-1 rounded-full text-slate-400 hover:text-slate-600 transition cursor-pointer"
+                title="Clear search"
+              >
+                <X size={14} />
+              </button>
+            ) : (
+              <span className="absolute right-4 top-2.5 rounded-md bg-white/90 px-1.5 py-0.5 text-[10px] font-bold text-slate-400 border border-slate-200 select-none shadow-2xs">
+                Ctrl K
+              </span>
+            )}
           </form>
 
           {/* Right Controls: Sun toggle, + Share Opportunity (desktop/tablet only), NotificationBell, User Menu */}
@@ -1553,9 +1637,24 @@ export const Layout: FC = () => {
             <Search size={16} className="absolute left-4 top-3 text-slate-400" />
             <input
               name="q"
+              value={navSearchQuery}
+              onChange={(e) => setNavSearchQuery(e.target.value)}
               placeholder="Search opportunities, events, tags..."
-              className="w-full rounded-full bg-white/70 hover:bg-white/90 focus:bg-white border border-white/90 py-2.5 pl-11 pr-4 text-xs text-[#0e1b33] placeholder-slate-400 outline-none focus:border-blue-500 shadow-xs"
+              className="w-full rounded-full bg-white/70 hover:bg-white/90 focus:bg-white border border-white/90 py-2.5 pl-11 pr-10 text-xs text-[#0e1b33] placeholder-slate-400 outline-none focus:border-blue-500 shadow-xs"
             />
+            {navSearchQuery && (
+              <button
+                type="button"
+                onClick={() => {
+                  setNavSearchQuery('');
+                  navigate('/opportunities');
+                }}
+                className="absolute right-3.5 top-2.5 p-1 rounded-full text-slate-400 hover:text-slate-600 transition cursor-pointer"
+                title="Clear search"
+              >
+                <X size={14} />
+              </button>
+            )}
           </form>
         </div>
 

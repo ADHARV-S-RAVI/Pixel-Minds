@@ -257,6 +257,119 @@ export function formatTimestampToDateInput(val?: number | string | null): string
   return '';
 }
 
+export interface OpportunityDeadlineInfo {
+  isExpired: boolean;
+  daysRemaining: number;
+  formattedDeadline: string;
+  deadlineTimestamp: number;
+  statusBadge: 'Closing soon' | 'Active' | 'Closed';
+  countdownLabel: string;
+}
+
+/**
+ * Accurately parses and computes opportunity deadline status and remaining time.
+ * Handles ISO timestamps, calendar date strings (YYYY-MM-DD), numbers, and invalid dates.
+ * Sets date-only deadlines to end-of-day (23:59:59.999) to prevent premature daytime expiration.
+ * Guarantees that expired opportunities never show active countdowns like "1d left".
+ */
+export function getOpportunityDeadlineInfo(
+  rawDeadline?: string | number | Date | null
+): OpportunityDeadlineInfo {
+  if (rawDeadline === undefined || rawDeadline === null || rawDeadline === '') {
+    return {
+      isExpired: true,
+      daysRemaining: 0,
+      formattedDeadline: 'Not specified',
+      deadlineTimestamp: 0,
+      statusBadge: 'Closed',
+      countdownLabel: 'Closed'
+    };
+  }
+
+  let deadlineMs = 0;
+
+  if (typeof rawDeadline === 'number') {
+    deadlineMs = isNaN(rawDeadline) || rawDeadline <= 0 ? 0 : rawDeadline;
+  } else if (rawDeadline instanceof Date) {
+    deadlineMs = isNaN(rawDeadline.getTime()) ? 0 : rawDeadline.getTime();
+  } else {
+    const trimmed = String(rawDeadline).trim();
+    // Check if it's a date-only string like YYYY-MM-DD or DD/MM/YYYY
+    const isDateOnly = /^\d{4}-\d{1,2}-\d{1,2}$/.test(trimmed) || /^\d{1,2}[/-]\d{1,2}[/-]\d{4}$/.test(trimmed);
+    const parsed = new Date(trimmed).getTime();
+    if (isNaN(parsed)) {
+      const val = validateDate(trimmed);
+      if (val.valid && val.timestamp) {
+        deadlineMs = val.timestamp;
+      } else {
+        deadlineMs = 0;
+      }
+    } else {
+      deadlineMs = parsed;
+    }
+
+    // If date-only, extend to end-of-day in local time (23:59:59.999) so deadline doesn't expire prematurely
+    if (isDateOnly && deadlineMs > 0) {
+      const d = new Date(deadlineMs);
+      d.setHours(23, 59, 59, 999);
+      deadlineMs = d.getTime();
+    }
+  }
+
+  if (deadlineMs <= 0) {
+    return {
+      isExpired: true,
+      daysRemaining: 0,
+      formattedDeadline: 'Invalid date',
+      deadlineTimestamp: 0,
+      statusBadge: 'Closed',
+      countdownLabel: 'Closed'
+    };
+  }
+
+  const now = Date.now();
+  const diffMs = deadlineMs - now;
+  const deadlineDate = new Date(deadlineMs);
+  const formattedDeadline = deadlineDate.toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: deadlineDate.getFullYear() !== new Date().getFullYear() ? 'numeric' : undefined
+  });
+
+  if (diffMs <= 0) {
+    return {
+      isExpired: true,
+      daysRemaining: 0,
+      formattedDeadline,
+      deadlineTimestamp: deadlineMs,
+      statusBadge: 'Closed',
+      countdownLabel: 'Deadline passed'
+    };
+  }
+
+  // Genuinely in the future
+  const daysRemaining = Math.max(0, Math.ceil(diffMs / (1000 * 60 * 60 * 24)));
+  let countdownLabel = '';
+  if (daysRemaining === 0) {
+    countdownLabel = 'Ends today';
+  } else if (daysRemaining === 1) {
+    countdownLabel = '1 day left';
+  } else {
+    countdownLabel = `${daysRemaining} days left`;
+  }
+
+  const statusBadge = daysRemaining <= 3 ? 'Closing soon' : 'Active';
+
+  return {
+    isExpired: false,
+    daysRemaining,
+    formattedDeadline,
+    deadlineTimestamp: deadlineMs,
+    statusBadge,
+    countdownLabel
+  };
+}
+
 /**
  * Validates opportunity date combinations for both frontend and backend:
  * 1. Application Deadline is required and must be a valid calendar date.
