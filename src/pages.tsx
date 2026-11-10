@@ -48,6 +48,8 @@ import { SubmissionDetailModal } from './components/SubmissionDetailModal';
 import { ReportModal } from './components/ReportModal';
 import { FAQSection } from './components/FAQSection';
 import { getCategoryMeta } from './utils/meta';
+import { renderWithHashtags } from './utils/text';
+import { SearchAutocomplete } from './components/SearchAutocomplete';
 import { useApp } from './store';
 import {
   ReferBtn,
@@ -809,39 +811,29 @@ export function Opportunities() {
         </Link>
       </div>
 
-      {/* Search Bar */}
-      <div className="relative">
-        <Search size={16} className="absolute left-4 top-3.5 text-sky-500" />
-        <input
-          value={q}
-          onChange={(e) => {
-            setQ(e.target.value);
-            setSp((prev) => {
-              if (e.target.value) prev.set('q', e.target.value);
-              else prev.delete('q');
-              return prev;
-            });
-          }}
-          placeholder="Search by title, organizer, or skills (e.g. AI, React, Cloud, Web3)..."
-          className="w-full rounded-2xl border-2 border-slate-300 dark:border-slate-600 bg-white dark:bg-[#162B45] py-3 pl-11 pr-10 text-xs sm:text-sm text-[#0e1b33] dark:text-white placeholder-slate-400 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 shadow-xs transition"
-        />
-        {q && (
-          <button
-            type="button"
-            onClick={() => {
-              setQ('');
-              setSp((prev) => {
-                prev.delete('q');
-                return prev;
-              });
-            }}
-            className="absolute right-3.5 top-3 p-1 rounded-full text-slate-400 hover:text-slate-600 dark:hover:text-white transition cursor-pointer"
-            title="Clear search"
-          >
-            <X size={16} />
-          </button>
-        )}
-      </div>
+      {/* Search Bar with Autocomplete Predictions */}
+      <SearchAutocomplete
+        value={q}
+        onChange={(val) => {
+          setQ(val);
+          setSp((prev) => {
+            if (val) prev.set('q', val);
+            else prev.delete('q');
+            return prev;
+          });
+        }}
+        onSubmit={(val) => {
+          setQ(val);
+          setSp((prev) => {
+            if (val) prev.set('q', val);
+            else prev.delete('q');
+            return prev;
+          });
+        }}
+        placeholder="Search by title, organizer, or skills (e.g. AI, React, Cloud, Web3)..."
+        showShortcut={false}
+        inputClassName="w-full rounded-2xl border-2 border-slate-300 dark:border-slate-600 bg-white dark:bg-[#162B45] py-3 pl-11 pr-10 text-xs sm:text-sm text-[#0e1b33] dark:text-white placeholder-slate-400 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 shadow-xs transition"
+      />
 
       {/* Category Filter Chips */}
       <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 scrollbar-hide">
@@ -946,13 +938,30 @@ export function Opportunities() {
             </div>
           ) : (
             <div>
-              <p className="font-['Outfit',sans-serif] text-base font-bold text-[#16171D]">No opportunities matched your criteria</p>
-              <p className="text-xs text-[#7D756C] mt-1 max-w-sm mx-auto">
+              <p className="font-['Outfit',sans-serif] text-base font-bold text-[#16171D] dark:text-white">No opportunities matched your criteria</p>
+              <p className="text-xs text-[#7D756C] dark:text-slate-400 mt-1 max-w-sm mx-auto">
                 {q
-                  ? `No active opportunities found matching "${q}". Try a different keyword or reset your filters.`
+                  ? `No active opportunities found matching "${q}". Try one of the popular categories below or reset your filters:`
                   : 'Try resetting your filters or submit an opportunity you know!'}
               </p>
-              <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
+              <div className="mt-3 flex flex-wrap items-center justify-center gap-1.5 max-w-md mx-auto">
+                {['Hackathons', 'Internships', 'Fellowships', 'Competitions', 'AI', 'React'].map((kw) => (
+                  <button
+                    key={kw}
+                    onClick={() => {
+                      setQ(kw);
+                      setSp((prev) => {
+                        prev.set('q', kw);
+                        return prev;
+                      });
+                    }}
+                    className="px-3 py-1 rounded-full text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 hover:bg-blue-50 dark:hover:bg-blue-900/40 hover:text-blue-600 transition cursor-pointer"
+                  >
+                    {kw}
+                  </button>
+                ))}
+              </div>
+              <div className="mt-5 flex flex-wrap items-center justify-center gap-2">
                 {q && (
                   <button
                     onClick={() => {
@@ -1168,8 +1177,10 @@ export function OppDetail() {
             <div>
               <h2 className="font-['Outfit',sans-serif] text-lg font-bold text-[#16171D]">About the Opportunity</h2>
               <p className="mt-3 text-sm leading-relaxed text-[#4A453F] whitespace-pre-line">
-                {o.description ||
-                  `${o.title}, organized by ${o.org}, is a verified ${o.mode.toLowerCase()} program tailored for ambitious developers and students. Applications close on ${o.deadline}. Register early to secure your spot.`}
+                {renderWithHashtags(
+                  o.description ||
+                    `${o.title}, organized by ${o.org}, is a verified ${o.mode.toLowerCase()} program tailored for ambitious developers and students. Applications close on ${o.deadline}. Register early to secure your spot.`
+                )}
               </p>
             </div>
 
@@ -1332,7 +1343,7 @@ export function OppDetail() {
 // FEED PAGE
 // ==========================================
 export function Feed() {
-  const { userProfile, user } = useAuth();
+  const { userProfile, user, refreshProfile } = useAuth();
   const [posts, setPosts] = useState<CommunityPost[]>([]);
   const [filterCategory, setFilterCategory] = useState<string>('All');
   const [feedSearch, setFeedSearch] = useState('');
@@ -1352,6 +1363,13 @@ export function Feed() {
       mounted = false;
     };
   }, [user?.uid, pixels]);
+
+  // Always refresh latest profile data upon visiting Feed page to keep pixel count fresh
+  useEffect(() => {
+    if (user?.uid && refreshProfile) {
+      refreshProfile();
+    }
+  }, [user?.uid]);
 
   const loadFeed = async () => {
     setRefreshing(true);
@@ -1618,6 +1636,13 @@ export function Profile() {
   const [bioInput, setBioInput] = useState(userProfile?.bio || 'Tech builder & hackathon enthusiast on Pixel Minds.');
   const [savingBio, setSavingBio] = useState(false);
   const { say } = useApp();
+
+  // Always refresh latest profile data upon visiting Profile page
+  useEffect(() => {
+    if (user?.uid && refreshProfile) {
+      refreshProfile();
+    }
+  }, [user?.uid]);
 
   const [userApplications, setUserApplications] = useState<UserApplication[]>([]);
   const [confirmingAppId, setConfirmingAppId] = useState<string | null>(null);

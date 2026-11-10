@@ -413,6 +413,50 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  // Real-time listener for profile balance and data changes from Supabase
+  useEffect(() => {
+    if (!currentUser?.id) return;
+
+    const channel = supabase
+      .channel(`profile-updates-${currentUser.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'profiles',
+          filter: `id=eq.${currentUser.id}`
+        },
+        (payload: any) => {
+          if (payload?.new) {
+            setUserData((prev) => {
+              if (!prev) return prev;
+              return {
+                ...prev,
+                pixels: payload.new.pixels ?? prev.pixels,
+                bio: payload.new.bio ?? prev.bio,
+                role: payload.new.role ?? prev.role,
+                opportunitiesShared: payload.new.opportunities_shared ?? prev.opportunitiesShared,
+                approvedSubmissions: payload.new.approved_submissions ?? prev.approvedSubmissions,
+                referrals: payload.new.referrals ?? prev.referrals,
+                contributions: payload.new.contributions ?? prev.contributions,
+                badges: payload.new.badges ?? prev.badges,
+                college: payload.new.college ?? prev.college,
+                course: payload.new.course ?? prev.course,
+                yearOfStudy: payload.new.year_of_study ?? prev.yearOfStudy,
+                branch: payload.new.branch ?? prev.branch
+              };
+            });
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [currentUser?.id]);
+
   const incrementPixels = (delta: number) => {
     setUserData((prev) => (prev ? { ...prev, pixels: Math.max(0, (prev.pixels || 0) + delta) } : prev));
   };

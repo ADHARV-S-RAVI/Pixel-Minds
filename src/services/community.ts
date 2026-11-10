@@ -282,31 +282,40 @@ export const togglePostLike = async (
         likesCount: Number(data.likes_count)
       };
     }
+    if (error) {
+      console.warn('[togglePostLike] RPC error, falling back:', error.message);
+    }
   } catch (rpcErr) {
     console.warn('[togglePostLike] RPC not available or failed:', rpcErr);
   }
 
   // 2. Direct table operations fallback
-  try {
-    if (currentLiked) {
-      await supabase
-        .from('community_likes')
-        .delete()
-        .eq('post_id', postId)
-        .eq('user_id', userId);
-    } else {
-      await supabase
-        .from('community_likes')
-        .insert({ post_id: postId, user_id: userId });
-    }
-  } catch {}
-
   const nextLiked = !currentLiked;
   const nextCount = Math.max(0, currentLikesCount + (nextLiked ? 1 : -1));
 
   try {
-    await updateCommunityPost(postId, { likes: nextCount });
-  } catch {}
+    if (currentLiked) {
+      const { error: delErr } = await supabase
+        .from('community_likes')
+        .delete()
+        .eq('post_id', postId)
+        .eq('user_id', userId);
+      if (delErr) console.warn('[togglePostLike] Direct delete error:', delErr.message);
+    } else {
+      const { error: insErr } = await supabase
+        .from('community_likes')
+        .insert({ post_id: postId, user_id: userId });
+      if (insErr) console.warn('[togglePostLike] Direct insert error:', insErr.message);
+    }
+
+    const { error: updateErr } = await supabase
+      .from('community_posts')
+      .update({ likes: nextCount })
+      .eq('id', postId);
+    if (updateErr) console.warn('[togglePostLike] Counter update notice:', updateErr.message);
+  } catch (err) {
+    console.error('[togglePostLike] Failed direct sync:', err);
+  }
 
   return { liked: nextLiked, likesCount: nextCount };
 };
