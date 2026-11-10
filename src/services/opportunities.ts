@@ -3,7 +3,7 @@ import type { Opportunity, OpportunityStatus } from '../types';
 import type { Database } from '../types/database';
 import { createReviewNotification } from './notifications';
 import { VERIFIED_OPPORTUNITIES } from '../data/verifiedOpportunities';
-import { validateOpportunityDates, parseDateInputToTimestamp } from '../utils/dateUtils';
+import { validateOpportunityDates, parseDateInputToTimestamp, getOpportunityDeadlineInfo } from '../utils/dateUtils';
 
 const DELETED_OPPS_KEY = 'pm_admin_deleted_opps';
 const MODIFIED_OPPS_KEY = 'pm_admin_modified_opps';
@@ -53,35 +53,38 @@ type SubmissionRow = Database['public']['Tables']['submissions']['Row'];
 // ==========================================================================
 
 /** Convert a Supabase opportunity row to the frontend Opportunity interface */
-const mapRow = (row: OpportunityRow): Opportunity => ({
-  id: row.id,
-  title: row.title,
-  description: row.description,
-  category: row.category,
-  organizer: row.organizer,
-  deadline: new Date(row.deadline).getTime(),
-  startDate: row.start_date ? new Date(row.start_date).getTime() : Date.now(),
-  endDate: row.end_date ? new Date(row.end_date).getTime() : Date.now(),
-  location: row.location || '',
-  mode: (row.mode as 'online' | 'offline' | 'hybrid') || 'online',
-  prize: row.prize || '',
-  stipend: row.stipend || '',
-  eligibility: row.eligibility || '',
-  teamSize: row.team_size || '',
-  skills: row.skills || [],
-  imageUrl: row.image_url || '',
-  officialUrl: row.apply_url || '',
-  status: row.status as OpportunityStatus,
-  views: row.views || 0,
-  applyClicks: row.apply_clicks || 0,
-  shares: row.shares || 0,
-  source: (row.source as 'admin' | 'user') || 'admin',
-  featured: row.featured || false,
-  additionalInfo: row.additional_info || '',
-  createdBy: row.created_by || '',
-  createdAt: new Date(row.created_at).getTime(),
-  updatedAt: new Date(row.updated_at).getTime()
-});
+const mapRow = (row: OpportunityRow): Opportunity => {
+  const deadlineInfo = getOpportunityDeadlineInfo(row.deadline);
+  return {
+    id: row.id,
+    title: row.title,
+    description: row.description,
+    category: row.category,
+    organizer: row.organizer,
+    deadline: deadlineInfo.deadlineTimestamp,
+    startDate: row.start_date ? new Date(row.start_date).getTime() : Date.now(),
+    endDate: row.end_date ? new Date(row.end_date).getTime() : Date.now(),
+    location: row.location || '',
+    mode: (row.mode as 'online' | 'offline' | 'hybrid') || 'online',
+    prize: row.prize || '',
+    stipend: row.stipend || '',
+    eligibility: row.eligibility || '',
+    teamSize: row.team_size || '',
+    skills: row.skills || [],
+    imageUrl: row.image_url || '',
+    officialUrl: row.apply_url || '',
+    status: row.status as OpportunityStatus,
+    views: row.views || 0,
+    applyClicks: row.apply_clicks || 0,
+    shares: row.shares || 0,
+    source: (row.source as 'admin' | 'user') || 'admin',
+    featured: row.featured || false,
+    additionalInfo: row.additional_info || '',
+    createdBy: row.created_by || '',
+    createdAt: new Date(row.created_at).getTime(),
+    updatedAt: new Date(row.updated_at).getTime()
+  };
+};
 
 /** Convert a submission row into an Opportunity-compatible shape for the UI */
 const mapSubmissionRow = (row: SubmissionRow): Opportunity => ({
@@ -169,9 +172,13 @@ export const getPublishedOpportunities = async (
     query = query.eq('category', category);
   }
 
-  if (searchQuery) {
-    const pattern = `%${searchQuery}%`;
-    query = query.or(`title.ilike.${pattern},organizer.ilike.${pattern}`);
+  if (searchQuery && searchQuery.trim()) {
+    // Sanitize special characters to prevent PostgREST syntax errors
+    const sanitized = searchQuery.trim().replace(/[,()%.*]/g, ' ').replace(/\s+/g, ' ').trim();
+    if (sanitized) {
+      const pattern = `%${sanitized}%`;
+      query = query.or(`title.ilike.${pattern},organizer.ilike.${pattern},category.ilike.${pattern}`);
+    }
   }
 
   query = query.range(offset, offset + pageSize - 1);

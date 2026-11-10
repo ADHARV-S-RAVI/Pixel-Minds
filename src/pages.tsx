@@ -101,7 +101,8 @@ import {
   formatTimestampToDateInput,
   parseDateInputToTimestamp,
   formatDateToDDMMYYYY,
-  validateOpportunityDates
+  validateOpportunityDates,
+  getOpportunityDeadlineInfo
 } from './utils/dateUtils';
 import { updateUserProfile, getUserProfile, getLeaderboardUsers, getUserGlobalRank, type LeaderboardUserEntry } from './services/users';
 import { getRecentPlatformActivities, type RecentActivityItem } from './services/activity';
@@ -207,28 +208,33 @@ export function Landing() {
     getPublishedOpportunities(undefined, 50)
       .then((res) => {
         if (res.opportunities && res.opportunities.length > 0) {
-          const mapped: Opp[] = res.opportunities.map((o) => ({
-            id: o.id,
-            title: o.title,
-            org: o.organizer,
-            cat: o.category,
-            mode: o.mode ? o.mode.charAt(0).toUpperCase() + o.mode.slice(1) : 'Online',
-            deadline: new Date(o.deadline).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-            days: Math.max(1, Math.ceil((o.deadline - Date.now()) / (1000 * 60 * 60 * 24))),
-            prize: o.prize || 'Certificate',
-            skills: o.skills || ['Tech'],
-            description: o.description,
-            officialUrl: o.officialUrl,
-            imageUrl: o.imageUrl,
-            views: o.views,
-            applyClicks: o.applyClicks,
-            featured: o.featured,
-            stipend: o.stipend,
-            eligibility: o.eligibility,
-            teamSize: o.teamSize,
-            additionalInfo: o.additionalInfo,
-            source: o.source
-          }));
+          const mapped: Opp[] = res.opportunities.map((o) => {
+            const dInfo = getOpportunityDeadlineInfo(o.deadline);
+            return {
+              id: o.id,
+              title: o.title,
+              org: o.organizer,
+              cat: o.category,
+              mode: o.mode ? o.mode.charAt(0).toUpperCase() + o.mode.slice(1) : 'Online',
+              deadline: dInfo.formattedDeadline,
+              days: dInfo.daysRemaining,
+              rawDeadline: o.deadline,
+              isExpired: dInfo.isExpired,
+              prize: o.prize || 'Certificate',
+              skills: o.skills || ['Tech'],
+              description: o.description,
+              officialUrl: o.officialUrl,
+              imageUrl: o.imageUrl,
+              views: o.views,
+              applyClicks: o.applyClicks,
+              featured: o.featured,
+              stipend: o.stipend,
+              eligibility: o.eligibility,
+              teamSize: o.teamSize,
+              additionalInfo: o.additionalInfo,
+              source: o.source
+            };
+          });
           setFirestoreOpps(mapped);
         }
       })
@@ -249,9 +255,10 @@ export function Landing() {
         combined.push(opp);
       }
     }
+    // Only display genuinely upcoming opportunities (exclude expired)
     return combined.filter(
       (o) =>
-        o.days > 0 &&
+        !o.isExpired &&
         o.id !== '38bee408-e867-497e-a94d-ac423b317297' &&
         !o.title.toLowerCase().includes('wow india')
     );
@@ -515,12 +522,16 @@ export function Landing() {
                           {o.mode}
                         </span>
                       </div>
-                      {o.days && o.days <= 14 && (
+                      {o.isExpired ? (
+                        <span className="inline-flex items-center gap-1 text-[10px] font-bold text-rose-700 bg-rose-50 border border-rose-200 px-2 py-0.5 rounded-full shrink-0">
+                          <span>Closed</span>
+                        </span>
+                      ) : o.days > 0 && o.days <= 14 ? (
                         <span className="inline-flex items-center gap-1 text-[10px] font-extrabold text-amber-700 bg-amber-50 border border-amber-200/80 px-2 py-0.5 rounded-full shrink-0">
                           <Clock size={10} className="text-amber-600" />
-                          <span>{o.days}d left</span>
+                          <span>{o.days === 1 ? '1d left' : `${o.days}d left`}</span>
                         </span>
-                      )}
+                      ) : null}
                     </div>
 
                     {/* Title & Organization */}
@@ -644,6 +655,7 @@ export function Opportunities() {
   const { saved } = useApp();
   const isSavedFilter = location.pathname === '/bookmarks' || sp.get('saved') === 'true';
   const [q, setQ] = useState(sp.get('q') || '');
+  const [debouncedQ, setDebouncedQ] = useState(sp.get('q') || '');
   const [c, setCat] = useState(sp.get('cat') || 'All');
   const [m, setM] = useState('Any');
   const [d, setD] = useState('Any');
@@ -651,45 +663,66 @@ export function Opportunities() {
   const [firestoreOpps, setFirestoreOpps] = useState<Opp[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Debounce search input by 300ms to eliminate network race conditions and lag
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedQ(q);
+    }, 300);
+    return () => clearTimeout(handler);
+  }, [q]);
+
   useEffect(() => {
     setQ(sp.get('q') || '');
     setCat(sp.get('cat') || 'All');
   }, [sp]);
 
   useEffect(() => {
+    let isCurrent = true;
     setLoading(true);
-    getPublishedOpportunities(undefined, 50, c !== 'All' ? c : undefined, q || undefined)
+    getPublishedOpportunities(undefined, 50, c !== 'All' ? c : undefined, debouncedQ || undefined)
       .then((res) => {
+        if (!isCurrent) return;
         if (res.opportunities) {
-          const mapped: Opp[] = res.opportunities.map((o) => ({
-            id: o.id,
-            title: o.title,
-            org: o.organizer,
-            cat: o.category,
-            mode: o.mode ? o.mode.charAt(0).toUpperCase() + o.mode.slice(1) : 'Online',
-            deadline: new Date(o.deadline).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-            days: Math.max(1, Math.ceil((o.deadline - Date.now()) / (1000 * 60 * 60 * 24))),
-            prize: o.prize || 'Certificate',
-            skills: o.skills || ['Tech'],
-            description: o.description,
-            officialUrl: o.officialUrl,
-            imageUrl: o.imageUrl,
-            views: o.views,
-            applyClicks: o.applyClicks,
-            featured: o.featured,
-            stipend: o.stipend,
-            eligibility: o.eligibility,
-            teamSize: o.teamSize,
-            additionalInfo: o.additionalInfo,
-            location: o.location,
-            source: o.source
-          }));
+          const mapped: Opp[] = res.opportunities.map((o) => {
+            const dInfo = getOpportunityDeadlineInfo(o.deadline);
+            return {
+              id: o.id,
+              title: o.title,
+              org: o.organizer,
+              cat: o.category,
+              mode: o.mode ? o.mode.charAt(0).toUpperCase() + o.mode.slice(1) : 'Online',
+              deadline: dInfo.formattedDeadline,
+              days: dInfo.daysRemaining,
+              rawDeadline: o.deadline,
+              isExpired: dInfo.isExpired,
+              prize: o.prize || 'Certificate',
+              skills: o.skills || ['Tech'],
+              description: o.description,
+              officialUrl: o.officialUrl,
+              imageUrl: o.imageUrl,
+              views: o.views,
+              applyClicks: o.applyClicks,
+              featured: o.featured,
+              stipend: o.stipend,
+              eligibility: o.eligibility,
+              teamSize: o.teamSize,
+              additionalInfo: o.additionalInfo,
+              location: o.location,
+              source: o.source
+            };
+          });
           setFirestoreOpps(mapped);
         }
       })
       .catch(() => {})
-      .finally(() => setLoading(false));
-  }, [c, q]);
+      .finally(() => {
+        if (isCurrent) setLoading(false);
+      });
+
+    return () => {
+      isCurrent = false;
+    };
+  }, [c, debouncedQ]);
 
   const allOpps = useMemo(() => {
     const combined = [...firestoreOpps];
@@ -699,23 +732,37 @@ export function Opportunities() {
         combined.push(opp);
       }
     }
+    // Only display genuinely upcoming opportunities (exclude expired)
     return combined.filter(
       (o) =>
+        !o.isExpired &&
         o.days > 0 &&
         o.id !== '38bee408-e867-497e-a94d-ac423b317297' &&
         !o.title.toLowerCase().includes('wow india')
     );
   }, [firestoreOpps]);
 
+  const cleanSearch = debouncedQ.trim().toLowerCase();
   const list = allOpps
-    .filter(
-      (o) =>
-        (!isSavedFilter || saved.includes(String(o.id))) &&
-        (c === 'All' || o.cat === c) &&
-        (m === 'Any' || o.mode.toLowerCase() === m.toLowerCase()) &&
-        (d === 'Any' || o.days <= (d === '10' ? 10 : 30)) &&
-        (o.title + ' ' + o.org + ' ' + o.skills.join(' ')).toLowerCase().includes(q.toLowerCase())
-    )
+    .filter((o) => {
+      if (isSavedFilter && !saved.includes(String(o.id))) return false;
+      if (c !== 'All' && o.cat !== c) return false;
+      if (m !== 'Any' && o.mode.toLowerCase() !== m.toLowerCase()) return false;
+      if (d !== 'Any' && o.days > (d === '10' ? 10 : 30)) return false;
+      if (cleanSearch) {
+        const searchCorpus = [
+          o.title,
+          o.org,
+          o.cat,
+          ...(o.skills || []),
+          o.description || '',
+          o.location || ''
+        ].join(' ').toLowerCase();
+        const terms = cleanSearch.split(/\s+/).filter(Boolean);
+        return terms.every(term => searchCorpus.includes(term));
+      }
+      return true;
+    })
     .sort((a, b) => (s === 'deadline' ? a.days - b.days : Number(b.id) - Number(a.id)));
 
   const sel =
@@ -767,8 +814,24 @@ export function Opportunities() {
             });
           }}
           placeholder="Search by title, organizer, or skills (e.g. AI, React, Cloud, Web3)..."
-          className="w-full rounded-2xl border-2 border-slate-300 dark:border-slate-600 bg-white dark:bg-[#162B45] py-3 pl-11 pr-4 text-xs sm:text-sm text-[#0e1b33] dark:text-white placeholder-slate-400 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 shadow-xs transition"
+          className="w-full rounded-2xl border-2 border-slate-300 dark:border-slate-600 bg-white dark:bg-[#162B45] py-3 pl-11 pr-10 text-xs sm:text-sm text-[#0e1b33] dark:text-white placeholder-slate-400 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 shadow-xs transition"
         />
+        {q && (
+          <button
+            type="button"
+            onClick={() => {
+              setQ('');
+              setSp((prev) => {
+                prev.delete('q');
+                return prev;
+              });
+            }}
+            className="absolute right-3.5 top-3 p-1 rounded-full text-slate-400 hover:text-slate-600 dark:hover:text-white transition cursor-pointer"
+            title="Clear search"
+          >
+            <X size={16} />
+          </button>
+        )}
       </div>
 
       {/* Category Filter Chips */}
@@ -875,10 +938,42 @@ export function Opportunities() {
           ) : (
             <div>
               <p className="font-['Outfit',sans-serif] text-base font-bold text-[#16171D]">No opportunities matched your criteria</p>
-              <p className="text-xs text-[#7D756C] mt-1">Try resetting your filters or submit an opportunity you know!</p>
-              <Link to="/submit" className="mt-5 inline-block">
-                <Btn className="!text-xs !py-2.5 !px-5">Share an Opportunity</Btn>
-              </Link>
+              <p className="text-xs text-[#7D756C] mt-1 max-w-sm mx-auto">
+                {q
+                  ? `No active opportunities found matching "${q}". Try a different keyword or reset your filters.`
+                  : 'Try resetting your filters or submit an opportunity you know!'}
+              </p>
+              <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
+                {q && (
+                  <button
+                    onClick={() => {
+                      setQ('');
+                      setSp((prev) => {
+                        prev.delete('q');
+                        return prev;
+                      });
+                    }}
+                    className="px-4 py-2 rounded-full border border-slate-300 dark:border-slate-600 bg-white dark:bg-[#162B45] text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-50 transition shadow-xs cursor-pointer"
+                  >
+                    Clear Search
+                  </button>
+                )}
+                <button
+                  onClick={() => {
+                    setQ('');
+                    setCat('All');
+                    setM('Any');
+                    setD('Any');
+                    setSp(new URLSearchParams());
+                  }}
+                  className="px-4 py-2 rounded-full bg-blue-600 text-xs font-bold text-white hover:bg-blue-700 transition shadow-xs cursor-pointer"
+                >
+                  Reset All Filters
+                </button>
+                <Link to="/submit" className="inline-block">
+                  <Btn className="!text-xs !py-2 !px-4">Share an Opportunity</Btn>
+                </Link>
+              </div>
             </div>
           )}
         </Card>
@@ -902,14 +997,17 @@ export function OppDetail() {
     if (id) {
       getOpportunityById(id).then((o) => {
         if (o) {
+          const dInfo = getOpportunityDeadlineInfo(o.deadline);
           setFirestoreOpp({
             id: o.id,
             title: o.title,
             org: o.organizer,
             cat: o.category,
             mode: o.mode ? o.mode.charAt(0).toUpperCase() + o.mode.slice(1) : 'Online',
-            deadline: new Date(o.deadline).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-            days: Math.max(1, Math.ceil((o.deadline - Date.now()) / (1000 * 60 * 60 * 24))),
+            deadline: dInfo.formattedDeadline,
+            days: dInfo.daysRemaining,
+            rawDeadline: o.deadline,
+            isExpired: dInfo.isExpired,
             prize: o.prize || 'Certificate',
             skills: o.skills || ['Tech'],
             description: o.description,
@@ -1017,7 +1115,7 @@ export function OppDetail() {
         <div className="space-y-6">
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
             {[
-              [Calendar, 'Deadline', `${o.deadline} · ${o.days}d left`],
+              [Calendar, 'Deadline', o.isExpired || o.days <= 0 ? `${o.deadline} · Closed` : `${o.deadline} · ${o.days === 1 ? '1d left' : `${o.days}d left`}`],
               [MapPin, 'Mode / Location', o.location ? `${o.mode} (${o.location})` : o.mode],
               [Trophy, 'Reward / Prize', o.prize || (o.stipend ? `Stipend: ${o.stipend}` : 'Recognition')],
               [Sparkles, 'Category', o.cat]
@@ -1110,19 +1208,38 @@ export function OppDetail() {
         {/* Sidebar Actions */}
         <aside className="space-y-4 lg:sticky lg:top-24 lg:self-start">
           <Card className="space-y-3.5 p-5 pm-glass-card bg-white/85 backdrop-blur-xl border border-white/90 shadow-sm text-[#0e1b33]">
-            <Btn onClick={handleApply} className="w-full !py-3 !rounded-full">
-              {isDone ? (
-                <>
-                  <Check size={16} />
-                  Registered
-                </>
-              ) : (
-                <>
-                  Apply on Official Site
-                  <ExternalLink size={15} />
-                </>
-              )}
-            </Btn>
+            {o.isExpired || o.days <= 0 ? (
+              <div className="space-y-2">
+                <div className="rounded-2xl bg-amber-500/10 border border-amber-500/25 p-3.5 text-center">
+                  <span className="text-xs font-bold text-amber-700 block">Applications Closed</span>
+                  <span className="text-[11px] text-amber-600/80 block mt-0.5">The deadline for this opportunity has passed ({o.deadline}).</span>
+                </div>
+                {o.officialUrl && (
+                  <button
+                    type="button"
+                    onClick={() => window.open(o.officialUrl, '_blank', 'noopener,noreferrer')}
+                    className="w-full py-2.5 rounded-full border border-slate-200 bg-white/70 hover:bg-white text-slate-600 hover:text-[#0e1b33] text-xs font-semibold flex items-center justify-center gap-1.5 transition cursor-pointer"
+                  >
+                    View Official Archive
+                    <ExternalLink size={13} />
+                  </button>
+                )}
+              </div>
+            ) : (
+              <Btn onClick={handleApply} className="w-full !py-3 !rounded-full">
+                {isDone ? (
+                  <>
+                    <Check size={16} />
+                    Registered
+                  </>
+                ) : (
+                  <>
+                    Apply on Official Site
+                    <ExternalLink size={15} />
+                  </>
+                )}
+              </Btn>
+            )}
 
             <ReferBtn title={o.title} path={'/opportunities/' + o.id} className="w-full !py-3 !rounded-full" />
 
@@ -1209,6 +1326,7 @@ export function Feed() {
   const { userProfile, user } = useAuth();
   const [posts, setPosts] = useState<CommunityPost[]>([]);
   const [filterCategory, setFilterCategory] = useState<string>('All');
+  const [feedSearch, setFeedSearch] = useState('');
   const [refreshing, setRefreshing] = useState(false);
   const userName = userProfile?.displayName || user?.displayName || (user ? 'Pixel Builder' : 'Guest Builder');
   const pixels = userProfile?.pixels ?? 0;
@@ -1244,20 +1362,34 @@ export function Feed() {
 
   const allPosts = posts;
 
-  // Filter posts based on active category
+  // Filter posts based on active category and search
   const filteredPosts = allPosts.filter((p: any) => {
-    if (filterCategory === 'All') return true;
-    if (filterCategory === 'Upcoming Hackathons') {
-      return (
-        p.category === 'Upcoming Hackathon' ||
-        p.category === 'Hackathon' ||
-        (typeof p.text === 'string' && p.text.includes('🚀 Upcoming Hackathon:'))
-      );
+    if (filterCategory !== 'All') {
+      if (filterCategory === 'Upcoming Hackathons') {
+        const isHack =
+          p.category === 'Upcoming Hackathon' ||
+          p.category === 'Hackathon' ||
+          (typeof p.text === 'string' && p.text.includes('🚀 Upcoming Hackathon:'));
+        if (!isHack) return false;
+      } else if (filterCategory === 'Experiences' && p.category !== 'Experience') {
+        return false;
+      } else if (filterCategory === 'Achievements' && p.category !== 'Achievement') {
+        return false;
+      } else if (filterCategory === 'Ideas' && p.category !== 'Idea') {
+        return false;
+      } else if (filterCategory === 'Learnings' && p.category !== 'Learning') {
+        return false;
+      }
     }
-    if (filterCategory === 'Experiences') return p.category === 'Experience';
-    if (filterCategory === 'Achievements') return p.category === 'Achievement';
-    if (filterCategory === 'Ideas') return p.category === 'Idea';
-    if (filterCategory === 'Learnings') return p.category === 'Learning';
+
+    if (feedSearch.trim()) {
+      const q = feedSearch.toLowerCase().trim();
+      const matchText = typeof p.text === 'string' && p.text.toLowerCase().includes(q);
+      const matchAuthor = typeof p.authorName === 'string' && p.authorName.toLowerCase().includes(q);
+      const matchCat = typeof p.category === 'string' && p.category.toLowerCase().includes(q);
+      if (!matchText && !matchAuthor && !matchCat) return false;
+    }
+
     return true;
   });
 
@@ -1336,7 +1468,7 @@ export function Feed() {
         {/* Center Main Feed Column (min-w-0 guarantees responsiveness and prevents blowouts) */}
         <section className="space-y-4 min-w-0">
           {/* Category Filters Bar */}
-          <div className="rounded-2xl pm-glass-card bg-white/85 backdrop-blur-xl border border-white/90 p-3 sm:p-4 text-[#0e1b33] shadow-xs">
+          <div className="rounded-2xl pm-glass-card bg-white/85 backdrop-blur-xl border border-white/90 p-3 sm:p-4 text-[#0e1b33] shadow-xs space-y-3">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div className="flex items-center gap-2 shrink-0">
                 <span className="font-['Outfit',sans-serif] font-bold text-sm text-[#0e1b33]">Community Feed</span>
@@ -1345,22 +1477,43 @@ export function Feed() {
                 </span>
               </div>
 
-              {/* Category Pills with clean scroll and no scrollbar */}
-              <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 scrollbar-none no-scrollbar -mx-1 px-1">
-                {feedCategories.map((fc) => (
+              {/* Feed Search Input */}
+              <div className="relative flex-1 sm:max-w-xs">
+                <Search size={14} className="absolute left-3 top-2.5 text-slate-400" />
+                <input
+                  type="text"
+                  value={feedSearch}
+                  onChange={(e) => setFeedSearch(e.target.value)}
+                  placeholder="Search updates or authors..."
+                  className="w-full rounded-full bg-white/80 border border-slate-200/80 pl-8 pr-7 py-1.5 text-xs text-[#0e1b33] placeholder-slate-400 outline-none focus:border-blue-500 focus:bg-white transition"
+                />
+                {feedSearch && (
                   <button
-                    key={fc.id}
-                    onClick={() => setFilterCategory(fc.id)}
-                    className={`rounded-full px-3 py-1.5 text-xs font-semibold whitespace-nowrap transition cursor-pointer shrink-0 ${
-                      filterCategory === fc.id
-                        ? 'bg-blue-600 text-white shadow-xs font-bold'
-                        : 'bg-white/80 text-slate-600 hover:text-[#0e1b33] hover:bg-white border border-slate-200/80'
-                    }`}
+                    type="button"
+                    onClick={() => setFeedSearch('')}
+                    className="absolute right-2.5 top-2 p-0.5 text-slate-400 hover:text-slate-600 cursor-pointer"
                   >
-                    {fc.label}
+                    <X size={12} />
                   </button>
-                ))}
+                )}
               </div>
+            </div>
+
+            {/* Category Pills with clean scroll and no scrollbar */}
+            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 scrollbar-none no-scrollbar -mx-1 px-1 pt-1 border-t border-slate-200/60">
+              {feedCategories.map((fc) => (
+                <button
+                  key={fc.id}
+                  onClick={() => setFilterCategory(fc.id)}
+                  className={`rounded-full px-3 py-1 text-xs font-semibold whitespace-nowrap transition cursor-pointer shrink-0 ${
+                    filterCategory === fc.id
+                      ? 'bg-blue-600 text-white shadow-xs font-bold'
+                      : 'bg-white/80 text-slate-600 hover:text-[#0e1b33] hover:bg-white border border-slate-200/80'
+                  }`}
+                >
+                  {fc.label}
+                </button>
+              ))}
             </div>
           </div>
 
@@ -1412,6 +1565,7 @@ export function Feed() {
             </div>
             <div className="space-y-2">
               {[...initialOpps]
+                .filter((o) => !o.isExpired && o.days > 0)
                 .sort((a, b) => a.days - b.days)
                 .slice(0, 3)
                 .map((o) => (
@@ -1626,19 +1780,24 @@ export function Profile() {
           const matched = subs.find(s => s.id === subIdParam);
           if (matched) setSelectedSubForModal(matched);
         }
-        const mapped: Opp[] = subs.map((s) => ({
-          id: s.id,
-          title: s.title,
-          org: s.organizer,
-          cat: s.category,
-          mode: s.mode ? s.mode.charAt(0).toUpperCase() + s.mode.slice(1) : 'Online',
-          deadline: new Date(s.deadline).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-          days: Math.max(1, Math.ceil((s.deadline - Date.now()) / (1000 * 60 * 60 * 24))),
-          prize: s.prize || 'Certificate',
-          skills: s.skills || ['Tech'],
-          description: s.description,
-          officialUrl: s.officialUrl
-        }));
+        const mapped: Opp[] = subs.map((s) => {
+          const dInfo = getOpportunityDeadlineInfo(s.deadline);
+          return {
+            id: s.id,
+            title: s.title,
+            org: s.organizer,
+            cat: s.category,
+            mode: s.mode ? s.mode.charAt(0).toUpperCase() + s.mode.slice(1) : 'Online',
+            deadline: dInfo.formattedDeadline,
+            days: dInfo.daysRemaining,
+            rawDeadline: s.deadline,
+            isExpired: dInfo.isExpired,
+            prize: s.prize || 'Certificate',
+            skills: s.skills || ['Tech'],
+            description: s.description,
+            officialUrl: s.officialUrl
+          };
+        });
         setUserSubs(mapped);
       });
 
@@ -1651,20 +1810,25 @@ export function Profile() {
       }).catch(() => {});
 
       getSharedOpportunities(user.uid).then((shared) => {
-        const mapped: Opp[] = shared.map((o) => ({
-          id: o.id,
-          title: o.title,
-          org: o.organizer,
-          cat: o.category,
-          mode: o.mode ? o.mode.charAt(0).toUpperCase() + o.mode.slice(1) : 'Online',
-          deadline: new Date(o.deadline).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-          days: Math.max(1, Math.ceil((o.deadline - Date.now()) / (1000 * 60 * 60 * 24))),
-          prize: o.prize || 'Certificate',
-          skills: o.skills || ['Tech'],
-          description: o.description,
-          officialUrl: o.officialUrl,
-          imageUrl: o.imageUrl
-        }));
+        const mapped: Opp[] = shared.map((o) => {
+          const dInfo = getOpportunityDeadlineInfo(o.deadline);
+          return {
+            id: o.id,
+            title: o.title,
+            org: o.organizer,
+            cat: o.category,
+            mode: o.mode ? o.mode.charAt(0).toUpperCase() + o.mode.slice(1) : 'Online',
+            deadline: dInfo.formattedDeadline,
+            days: dInfo.daysRemaining,
+            rawDeadline: o.deadline,
+            isExpired: dInfo.isExpired,
+            prize: o.prize || 'Certificate',
+            skills: o.skills || ['Tech'],
+            description: o.description,
+            officialUrl: o.officialUrl,
+            imageUrl: o.imageUrl
+          };
+        });
         setSharedOpps(mapped);
       }).catch(() => {});
     }

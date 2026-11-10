@@ -342,6 +342,60 @@ export type Database = {
         };
         Relationships: [];
       };
+      community_likes: {
+        Row: {
+          id: string;
+          post_id: string;
+          user_id: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          post_id: string;
+          user_id: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          post_id?: string;
+          user_id?: string;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      community_comments: {
+        Row: {
+          id: string;
+          post_id: string;
+          user_id: string;
+          author_name: string;
+          author_role: string;
+          author_avatar: string | null;
+          text: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          post_id: string;
+          user_id: string;
+          author_name: string;
+          author_role?: string;
+          author_avatar?: string | null;
+          text: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          post_id?: string;
+          user_id?: string;
+          author_name?: string;
+          author_role?: string;
+          author_avatar?: string | null;
+          text?: string;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
       pixel_transactions: {
         Row: {
           id: string;

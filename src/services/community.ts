@@ -59,6 +59,11 @@ export const getCommunityPosts = async (
       .order('created_at', { ascending: false })
       .limit(limitCount);
 
+    // 30-Day Retention Filter: Exclude normal community posts older than 30 days
+    // Preserve admin announcements and featured posts even if older than 30 days
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+    query = query.or(`created_at.gte.${thirtyDaysAgo},source.eq.admin,featured.eq.true`);
+
     if (!includeDrafts) {
       query = query.eq('status', 'published');
     }
@@ -251,4 +256,177 @@ export const deleteCommunityPost = async (id: string): Promise<void> => {
     console.error('Failed to delete community post:', error.message);
     throw new Error('Failed to delete community post: ' + error.message);
   }
+};
+
+/**
+ * Toggle like for a community post. Requires user authentication.
+ */
+export const togglePostLike = async (
+  postId: string,
+  userId: string,
+  currentLiked: boolean,
+  currentLikesCount: number
+): Promise<{ liked: boolean; likesCount: number }> => {
+  if (!userId) {
+    throw new Error('Authentication required to like posts.');
+  }
+
+  // 1. Try secure RPC toggle_community_post_like
+  try {
+    const { data, error } = await (supabase.rpc as any)('toggle_community_post_like', {
+      p_post_id: postId
+    });
+    if (!error && data?.success) {
+      return {
+        liked: Boolean(data.liked),
+        likesCount: Number(data.likes_count)
+      };
+    }
+  } catch (rpcErr) {
+    console.warn('[togglePostLike] RPC not available or failed:', rpcErr);
+  }
+
+  // 2. Direct table operations fallback
+  try {
+    if (currentLiked) {
+      await supabase
+        .from('community_likes')
+        .delete()
+        .eq('post_id', postId)
+        .eq('user_id', userId);
+    } else {
+      await supabase
+        .from('community_likes')
+        .insert({ post_id: postId, user_id: userId });
+    }
+  } catch {}
+
+  const nextLiked = !currentLiked;
+  const nextCount = Math.max(0, currentLikesCount + (nextLiked ? 1 : -1));
+
+  try {
+    await updateCommunityPost(postId, { likes: nextCount });
+  } catch {}
+
+  return { liked: nextLiked, likesCount: nextCount };
+};
+
+/**
+ * Fetch comments for a community post from Supabase (with fallback).
+ */
+export const getPostComments = async (postId: string): Promise<any[]> => {
+  try {
+    const { data, error } = await supabase
+      .from('community_comments')
+      .select('*')
+      .eq('post_id', postId)
+      .order('created_at', { ascending: true });
+
+    if (!error && data && data.length > 0) {
+      return data.map((c: any) => ({
+        id: c.id,
+        authorName: c.author_name,
+        authorRole: c.author_role || 'Pixel Member',
+        authorId: c.user_id,
+        authorAvatar: c.author_avatar,
+        text: c.text,
+        createdAt: new Date(c.created_at).getTime()
+      }));
+    }
+  } catch {}
+
+  // Fallback to localStorage if table is pending or empty
+  try {
+    const stored = localStorage.getItem(`pm_post_comments_${postId}`);
+    if (stored) return JSON.parse(stored);
+  } catch {}
+
+  return [];
+};
+
+/**
+ * Add a comment to a community post. Requires user authentication.
+ */
+export const addPostComment = async (
+  postId: string,
+  text: string,
+  author: { id: string; name: string; role?: string; avatar?: string },
+  currentCommentsCount: number
+): Promise<any> => {
+  if (!author.id) {
+    throw new Error('Authentication required to comment on posts.');
+  }
+
+  const cleanText = text.trim();
+  if (!cleanText) {
+    throw new Error('Comment cannot be empty.');
+  }
+
+  // 1. Try secure RPC add_community_post_comment
+  try {
+    const { data, error } = await (supabase.rpc as any)('add_community_post_comment', {
+      p_post_id: postId,
+      p_text: cleanText
+    });
+    if (!error && data?.success) {
+      return {
+        id: data.comment?.id || 'c_' + Date.now(),
+        authorName: data.comment?.author_name || author.name,
+        authorRole: data.comment?.author_role || author.role || 'Pixel Member',
+        authorId: author.id,
+        authorAvatar: data.comment?.author_avatar || author.avatar,
+        text: cleanText,
+        createdAt: Date.now(),
+        newCount: Number(data.comments_count || currentCommentsCount + 1)
+      };
+    }
+  } catch (rpcErr) {
+    console.warn('[addPostComment] RPC not available or failed:', rpcErr);
+  }
+
+  // 2. Direct table insert fallback
+  try {
+    const { data: inserted } = await supabase
+      .from('community_comments')
+      .insert({
+        post_id: postId,
+        user_id: author.id,
+        author_name: author.name,
+        author_role: author.role || 'Pixel Member',
+        author_avatar: author.avatar || null,
+        text: cleanText
+      })
+      .select()
+      .maybeSingle();
+
+    if (inserted) {
+      return {
+        id: inserted.id,
+        authorName: inserted.author_name,
+        authorRole: inserted.author_role,
+        authorId: inserted.user_id,
+        authorAvatar: inserted.author_avatar,
+        text: inserted.text,
+        createdAt: new Date(inserted.created_at).getTime(),
+        newCount: currentCommentsCount + 1
+      };
+    }
+  } catch {}
+
+  // 3. Fallback count update on post
+  const nextCount = currentCommentsCount + 1;
+  try {
+    await updateCommunityPost(postId, { comments: nextCount });
+  } catch {}
+
+  return {
+    id: 'c_' + Date.now(),
+    authorName: author.name,
+    authorRole: author.role || 'Pixel Member',
+    authorId: author.id,
+    authorAvatar: author.avatar,
+    text: cleanText,
+    createdAt: Date.now(),
+    newCount: nextCount
+  };
 };
