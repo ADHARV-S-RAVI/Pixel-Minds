@@ -35,6 +35,8 @@ import {
   GraduationCap,
   Flag,
   ShieldCheck,
+  Compass,
+  HelpCircle,
   X
 } from 'lucide-react';
 import { opps } from './data';
@@ -1557,28 +1559,28 @@ export const Layout: FC = () => {
 
                 {showUserMenu && (
                   <div
-                    className="absolute right-0 top-full mt-2 w-60 rounded-3xl border border-white/90 bg-white/95 backdrop-blur-2xl p-2.5 shadow-2xl z-[100] text-[#0e1b33] pm-in max-w-[calc(100vw-2rem)]"
+                    className="hidden lg:block absolute right-0 top-full mt-2.5 w-64 rounded-3xl border border-white/90 bg-white/95 dark:bg-slate-900/95 backdrop-blur-2xl p-2.5 shadow-2xl z-[100] text-[#0e1b33] dark:text-white pm-in"
                     onClick={() => setShowUserMenu(false)}
                   >
-                    <div className="px-3.5 py-2.5 border-b border-slate-200/60">
-                      <p className="text-xs font-bold text-[#0e1b33] truncate">
+                    <div className="px-3.5 py-2.5 border-b border-slate-200/60 dark:border-slate-800/60">
+                      <p className="text-xs font-bold text-[#0e1b33] dark:text-white truncate">
                         {displayName}
                       </p>
-                      <p className="text-[11px] text-slate-500 truncate">{user.email}</p>
-                      <div className="mt-1.5 flex items-center gap-1.5 text-xs font-bold text-sky-600">
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate">{user.email}</p>
+                      <div className="mt-1.5 flex items-center gap-1.5 text-xs font-bold text-sky-600 dark:text-sky-400">
                         <Sparkles size={13} className="text-sky-500" />
                         <span>{userProfile?.pixels ?? 0} Pixels</span>
                       </div>
                     </div>
 
-                    <div className="py-1.5">
+                    <div className="py-1.5 space-y-0.5">
                       {isAdmin && (
                         <Link
                           to="/admin"
-                          className="flex items-center justify-between gap-2 rounded-xl px-3 py-2 text-xs font-bold text-[#DFB76C] bg-[#16171D] hover:bg-[#20222a] border border-[#C5A059]/40 hover:border-[#DFB76C] transition mb-1.5 shadow-xs"
+                          className="flex items-center justify-between gap-2.5 rounded-xl px-3.5 py-2.5 text-xs font-bold text-[#DFB76C] bg-[#16171D] hover:bg-[#20222a] border border-[#C5A059]/40 hover:border-[#DFB76C] transition mb-1.5 shadow-xs min-h-[40px]"
                         >
-                          <span className="flex items-center gap-2">
-                            <ShieldCheck size={14} className="text-[#C5A059]" />
+                          <span className="flex items-center gap-2.5">
+                            <ShieldCheck size={15} className="text-[#C5A059] shrink-0" />
                             <span>Admin Console</span>
                           </span>
                           <span className="text-[10px] uppercase tracking-wider bg-[#DFB76C]/20 text-[#DFB76C] px-1.5 py-0.5 rounded font-black">Admin</span>
@@ -1586,26 +1588,47 @@ export const Layout: FC = () => {
                       )}
                       <Link
                         to="/profile"
-                        className="flex items-center gap-2 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100/70 hover:text-sky-600 transition"
+                        className="flex items-center gap-2.5 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100/70 dark:hover:bg-slate-800/70 hover:text-sky-600 transition min-h-[40px] active:bg-slate-100 dark:active:bg-slate-800"
                       >
-                        <User size={14} className="text-slate-400" />
+                        <User size={15} className="text-slate-400 shrink-0" />
                         <span>My Profile</span>
                       </Link>
                       <Link
-                        to="/leaderboard"
-                        className="flex items-center gap-2 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100/70 hover:text-sky-600 transition"
+                        to="/bookmarks"
+                        className="flex items-center gap-2.5 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100/70 dark:hover:bg-slate-800/70 hover:text-sky-600 transition min-h-[40px] active:bg-slate-100 dark:active:bg-slate-800"
                       >
-                        <Trophy size={14} className="text-amber-500" />
-                        <span>Leaderboard &amp; Badges</span>
+                        <Bookmark size={15} className="text-slate-400 shrink-0" />
+                        <span>Bookmarks</span>
+                      </Link>
+                      <Link
+                        to="/opportunities"
+                        className="flex items-center gap-2.5 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100/70 dark:hover:bg-slate-800/70 hover:text-sky-600 transition min-h-[40px] active:bg-slate-100 dark:active:bg-slate-800"
+                      >
+                        <Compass size={15} className="text-[#C5A059] shrink-0" />
+                        <span>Explore</span>
+                      </Link>
+                      <Link
+                        to="/leaderboard"
+                        className="flex items-center gap-2.5 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100/70 dark:hover:bg-slate-800/70 hover:text-sky-600 transition min-h-[40px] active:bg-slate-100 dark:active:bg-slate-800"
+                      >
+                        <Trophy size={15} className="text-amber-500 shrink-0" />
+                        <span>Leaderboard</span>
+                      </Link>
+                      <Link
+                        to="/support"
+                        className="flex items-center gap-2.5 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100/70 dark:hover:bg-slate-800/70 hover:text-sky-600 transition min-h-[40px] active:bg-slate-100 dark:active:bg-slate-800"
+                      >
+                        <HelpCircle size={15} className="text-slate-400 shrink-0" />
+                        <span>Help & Support</span>
                       </Link>
                     </div>
 
-                    <div className="border-t border-slate-200/60 pt-1.5">
+                    <div className="border-t border-slate-200/60 dark:border-slate-800/60 pt-1.5 mt-1">
                       <button
                         onClick={() => logout()}
-                        className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-xs font-semibold text-rose-600 hover:bg-rose-50 transition cursor-pointer"
+                        className="flex w-full items-center gap-2.5 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition cursor-pointer min-h-[40px] active:bg-rose-100/60"
                       >
-                        <LogOut size={14} />
+                        <LogOut size={15} className="shrink-0" />
                         <span>Sign Out</span>
                       </button>
                     </div>
@@ -1664,32 +1687,175 @@ export const Layout: FC = () => {
         </main>
       </div>
 
+      {/* Mobile Profile Dropdown / Slide-Up Sheet */}
+      {showUserMenu && (
+        <div className="fixed inset-0 z-50 lg:hidden flex flex-col justify-end p-3 pb-[calc(4.5rem+env(safe-area-inset-bottom,0px))]">
+          {/* Dimmed backdrop */}
+          <div
+            className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs transition-opacity"
+            onClick={() => setShowUserMenu(false)}
+            aria-hidden="true"
+          />
+
+          {/* Mobile Profile Menu Card */}
+          <div className="relative w-full max-w-sm mx-auto rounded-3xl border border-white/90 bg-white/95 dark:bg-[#0f1d33]/95 backdrop-blur-2xl p-3 shadow-2xl z-10 text-[#0e1b33] dark:text-white animate-in slide-in-from-bottom-4 duration-200">
+            {/* Header info */}
+            <div className="px-3.5 py-2.5 border-b border-slate-200/60 dark:border-slate-800/60 flex items-center justify-between">
+              <div className="min-w-0 flex-1">
+                <p className="text-xs font-bold text-[#0e1b33] dark:text-white truncate">
+                  {displayName}
+                </p>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
+                  {user?.email || 'Guest Builder'}
+                </p>
+                {user && (
+                  <div className="mt-1 flex items-center gap-1.5 text-xs font-bold text-sky-600 dark:text-sky-400">
+                    <Sparkles size={13} className="text-sky-500" />
+                    <span>{userProfile?.pixels ?? 0} Pixels</span>
+                  </div>
+                )}
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowUserMenu(false)}
+                className="grid h-7 w-7 place-items-center rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 transition cursor-pointer"
+                aria-label="Close profile menu"
+              >
+                <X size={14} />
+              </button>
+            </div>
+
+            {/* Menu Options: Exact 6 options in order */}
+            <div className="py-1.5 space-y-0.5">
+              {isAdmin && (
+                <Link
+                  to="/admin"
+                  onClick={() => setShowUserMenu(false)}
+                  className="flex items-center justify-between gap-2.5 rounded-xl px-3.5 py-2.5 text-xs font-bold text-[#DFB76C] bg-[#16171D] hover:bg-[#20222a] border border-[#C5A059]/40 hover:border-[#DFB76C] transition mb-1.5 shadow-xs min-h-[40px]"
+                >
+                  <span className="flex items-center gap-2.5">
+                    <ShieldCheck size={15} className="text-[#C5A059] shrink-0" />
+                    <span>Admin Console</span>
+                  </span>
+                  <span className="text-[10px] uppercase tracking-wider bg-[#DFB76C]/20 text-[#DFB76C] px-1.5 py-0.5 rounded font-black">Admin</span>
+                </Link>
+              )}
+              <Link
+                to="/profile"
+                onClick={() => setShowUserMenu(false)}
+                className="flex items-center gap-2.5 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100/70 dark:hover:bg-slate-800/70 hover:text-sky-600 transition min-h-[40px] active:bg-slate-100 dark:active:bg-slate-800"
+              >
+                <User size={15} className="text-slate-400 shrink-0" />
+                <span>My Profile</span>
+              </Link>
+              <Link
+                to="/bookmarks"
+                onClick={() => setShowUserMenu(false)}
+                className="flex items-center gap-2.5 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100/70 dark:hover:bg-slate-800/70 hover:text-sky-600 transition min-h-[40px] active:bg-slate-100 dark:active:bg-slate-800"
+              >
+                <Bookmark size={15} className="text-slate-400 shrink-0" />
+                <span>Bookmarks</span>
+              </Link>
+              <Link
+                to="/opportunities"
+                onClick={() => setShowUserMenu(false)}
+                className="flex items-center gap-2.5 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100/70 dark:hover:bg-slate-800/70 hover:text-sky-600 transition min-h-[40px] active:bg-slate-100 dark:active:bg-slate-800"
+              >
+                <Compass size={15} className="text-[#C5A059] shrink-0" />
+                <span>Explore</span>
+              </Link>
+              <Link
+                to="/leaderboard"
+                onClick={() => setShowUserMenu(false)}
+                className="flex items-center gap-2.5 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100/70 dark:hover:bg-slate-800/70 hover:text-sky-600 transition min-h-[40px] active:bg-slate-100 dark:active:bg-slate-800"
+              >
+                <Trophy size={15} className="text-amber-500 shrink-0" />
+                <span>Leaderboard</span>
+              </Link>
+              <Link
+                to="/support"
+                onClick={() => setShowUserMenu(false)}
+                className="flex items-center gap-2.5 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100/70 dark:hover:bg-slate-800/70 hover:text-sky-600 transition min-h-[40px] active:bg-slate-100 dark:active:bg-slate-800"
+              >
+                <HelpCircle size={15} className="text-slate-400 shrink-0" />
+                <span>Help & Support</span>
+              </Link>
+            </div>
+
+            <div className="border-t border-slate-200/60 dark:border-slate-800/60 pt-1.5 mt-1">
+              {user ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowUserMenu(false);
+                    logout();
+                  }}
+                  className="flex w-full items-center gap-2.5 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition cursor-pointer min-h-[40px] active:bg-rose-100/60"
+                >
+                  <LogOut size={15} className="shrink-0" />
+                  <span>Sign Out</span>
+                </button>
+              ) : (
+                <Link
+                  to="/login"
+                  onClick={() => setShowUserMenu(false)}
+                  className="flex w-full items-center gap-2.5 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-sky-600 hover:bg-sky-50 dark:hover:bg-sky-950/40 transition cursor-pointer min-h-[40px]"
+                >
+                  <LogOut size={15} className="shrink-0 rotate-180" />
+                  <span>Sign In / Sign Up</span>
+                </Link>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Mobile Bottom Navigation Bar in Frosted Glass */}
       <nav
         style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
         className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-5 border-t border-white/90 bg-white/85 backdrop-blur-2xl lg:hidden text-slate-500 shadow-xl"
       >
-        {navItems.map(([to, l, I]) => (
-          <NavLink
-            key={to}
-            to={to}
-            end={to === '/'}
-            className={({ isActive }) =>
-              `flex flex-col items-center justify-center gap-1 py-2 text-[10px] font-semibold transition ${
-                isActive ? 'text-[#2563eb]' : 'text-slate-500 hover:text-[#0e1b33]'
-              }`
-            }
-          >
-            {l === 'Create' ? (
-              <span className="grid h-8 w-8 place-items-center rounded-full bg-[#112240] text-white shadow-md shadow-slate-900/15">
-                <I size={16} />
-              </span>
-            ) : (
-              <I size={18} />
-            )}
-            <span>{l}</span>
-          </NavLink>
-        ))}
+        {navItems.map(([to, l, I]) => {
+          if (l === 'Profile') {
+            return (
+              <button
+                key={to}
+                type="button"
+                onClick={() => setShowUserMenu(!showUserMenu)}
+                className={`flex flex-col items-center justify-center gap-1 py-2 text-[10px] font-semibold transition cursor-pointer ${
+                  showUserMenu || location.pathname === '/profile'
+                    ? 'text-[#2563eb]'
+                    : 'text-slate-500 hover:text-[#0e1b33]'
+                }`}
+                aria-label="Toggle profile menu"
+              >
+                <I size={18} />
+                <span>{l}</span>
+              </button>
+            );
+          }
+          return (
+            <NavLink
+              key={to}
+              to={to}
+              end={to === '/'}
+              className={({ isActive }) =>
+                `flex flex-col items-center justify-center gap-1 py-2 text-[10px] font-semibold transition ${
+                  isActive ? 'text-[#2563eb]' : 'text-slate-500 hover:text-[#0e1b33]'
+                }`
+              }
+            >
+              {l === 'Create' ? (
+                <span className="grid h-8 w-8 place-items-center rounded-full bg-[#112240] text-white shadow-md shadow-slate-900/15">
+                  <I size={16} />
+                </span>
+              ) : (
+                <I size={18} />
+              )}
+              <span>{l}</span>
+            </NavLink>
+          );
+        })}
       </nav>
     </div>
   );
