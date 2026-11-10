@@ -1331,6 +1331,8 @@ export const Layout: FC = () => {
   const { theme, toggleTheme } = useTheme();
   const [showUserMenu, setShowUserMenu] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
+  const mobileMenuRef = useRef<HTMLDivElement>(null);
+  const guestTriggerRef = useRef<HTMLButtonElement>(null);
   const location = useLocation();
   const searchInputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
@@ -1362,16 +1364,25 @@ export const Layout: FC = () => {
 
   // Close profile dropdown when clicking outside
   useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node)) {
-        setShowUserMenu(false);
+    const handleClickOutside = (e: MouseEvent | TouchEvent) => {
+      const target = e.target as Node;
+      if (
+        userMenuRef.current?.contains(target) ||
+        mobileMenuRef.current?.contains(target) ||
+        guestTriggerRef.current?.contains(target)
+      ) {
+        return;
       }
+      setShowUserMenu(false);
     };
+
     if (showUserMenu) {
       document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener('touchstart', handleClickOutside, { passive: true });
     }
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('touchstart', handleClickOutside);
     };
   }, [showUserMenu]);
 
@@ -1660,6 +1671,7 @@ export const Layout: FC = () => {
               <div className="flex items-center gap-1 sm:gap-2 shrink-0">
                 {/* Guest Profile Menu Button on Mobile */}
                 <button
+                  ref={guestTriggerRef}
                   type="button"
                   onClick={() => setShowUserMenu(!showUserMenu)}
                   aria-label="Guest profile menu"
@@ -1719,128 +1731,135 @@ export const Layout: FC = () => {
 
       {/* Mobile Profile Dropdown / Sheet (Opened via Top Header Profile Icon) */}
       {showUserMenu && (
-        <div className="fixed inset-0 z-50 lg:hidden flex flex-col items-end justify-start p-3 pt-16 sm:pt-20">
-          {/* Dimmed backdrop */}
+        <div className="fixed inset-0 z-50 lg:hidden">
+          {/* Dimmed backdrop - covers entire viewport behind menu */}
           <div
-            className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs transition-opacity"
+            className="absolute inset-0 bg-slate-900/40 backdrop-blur-xs transition-opacity cursor-pointer"
             onClick={() => setShowUserMenu(false)}
             aria-hidden="true"
           />
 
-          {/* Mobile Profile Menu Card */}
-          <div className="relative w-full max-w-[280px] rounded-3xl border border-white/90 bg-white/95 dark:bg-[#0f1d33]/95 backdrop-blur-2xl p-3 shadow-2xl z-10 text-[#0e1b33] dark:text-white animate-in fade-in slide-in-from-top-3 duration-200 max-h-[calc(100vh-5.5rem)] overflow-y-auto">
-            {/* Header info */}
-            <div className="px-3.5 py-2.5 border-b border-slate-200/60 dark:border-slate-800/60 flex items-center justify-between">
-              <div className="min-w-0 flex-1">
-                <p className="text-xs font-bold text-[#0e1b33] dark:text-white truncate">
-                  {displayName}
-                </p>
-                <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
-                  {user?.email || 'Guest Builder'}
-                </p>
-                {user && (
-                  <div className="mt-1 flex items-center gap-1.5 text-xs font-bold text-sky-600 dark:text-sky-400">
-                    <Sparkles size={13} className="text-sky-500" />
-                    <span>{userProfile?.pixels ?? 0} Pixels</span>
-                  </div>
-                )}
-              </div>
-              <button
-                type="button"
-                onClick={() => setShowUserMenu(false)}
-                className="grid h-7 w-7 place-items-center rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 transition cursor-pointer"
-                aria-label="Close profile menu"
-              >
-                <X size={14} />
-              </button>
-            </div>
-
-            {/* Menu Options: Exact 6 options in order */}
-            <div className="py-1.5 space-y-0.5">
-              {isAdmin && (
-                <Link
-                  to="/admin"
-                  onClick={() => setShowUserMenu(false)}
-                  className="flex items-center justify-between gap-2.5 rounded-xl px-3.5 py-2.5 text-xs font-bold text-[#DFB76C] bg-[#16171D] hover:bg-[#20222a] border border-[#C5A059]/40 hover:border-[#DFB76C] transition mb-1.5 shadow-xs min-h-[40px]"
-                >
-                  <span className="flex items-center gap-2.5">
-                    <ShieldCheck size={15} className="text-[#C5A059] shrink-0" />
-                    <span>Admin Console</span>
-                  </span>
-                  <span className="text-[10px] uppercase tracking-wider bg-[#DFB76C]/20 text-[#DFB76C] px-1.5 py-0.5 rounded font-black">Admin</span>
-                </Link>
-              )}
-              {/* 1. My Profile */}
-              <Link
-                to="/profile"
-                onClick={() => setShowUserMenu(false)}
-                className="flex items-center gap-2.5 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100/70 dark:hover:bg-slate-800/70 hover:text-sky-600 transition min-h-[40px] active:bg-slate-100 dark:active:bg-slate-800"
-              >
-                <User size={15} className="text-slate-400 shrink-0" />
-                <span>My Profile</span>
-              </Link>
-              {/* 2. Bookmarks */}
-              <Link
-                to="/bookmarks"
-                onClick={() => setShowUserMenu(false)}
-                className="flex items-center gap-2.5 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100/70 dark:hover:bg-slate-800/70 hover:text-sky-600 transition min-h-[40px] active:bg-slate-100 dark:active:bg-slate-800"
-              >
-                <Bookmark size={15} className="text-slate-400 shrink-0" />
-                <span>Bookmarks</span>
-              </Link>
-              {/* 3. Explore (Interactive Story Stack) */}
-              <Link
-                to="/explore"
-                onClick={() => setShowUserMenu(false)}
-                className="flex items-center gap-2.5 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100/70 dark:hover:bg-slate-800/70 hover:text-sky-600 transition min-h-[40px] active:bg-slate-100 dark:active:bg-slate-800"
-              >
-                <Compass size={15} className="text-sky-500 shrink-0" />
-                <span>Explore</span>
-              </Link>
-              {/* 4. Leaderboard */}
-              <Link
-                to="/leaderboard"
-                onClick={() => setShowUserMenu(false)}
-                className="flex items-center gap-2.5 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100/70 dark:hover:bg-slate-800/70 hover:text-sky-600 transition min-h-[40px] active:bg-slate-100 dark:active:bg-slate-800"
-              >
-                <Trophy size={15} className="text-amber-500 shrink-0" />
-                <span>Leaderboard</span>
-              </Link>
-              {/* 5. Help & Support */}
-              <Link
-                to="/support"
-                onClick={() => setShowUserMenu(false)}
-                className="flex items-center gap-2.5 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100/70 dark:hover:bg-slate-800/70 hover:text-sky-600 transition min-h-[40px] active:bg-slate-100 dark:active:bg-slate-800"
-              >
-                <HelpCircle size={15} className="text-slate-400 shrink-0" />
-                <span>Help & Support</span>
-              </Link>
-            </div>
-
-            {/* 6. Sign Out / Sign In */}
-            <div className="border-t border-slate-200/60 dark:border-slate-800/60 pt-1.5 mt-1">
-              {user ? (
+          {/* Container aligned top-right, transparent to pointer events outside the card */}
+          <div className="relative z-10 flex flex-col items-end justify-start p-3 pt-16 sm:pt-20 pointer-events-none h-full w-full">
+            {/* Mobile Profile Menu Card - receives pointer events */}
+            <div
+              ref={mobileMenuRef}
+              className="pointer-events-auto relative w-full max-w-[280px] rounded-3xl border border-white/90 bg-white/95 dark:bg-[#0f1d33]/95 backdrop-blur-2xl p-3 shadow-2xl text-[#0e1b33] dark:text-white animate-in fade-in slide-in-from-top-3 duration-200 max-h-[calc(100vh-5.5rem)] overflow-y-auto"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Header info */}
+              <div className="px-3.5 py-2.5 border-b border-slate-200/60 dark:border-slate-800/60 flex items-center justify-between">
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs font-bold text-[#0e1b33] dark:text-white truncate">
+                    {displayName}
+                  </p>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
+                    {user?.email || 'Guest Builder'}
+                  </p>
+                  {user && (
+                    <div className="mt-1 flex items-center gap-1.5 text-xs font-bold text-sky-600 dark:text-sky-400">
+                      <Sparkles size={13} className="text-sky-500" />
+                      <span>{userProfile?.pixels ?? 0} Pixels</span>
+                    </div>
+                  )}
+                </div>
                 <button
                   type="button"
-                  onClick={() => {
-                    setShowUserMenu(false);
-                    logout();
-                  }}
-                  className="flex w-full items-center gap-2.5 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition cursor-pointer min-h-[40px] active:bg-rose-100/60"
-                >
-                  <LogOut size={15} className="shrink-0" />
-                  <span>Sign Out</span>
-                </button>
-              ) : (
-                <Link
-                  to="/login"
                   onClick={() => setShowUserMenu(false)}
-                  className="flex w-full items-center gap-2.5 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-sky-600 hover:bg-sky-50 dark:hover:bg-sky-950/40 transition cursor-pointer min-h-[40px]"
+                  className="grid h-7 w-7 place-items-center rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 transition cursor-pointer"
+                  aria-label="Close profile menu"
                 >
-                  <LogOut size={15} className="shrink-0 rotate-180" />
-                  <span>Sign In / Sign Up</span>
+                  <X size={14} />
+                </button>
+              </div>
+
+              {/* Menu Options: Exact 6 options in order */}
+              <div className="py-1.5 space-y-0.5">
+                {isAdmin && (
+                  <Link
+                    to="/admin"
+                    onClick={() => setShowUserMenu(false)}
+                    className="flex items-center justify-between gap-2.5 rounded-xl px-3.5 py-2.5 text-xs font-bold text-[#DFB76C] bg-[#16171D] hover:bg-[#20222a] border border-[#C5A059]/40 hover:border-[#DFB76C] transition mb-1.5 shadow-xs min-h-[40px] cursor-pointer"
+                  >
+                    <span className="flex items-center gap-2.5">
+                      <ShieldCheck size={15} className="text-[#C5A059] shrink-0" />
+                      <span>Admin Console</span>
+                    </span>
+                    <span className="text-[10px] uppercase tracking-wider bg-[#DFB76C]/20 text-[#DFB76C] px-1.5 py-0.5 rounded font-black">Admin</span>
+                  </Link>
+                )}
+                {/* 1. My Profile */}
+                <Link
+                  to="/profile"
+                  onClick={() => setShowUserMenu(false)}
+                  className="flex items-center gap-2.5 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100/70 dark:hover:bg-slate-800/70 hover:text-sky-600 transition min-h-[40px] active:bg-slate-100 dark:active:bg-slate-800 cursor-pointer"
+                >
+                  <User size={15} className="text-slate-400 shrink-0" />
+                  <span>My Profile</span>
                 </Link>
-              )}
+                {/* 2. Bookmarks */}
+                <Link
+                  to="/bookmarks"
+                  onClick={() => setShowUserMenu(false)}
+                  className="flex items-center gap-2.5 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100/70 dark:hover:bg-slate-800/70 hover:text-sky-600 transition min-h-[40px] active:bg-slate-100 dark:active:bg-slate-800 cursor-pointer"
+                >
+                  <Bookmark size={15} className="text-slate-400 shrink-0" />
+                  <span>Bookmarks</span>
+                </Link>
+                {/* 3. Explore (Interactive Story Stack) */}
+                <Link
+                  to="/explore"
+                  onClick={() => setShowUserMenu(false)}
+                  className="flex items-center gap-2.5 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100/70 dark:hover:bg-slate-800/70 hover:text-sky-600 transition min-h-[40px] active:bg-slate-100 dark:active:bg-slate-800 cursor-pointer"
+                >
+                  <Compass size={15} className="text-sky-500 shrink-0" />
+                  <span>Explore</span>
+                </Link>
+                {/* 4. Leaderboard */}
+                <Link
+                  to="/leaderboard"
+                  onClick={() => setShowUserMenu(false)}
+                  className="flex items-center gap-2.5 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100/70 dark:hover:bg-slate-800/70 hover:text-sky-600 transition min-h-[40px] active:bg-slate-100 dark:active:bg-slate-800 cursor-pointer"
+                >
+                  <Trophy size={15} className="text-amber-500 shrink-0" />
+                  <span>Leaderboard</span>
+                </Link>
+                {/* 5. Help & Support */}
+                <Link
+                  to="/support"
+                  onClick={() => setShowUserMenu(false)}
+                  className="flex items-center gap-2.5 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100/70 dark:hover:bg-slate-800/70 hover:text-sky-600 transition min-h-[40px] active:bg-slate-100 dark:active:bg-slate-800 cursor-pointer"
+                >
+                  <HelpCircle size={15} className="text-slate-400 shrink-0" />
+                  <span>Help & Support</span>
+                </Link>
+              </div>
+
+              {/* 6. Sign Out / Sign In */}
+              <div className="border-t border-slate-200/60 dark:border-slate-800/60 pt-1.5 mt-1">
+                {user ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowUserMenu(false);
+                      logout();
+                    }}
+                    className="flex w-full items-center gap-2.5 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition cursor-pointer min-h-[40px] active:bg-rose-100/60"
+                  >
+                    <LogOut size={15} className="shrink-0" />
+                    <span>Sign Out</span>
+                  </button>
+                ) : (
+                  <Link
+                    to="/login"
+                    onClick={() => setShowUserMenu(false)}
+                    className="flex w-full items-center gap-2.5 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-sky-600 hover:bg-sky-50 dark:hover:bg-sky-950/40 transition cursor-pointer min-h-[40px]"
+                  >
+                    <LogOut size={15} className="shrink-0 rotate-180" />
+                    <span>Sign In / Sign Up</span>
+                  </Link>
+                )}
+              </div>
             </div>
           </div>
         </div>
