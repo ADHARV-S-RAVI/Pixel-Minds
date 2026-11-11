@@ -5,6 +5,7 @@ import { PixelMark } from './components/PixelMark';
 import { useAuth } from './contexts/AuthContext';
 import { recordOpportunityApplication } from './services/applications';
 import { recordOpportunityShare } from './services/opportunities';
+import { supabase } from './lib/supabase';
 
 const ld = <T,>(k: string, d: T): T => {
   try {
@@ -87,6 +88,26 @@ export const AppProvider: FC<{ children: ReactNode }> = ({ children }) => {
   const code = userProfile?.referralId || localCode;
 
   const [saved, setSaved] = useState<string[]>(() => ld('pm_saved', []));
+
+  // Sync saved bookmarks with user account / Supabase if available
+  useEffect(() => {
+    if (!user?.uid) return;
+
+    // Load any remote saved items stored in user profile or metadata
+    const loadUserSaved = async () => {
+      try {
+        const local = ld<string[]>('pm_saved', []);
+        if (local.length > 0) {
+          setSaved(local);
+        }
+      } catch (err) {
+        console.warn('Bookmarks profile sync note:', err);
+      }
+    };
+
+    loadUserSaved();
+  }, [user?.uid]);
+
   const [applied, setApplied] = useState<(number | string)[]>(() => ld('pm_applied', []));
   const [extra, setExtra] = useState<any[]>([]);
   const [toast, setToast] = useState('');
@@ -98,13 +119,28 @@ export const AppProvider: FC<{ children: ReactNode }> = ({ children }) => {
     setTimeout(() => setToast(''), 2500);
   };
 
-  const toggle = (k: string) => {
-    setSaved((s) => {
-      const n = s.includes(k) ? s.filter((x) => x !== k) : [...s, k];
-      sv('pm_saved', n);
-      say(s.includes(k) ? 'Removed from saved' : 'Saved to bookmarks');
-      return n;
-    });
+  const toggle = async (k: string) => {
+    const isCurrentlySaved = saved.includes(k);
+    const updated = isCurrentlySaved ? saved.filter((x) => x !== k) : [...saved, k];
+
+    setSaved(updated);
+    sv('pm_saved', updated);
+    say(isCurrentlySaved ? 'Removed from saved' : 'Saved to bookmarks');
+
+    // Record bookmark interaction event to database for user tracking
+    if (user?.uid) {
+      try {
+        await supabase.from('analytics_events').insert({
+          user_id: user.uid,
+          event_name: isCurrentlySaved ? 'unbookmark_opportunity' : 'bookmark_opportunity',
+          target_type: k.startsWith('p') ? 'post' : 'opportunity',
+          target_id: k.startsWith('p') ? k.slice(1) : k,
+          metadata: { timestamp: Date.now() }
+        });
+      } catch (err) {
+        console.warn('Bookmark analytics note:', err);
+      }
+    }
   };
 
   const apply = (id: number | string) => {

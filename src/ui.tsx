@@ -6,7 +6,6 @@ import {
   Home,
   PlusSquare,
   User,
-  Search,
   Heart,
   MessageCircle,
   Share2,
@@ -52,6 +51,8 @@ import { NotificationBell } from './components/NotificationBell';
 import { useAuth } from './contexts/AuthContext';
 import { useTheme } from './contexts/ThemeContext';
 import { createCommunityPost, deleteCommunityPost, formatTimeAgo, togglePostLike, getPostComments, addPostComment } from './services/community';
+import { renderWithHashtags } from './utils/text';
+import { SearchAutocomplete } from './components/SearchAutocomplete';
 
 const cls = (v: string, c = '') =>
   `inline-flex items-center justify-center gap-2 min-h-10 rounded-full px-5 py-2.5 text-xs font-bold transition cursor-pointer select-none ${
@@ -1102,7 +1103,7 @@ export const PostCard: FC<{ p: any; onPostDeleted?: (id: string) => void }> = ({
 
           {parsedDetails.description && (
             <p className="text-xs sm:text-sm leading-relaxed text-slate-700 whitespace-pre-wrap">
-              {parsedDetails.description}
+              {renderWithHashtags(parsedDetails.description)}
             </p>
           )}
 
@@ -1147,7 +1148,7 @@ export const PostCard: FC<{ p: any; onPostDeleted?: (id: string) => void }> = ({
             </div>
           )}
 
-          <p className="text-xs sm:text-sm leading-relaxed text-slate-700 whitespace-pre-wrap">{p.text}</p>
+          <p className="text-xs sm:text-sm leading-relaxed text-slate-700 whitespace-pre-wrap">{renderWithHashtags(p.text)}</p>
 
           {p.link && (
             <a
@@ -1263,7 +1264,7 @@ export const PostCard: FC<{ p: any; onPostDeleted?: (id: string) => void }> = ({
                           </span>
                         )}
                       </div>
-                      <p className="leading-relaxed text-slate-600">{c.text}</p>
+                      <p className="leading-relaxed text-slate-600">{renderWithHashtags(c.text)}</p>
                     </div>
                   </div>
                 );
@@ -1501,34 +1502,18 @@ export const Layout: FC = () => {
             <Logo />
           </div>
 
-          {/* Search Bar matching reference image */}
+          {/* Search Bar matching reference image with Predictions & Autocomplete */}
           <form onSubmit={handleSearchSubmit} className="relative flex-1 max-w-xl hidden sm:block">
-            <Search size={16} className="absolute left-4 top-3 text-slate-400" />
-            <input
-              ref={searchInputRef}
-              name="q"
+            <SearchAutocomplete
+              inputRef={searchInputRef}
               value={navSearchQuery}
-              onChange={(e) => setNavSearchQuery(e.target.value)}
+              onChange={(val) => setNavSearchQuery(val)}
+              onSubmit={(clean) => {
+                if (clean) navigate(`/opportunities?q=${encodeURIComponent(clean)}`);
+                else navigate('/opportunities');
+              }}
               placeholder="Search opportunities, events, tags..."
-              className="w-full rounded-full bg-white/70 hover:bg-white/90 focus:bg-white border border-white/90 py-2.5 pl-11 pr-16 text-xs text-[#0e1b33] placeholder-slate-400 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15 transition shadow-xs"
             />
-            {navSearchQuery ? (
-              <button
-                type="button"
-                onClick={() => {
-                  setNavSearchQuery('');
-                  navigate('/opportunities');
-                }}
-                className="absolute right-4 top-2.5 p-1 rounded-full text-slate-400 hover:text-slate-600 transition cursor-pointer"
-                title="Clear search"
-              >
-                <X size={14} />
-              </button>
-            ) : (
-              <span className="absolute right-4 top-2.5 rounded-md bg-white/90 px-1.5 py-0.5 text-[10px] font-bold text-slate-400 border border-slate-200 select-none shadow-2xs">
-                Ctrl K
-              </span>
-            )}
           </form>
 
           {/* Right Controls: Sun toggle, + Share Opportunity (desktop/tablet only), NotificationBell, User Menu */}
@@ -1696,30 +1681,20 @@ export const Layout: FC = () => {
           </div>
         </header>
 
-        {/* Mobile Search Bar for small screens */}
+        {/* Mobile Search Bar for small screens with Predictions & Autocomplete */}
         <div className="sm:hidden">
           <form onSubmit={handleSearchSubmit} className="relative w-full">
-            <Search size={16} className="absolute left-4 top-3 text-slate-400" />
-            <input
-              name="q"
+            <SearchAutocomplete
               value={navSearchQuery}
-              onChange={(e) => setNavSearchQuery(e.target.value)}
+              onChange={(val) => setNavSearchQuery(val)}
+              onSubmit={(clean) => {
+                if (clean) navigate(`/opportunities?q=${encodeURIComponent(clean)}`);
+                else navigate('/opportunities');
+              }}
               placeholder="Search opportunities, events, tags..."
-              className="w-full rounded-full bg-white/70 hover:bg-white/90 focus:bg-white border border-white/90 py-2.5 pl-11 pr-10 text-xs text-[#0e1b33] placeholder-slate-400 outline-none focus:border-blue-500 shadow-xs"
+              showShortcut={false}
+              inputClassName="w-full rounded-full bg-white/70 hover:bg-white/90 focus:bg-white border border-white/90 py-2.5 pl-11 pr-10 text-xs text-[#0e1b33] placeholder-slate-400 outline-none focus:border-blue-500 shadow-xs"
             />
-            {navSearchQuery && (
-              <button
-                type="button"
-                onClick={() => {
-                  setNavSearchQuery('');
-                  navigate('/opportunities');
-                }}
-                className="absolute right-3.5 top-2.5 p-1 rounded-full text-slate-400 hover:text-slate-600 transition cursor-pointer"
-                title="Clear search"
-              >
-                <X size={14} />
-              </button>
-            )}
           </form>
         </div>
 
