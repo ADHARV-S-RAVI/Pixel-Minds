@@ -47,7 +47,7 @@ export interface AuthContextType {
   updatePassword: (newPassword: string) => Promise<void>;
   logout: () => Promise<void>;
   refreshProfile: () => Promise<void>;
-  incrementPixels: (delta: number) => void;
+  incrementPixels: (delta: number, actionName?: string, reasonText?: string, idempotencyKey?: string) => Promise<void> | void;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -66,7 +66,7 @@ const AuthContext = createContext<AuthContextType>({
   updatePassword: async () => {},
   logout: async () => {},
   refreshProfile: async () => {},
-  incrementPixels: (_delta: number) => {},
+  incrementPixels: (_delta: number, _actionName?: string, _reasonText?: string, _idempotencyKey?: string) => {},
 });
 
 export const useAuth = () => useContext(AuthContext);
@@ -97,6 +97,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         });
       }
       if (profile) {
+        if (typeof window !== 'undefined') {
+          const storedLocal = localStorage.getItem(`pm_local_pixels_${uid}`);
+          if (storedLocal !== null) {
+            const parsed = parseInt(storedLocal, 10);
+            if (!isNaN(parsed) && parsed > (profile.pixels || 0)) {
+              profile.pixels = parsed;
+            }
+          }
+        }
         setUserData(profile);
       }
 
@@ -417,48 +426,140 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     if (!currentUser?.id) return;
 
+    let isSubscribed = true;
+    const channelName = `profile-updates-${currentUser.id}-${Date.now()}`;
     const channel = supabase
-      .channel(`profile-updates-${currentUser.id}`)
+      .channel(channelName)
       .on(
         'postgres_changes',
         {
-          event: 'UPDATE',
+          event: '*',
           schema: 'public',
           table: 'profiles',
           filter: `id=eq.${currentUser.id}`
         },
         (payload: any) => {
-          if (payload?.new) {
+          if (!isSubscribed) return;
+          const updatedRow = payload?.new;
+          if (updatedRow && updatedRow.id === currentUser.id) {
             setUserData((prev) => {
-              if (!prev) return prev;
+              if (!prev) {
+                return {
+                  id: updatedRow.id,
+                  email: updatedRow.email || currentUser.email || '',
+                  displayName: updatedRow.full_name || currentUser.displayName || 'Pixel Builder',
+                  photoURL: updatedRow.avatar_url || currentUser.photoURL || '',
+                  role: updatedRow.role || 'user',
+                  pixels: updatedRow.pixels || 0,
+                  status: updatedRow.is_suspended ? 'suspended' : 'active',
+                  bio: updatedRow.bio || '',
+                  opportunitiesShared: updatedRow.opportunities_shared || 0,
+                  approvedSubmissions: updatedRow.approved_submissions || 0,
+                  referrals: updatedRow.referrals || 0,
+                  contributions: updatedRow.contributions || 0,
+                  badges: updatedRow.badges || [],
+                  referralId: updatedRow.referral_id || '',
+                  college: updatedRow.college || '',
+                  course: updatedRow.course || '',
+                  yearOfStudy: updatedRow.year_of_study || '',
+                  branch: updatedRow.branch || '',
+                  createdAt: new Date(updatedRow.created_at || Date.now()).getTime()
+                };
+              }
+
               return {
                 ...prev,
-                pixels: payload.new.pixels ?? prev.pixels,
-                bio: payload.new.bio ?? prev.bio,
-                role: payload.new.role ?? prev.role,
-                opportunitiesShared: payload.new.opportunities_shared ?? prev.opportunitiesShared,
-                approvedSubmissions: payload.new.approved_submissions ?? prev.approvedSubmissions,
-                referrals: payload.new.referrals ?? prev.referrals,
-                contributions: payload.new.contributions ?? prev.contributions,
-                badges: payload.new.badges ?? prev.badges,
-                college: payload.new.college ?? prev.college,
-                course: payload.new.course ?? prev.course,
-                yearOfStudy: payload.new.year_of_study ?? prev.yearOfStudy,
-                branch: payload.new.branch ?? prev.branch
+                pixels: typeof updatedRow.pixels === 'number' ? updatedRow.pixels : prev.pixels,
+                bio: updatedRow.bio ?? prev.bio,
+                role: updatedRow.role ?? prev.role,
+                displayName: updatedRow.full_name ?? prev.displayName,
+                photoURL: updatedRow.avatar_url ?? prev.photoURL,
+                status: updatedRow.is_suspended ? 'suspended' : 'active',
+                opportunitiesShared: updatedRow.opportunities_shared ?? prev.opportunitiesShared,
+                approvedSubmissions: updatedRow.approved_submissions ?? prev.approvedSubmissions,
+                referrals: updatedRow.referrals ?? prev.referrals,
+                contributions: updatedRow.contributions ?? prev.contributions,
+                badges: updatedRow.badges ?? prev.badges,
+                college: updatedRow.college ?? prev.college,
+                course: updatedRow.course ?? prev.course,
+                yearOfStudy: updatedRow.year_of_study ?? prev.yearOfStudy,
+                branch: updatedRow.branch ?? prev.branch
               };
             });
           }
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        // Connected to postgres_changes
+      });
 
     return () => {
+      isSubscribed = false;
       supabase.removeChannel(channel);
     };
   }, [currentUser?.id]);
 
-  const incrementPixels = (delta: number) => {
-    setUserData((prev) => (prev ? { ...prev, pixels: Math.max(0, (prev.pixels || 0) + delta) } : prev));
+  const incrementPixels = (delta: number, actionName?: string, reasonText?: string, idempotencyKey?: string) => {
+    if (!currentUser?.id) return;
+
+    // Persist optimistic state locally across all tabs and components
+    setUserData((prev) => {
+      if (!prev) return prev;
+      const updatedPixels = Math.max(0, (prev.pixels || 0) + delta);
+      try {
+        localStorage.setItem(`pm_local_pixels_${currentUser.id}`, String(updatedPixels));
+      } catch {}
+      return { ...prev, pixels: updatedPixels };
+    });
+
+    // Asynchronously synchronize with server/ledger without crashing UI state
+    (async () => {
+      try {
+        // 1. Try atomic server-side RPC execute_pixel_transaction
+        const { data, error } = await (supabase.rpc as any)('execute_pixel_transaction', {
+          p_user_id: currentUser.id,
+          p_delta: delta,
+          p_action: actionName || (delta >= 0 ? `Earned (+${delta} Pixels)` : `Deducted (${delta} Pixels)`),
+          p_reason: reasonText || 'Community activity reward',
+          p_type: delta >= 0 ? 'earn' : 'spend',
+          p_idempotency_key: idempotencyKey || null
+        });
+
+        if (!error && data?.success && typeof data.pixels === 'number') {
+          setUserData((prev) => (prev ? { ...prev, pixels: data.pixels } : prev));
+          try {
+            localStorage.setItem(`pm_local_pixels_${currentUser.id}`, String(data.pixels));
+          } catch {}
+          return;
+        }
+
+        // 2. Direct profiles table balance update fallback
+        const { data: currentP } = await supabase
+          .from('profiles')
+          .select('pixels')
+          .eq('id', currentUser.id)
+          .maybeSingle();
+
+        if (currentP) {
+          const currentBalance = typeof currentP.pixels === 'number' ? currentP.pixels : 0;
+          const newBalance = Math.max(0, currentBalance + delta);
+
+          const { error: updateErr } = await supabase
+            .from('profiles')
+            .update({ pixels: newBalance, updated_at: new Date().toISOString() })
+            .eq('id', currentUser.id);
+
+          if (!updateErr) {
+            setUserData((prev) => (prev ? { ...prev, pixels: newBalance } : prev));
+            try {
+              localStorage.setItem(`pm_local_pixels_${currentUser.id}`, String(newBalance));
+            } catch {}
+          }
+        }
+      } catch (err) {
+        console.warn('[incrementPixels] Backend sync notice:', err);
+      }
+    })();
   };
 
   return (

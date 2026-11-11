@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { Search, X, ArrowRight, Tag, Building2 } from 'lucide-react';
+import { Search, X, ArrowRight, Tag, Building2, User as UserIcon, MessageSquare } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { opps } from '../data';
+import { searchGlobal, type SearchResults } from '../services/search';
 
 // Standard indexed search keywords & suggestions
 const POPULAR_KEYWORDS = [
@@ -21,7 +22,7 @@ const POPULAR_KEYWORDS = [
 ];
 
 interface SearchPrediction {
-  type: 'keyword' | 'opportunity' | 'category';
+  type: 'keyword' | 'opportunity' | 'category' | 'person' | 'post';
   title: string;
   subtitle?: string;
   link: string;
@@ -64,6 +65,25 @@ export const SearchAutocomplete: React.FC<SearchAutocompleteProps> = ({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  const [remoteResults, setRemoteResults] = useState<SearchResults>({ people: [], opportunities: [], posts: [] });
+
+  // Debounced server-side query across People, Opportunities & Posts
+  useEffect(() => {
+    const q = value.trim();
+    if (q.length < 2) {
+      setRemoteResults({ people: [], opportunities: [], posts: [] });
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      searchGlobal(q, 3)
+        .then((res) => setRemoteResults(res))
+        .catch(() => {});
+    }, 250);
+
+    return () => clearTimeout(timer);
+  }, [value]);
+
   // Compute predictions and autocomplete results
   const predictions = useMemo<SearchPrediction[]>(() => {
     const query = value.trim().toLowerCase();
@@ -85,7 +105,7 @@ export const SearchAutocomplete: React.FC<SearchAutocompleteProps> = ({
     // 1. Keyword / Tag matches
     const matchedKeywords = POPULAR_KEYWORDS.filter((kw) =>
       kw.toLowerCase().includes(query)
-    ).slice(0, 4);
+    ).slice(0, 3);
 
     matchedKeywords.forEach((kw) => {
       results.push({
@@ -96,7 +116,7 @@ export const SearchAutocomplete: React.FC<SearchAutocompleteProps> = ({
       });
     });
 
-    // 2. Direct opportunity matching & autocomplete
+    // 2. Direct opportunity matching (local + remote)
     const matchedOpps = (opps || [])
       .filter((opp: any) => {
         const titleMatch = opp.title?.toLowerCase().includes(query);
@@ -104,7 +124,7 @@ export const SearchAutocomplete: React.FC<SearchAutocompleteProps> = ({
         const skillMatch = opp.skills?.some((s: string) => s.toLowerCase().includes(query));
         return titleMatch || orgMatch || skillMatch;
       })
-      .slice(0, 5);
+      .slice(0, 3);
 
     matchedOpps.forEach((opp: any) => {
       results.push({
@@ -115,12 +135,44 @@ export const SearchAutocomplete: React.FC<SearchAutocompleteProps> = ({
       });
     });
 
+    // 3. Remote Opportunity Results
+    remoteResults.opportunities.forEach((o) => {
+      if (!results.some((r) => r.title.toLowerCase() === o.title.toLowerCase())) {
+        results.push({
+          type: 'opportunity',
+          title: o.title,
+          subtitle: `${o.organizer} · ${o.category}`,
+          link: `/opportunities/${o.id}`
+        });
+      }
+    });
+
+    // 4. Remote People / Authors
+    remoteResults.people.forEach((p) => {
+      results.push({
+        type: 'person',
+        title: p.displayName,
+        subtitle: `${p.role === 'admin' ? 'Admin' : 'Member'} ${p.bio ? '· ' + p.bio : ''}`,
+        link: `/profile?uid=${p.id}&name=${encodeURIComponent(p.displayName)}`
+      });
+    });
+
+    // 5. Remote Community Posts
+    remoteResults.posts.forEach((post) => {
+      results.push({
+        type: 'post',
+        title: post.title,
+        subtitle: `By ${post.authorName} · ${post.category || 'Feed'}`,
+        link: `/feed#${post.id}`
+      });
+    });
+
     return results;
-  }, [value]);
+  }, [value, remoteResults]);
 
   const handleSelectPrediction = (item: SearchPrediction) => {
     setIsOpen(false);
-    if (item.type === 'opportunity') {
+    if (item.type === 'opportunity' || item.type === 'person' || item.type === 'post') {
       navigate(item.link);
     } else {
       onChange(item.title);
@@ -218,10 +270,22 @@ export const SearchAutocomplete: React.FC<SearchAutocompleteProps> = ({
                         className={`grid h-7 w-7 place-items-center rounded-lg shrink-0 ${
                           item.type === 'opportunity'
                             ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/50 dark:text-sky-300'
+                            : item.type === 'person'
+                            ? 'bg-purple-100 text-purple-600 dark:bg-purple-900/50 dark:text-purple-300'
+                            : item.type === 'post'
+                            ? 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/50 dark:text-emerald-300'
                             : 'bg-slate-100 text-black dark:bg-slate-800 dark:text-white'
                         }`}
                       >
-                        {item.type === 'opportunity' ? <Building2 size={13} /> : <Tag size={13} />}
+                        {item.type === 'opportunity' ? (
+                          <Building2 size={13} />
+                        ) : item.type === 'person' ? (
+                          <UserIcon size={13} />
+                        ) : item.type === 'post' ? (
+                          <MessageSquare size={13} />
+                        ) : (
+                          <Tag size={13} />
+                        )}
                       </span>
                       <div className="min-w-0 flex-1">
                         <p className="text-xs font-bold truncate text-black dark:text-white">{item.title}</p>

@@ -46,10 +46,12 @@ import {
 } from 'lucide-react';
 import { SubmissionDetailModal } from './components/SubmissionDetailModal';
 import { ReportModal } from './components/ReportModal';
+import { ConfirmModal } from './components/ConfirmModal';
 import { FAQSection } from './components/FAQSection';
 import { getCategoryMeta } from './utils/meta';
 import { renderWithHashtags } from './utils/text';
 import { SearchAutocomplete } from './components/SearchAutocomplete';
+import { IconBadge, IconClock } from './components/FeedIcons';
 import { useApp } from './store';
 import {
   ReferBtn,
@@ -663,7 +665,22 @@ export function Opportunities() {
   const [d, setD] = useState('Any');
   const [s, setS] = useState('deadline');
   const [firestoreOpps, setFirestoreOpps] = useState<Opp[]>([]);
+  const [savedPosts, setSavedPosts] = useState<CommunityPost[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Load saved community posts when in savedBookmarks mode
+  useEffect(() => {
+    if (isSavedFilter) {
+      getCommunityPosts(false)
+        .then((posts) => {
+          const matched = posts.filter((p) => saved.includes('p' + p.id) || saved.includes(String(p.id)));
+          setSavedPosts(matched);
+        })
+        .catch(() => {});
+    } else {
+      setSavedPosts([]);
+    }
+  }, [isSavedFilter, saved]);
 
   // Debounce search input by 300ms to eliminate network race conditions and lag
   useEffect(() => {
@@ -913,14 +930,33 @@ export function Opportunities() {
           ))}
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-5">
-          {list.map((o) => (
-            <OppCard key={o.id} o={o} />
-          ))}
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-5">
+            {list.map((o) => (
+              <OppCard key={o.id} o={o} />
+            ))}
+          </div>
+
+          {/* Bookmarked Feed Community Posts Section */}
+          {isSavedFilter && savedPosts.length > 0 && (
+            <div className="pt-6 border-t border-slate-200/70 dark:border-slate-800/70 space-y-4">
+              <div className="flex items-center gap-2">
+                <Bookmark className="text-blue-600 dark:text-sky-400" size={18} />
+                <h3 className="font-['Outfit',sans-serif] text-base font-bold text-slate-900 dark:text-white">
+                  Saved Community Posts ({savedPosts.length})
+                </h3>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {savedPosts.map((p) => (
+                  <PostCard key={p.id} p={p} />
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
 
-      {!list.length && !loading && (
+      {!list.length && (!isSavedFilter || !savedPosts.length) && !loading && (
         <Card className="py-16 text-center pm-glass-card bg-white/85 backdrop-blur-xl border border-white/90 shadow-sm text-[#0e1b33]">
           {isSavedFilter ? (
             <div className="space-y-3">
@@ -1346,7 +1382,7 @@ export function Feed() {
   const { userProfile, user, refreshProfile } = useAuth();
   const [posts, setPosts] = useState<CommunityPost[]>([]);
   const [filterCategory, setFilterCategory] = useState<string>('All');
-  const [feedSearch, setFeedSearch] = useState('');
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const userName = userProfile?.displayName || user?.displayName || (user ? 'Pixel Builder' : 'Guest Builder');
   const pixels = userProfile?.pixels ?? 0;
@@ -1389,14 +1425,14 @@ export function Feed() {
 
   const allPosts = posts;
 
-  // Filter posts based on active category and search
+  // Filter posts based on active category
   const filteredPosts = allPosts.filter((p: any) => {
     if (filterCategory !== 'All') {
       if (filterCategory === 'Upcoming Hackathons') {
         const isHack =
           p.category === 'Upcoming Hackathon' ||
           p.category === 'Hackathon' ||
-          (typeof p.text === 'string' && p.text.includes('🚀 Upcoming Hackathon:'));
+          (typeof p.text === 'string' && (p.text.includes('Upcoming Hackathon:') || p.text.includes('🚀 Upcoming Hackathon:')));
         if (!isHack) return false;
       } else if (filterCategory === 'Experiences' && p.category !== 'Experience') {
         return false;
@@ -1409,28 +1445,20 @@ export function Feed() {
       }
     }
 
-    if (feedSearch.trim()) {
-      const q = feedSearch.toLowerCase().trim();
-      const matchText = typeof p.text === 'string' && p.text.toLowerCase().includes(q);
-      const matchAuthor = typeof p.authorName === 'string' && p.authorName.toLowerCase().includes(q);
-      const matchCat = typeof p.category === 'string' && p.category.toLowerCase().includes(q);
-      if (!matchText && !matchAuthor && !matchCat) return false;
-    }
-
     return true;
   });
 
   const feedCategories = [
     { id: 'All', label: 'All Updates' },
-    { id: 'Upcoming Hackathons', label: '🚀 Hackathons' },
-    { id: 'Experiences', label: '✨ Experiences' },
-    { id: 'Achievements', label: '🏆 Achievements' },
-    { id: 'Ideas', label: '💡 Ideas' },
-    { id: 'Learnings', label: '🧠 Learnings' }
+    { id: 'Upcoming Hackathons', label: 'Hackathons' },
+    { id: 'Experiences', label: 'Experiences' },
+    { id: 'Achievements', label: 'Achievements' },
+    { id: 'Ideas', label: 'Ideas' },
+    { id: 'Learnings', label: 'Learnings' }
   ];
 
   const UserProfileWidget = () => (
-    <Card className="overflow-hidden pm-glass-card bg-white/85 backdrop-blur-xl border border-white/90 shadow-sm text-[#0e1b33]">
+    <Card className="overflow-hidden pm-glass-card bg-white/45 backdrop-blur-2xl border border-white/60 shadow-[0_12px_36px_rgba(14,50,120,0.08)] text-[#0e1b33]">
       <div className="h-18 bg-gradient-to-r from-blue-600 to-indigo-600 relative overflow-hidden">
         <div className="absolute inset-0 bg-white/10" />
         <svg
@@ -1452,17 +1480,17 @@ export function Feed() {
           />
         </div>
         <p className="mt-2.5 font-['Outfit',sans-serif] font-bold text-[#0e1b33] text-sm">{userName}</p>
-        <p className="text-xs text-blue-600 font-semibold flex items-center gap-1 mt-0.5">
-          <Sparkles size={11} className="text-blue-500" />
+        <p className="text-xs text-blue-600 font-bold flex items-center gap-1.5 mt-0.5">
+          <IconBadge size={13} className="text-blue-500" />
           {rankOf(pixels)}
         </p>
 
         <div className="mt-4 flex justify-between border-t border-slate-200/60 pt-3 text-xs">
-          <span className="text-slate-500">Pixel Balance</span>
+          <span className="text-[#0e1b33] font-medium">Pixel Balance</span>
           <b className="text-blue-600 font-bold">{pixels} Pixels</b>
         </div>
         <div className="mt-2 flex justify-between text-xs">
-          <span className="text-slate-500">Global Rank</span>
+          <span className="text-[#0e1b33] font-medium">Global Rank</span>
           <b className="text-[#0e1b33] font-bold">{globalRank ? `#${globalRank}` : (user ? 'Not ranked yet' : '—')}</b>
         </div>
       </div>
@@ -1470,7 +1498,7 @@ export function Feed() {
   );
 
   const QuickNavWidget = () => (
-    <Card className="p-2 text-xs font-semibold text-slate-700 pm-glass-card bg-white/85 backdrop-blur-xl border border-white/90 shadow-sm">
+    <Card className="p-2 text-xs font-bold text-[#0e1b33] pm-glass-card bg-white/45 backdrop-blur-2xl border border-white/60 shadow-[0_8px_30px_rgba(14,50,120,0.06)]">
       <Link to="/opportunities" className="block rounded-xl px-3.5 py-2.5 hover:bg-blue-50/70 hover:text-blue-600 transition">
         Explore Opportunities
       </Link>
@@ -1495,47 +1523,26 @@ export function Feed() {
         {/* Center Main Feed Column (min-w-0 guarantees responsiveness and prevents blowouts) */}
         <section className="space-y-4 min-w-0">
           {/* Category Filters Bar */}
-          <div className="rounded-2xl pm-glass-card bg-white/85 backdrop-blur-xl border border-white/90 p-3 sm:p-4 text-[#0e1b33] shadow-xs space-y-3">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="rounded-3xl pm-glass-card bg-white/35 backdrop-blur-2xl border border-white/50 p-3 sm:p-4 text-[#0e1b33] shadow-[0_12px_36px_rgba(14,50,120,0.08)] space-y-3">
+            <div className="flex items-center justify-between gap-3">
               <div className="flex items-center gap-2 shrink-0">
                 <span className="font-['Outfit',sans-serif] font-bold text-sm text-[#0e1b33]">Community Feed</span>
-                <span className="text-[11px] px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-700 font-bold border border-blue-200/80 shadow-2xs">
+                <span className="text-[11px] px-2.5 py-0.5 rounded-full bg-blue-500/15 text-blue-700 font-bold border border-blue-300/50 shadow-2xs">
                   {filteredPosts.length} posts
                 </span>
-              </div>
-
-              {/* Feed Search Input */}
-              <div className="relative flex-1 sm:max-w-xs">
-                <Search size={14} className="absolute left-3 top-2.5 text-slate-400" />
-                <input
-                  type="text"
-                  value={feedSearch}
-                  onChange={(e) => setFeedSearch(e.target.value)}
-                  placeholder="Search updates or authors..."
-                  className="w-full rounded-full bg-white/80 border border-slate-200/80 pl-8 pr-7 py-1.5 text-xs text-[#0e1b33] placeholder-slate-400 outline-none focus:border-blue-500 focus:bg-white transition"
-                />
-                {feedSearch && (
-                  <button
-                    type="button"
-                    onClick={() => setFeedSearch('')}
-                    className="absolute right-2.5 top-2 p-0.5 text-slate-400 hover:text-slate-600 cursor-pointer"
-                  >
-                    <X size={12} />
-                  </button>
-                )}
               </div>
             </div>
 
             {/* Category Pills with clean scroll and no scrollbar */}
-            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 scrollbar-none no-scrollbar -mx-1 px-1 pt-1 border-t border-slate-200/60">
+            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 scrollbar-none no-scrollbar -mx-1 px-1 pt-1 border-t border-slate-200/50">
               {feedCategories.map((fc) => (
                 <button
                   key={fc.id}
                   onClick={() => setFilterCategory(fc.id)}
-                  className={`rounded-full px-3 py-1 text-xs font-semibold whitespace-nowrap transition cursor-pointer shrink-0 ${
+                  className={`rounded-full px-3.5 py-1 text-xs font-semibold whitespace-nowrap transition cursor-pointer shrink-0 ${
                     filterCategory === fc.id
-                      ? 'bg-blue-600 text-white shadow-xs font-bold'
-                      : 'bg-white/80 text-slate-600 hover:text-[#0e1b33] hover:bg-white border border-slate-200/80'
+                      ? 'bg-blue-600 text-white shadow-sm font-bold'
+                      : 'bg-white/60 text-slate-600 hover:text-[#0e1b33] hover:bg-white/80 border border-white/70'
                   }`}
                 >
                   {fc.label}
@@ -1544,7 +1551,28 @@ export function Feed() {
             </div>
           </div>
 
-          <Composer onPostCreated={(newPost) => setPosts(prev => [newPost, ...prev])} />
+          {/* Simple and small Create a Post trigger */}
+          <div className="rounded-2xl pm-glass-card p-2.5 sm:p-3 flex items-center gap-2.5 shadow-xs">
+            <Avatar
+              name={userName}
+              photoURL={userProfile?.photoURL || user?.photoURL || undefined}
+              size={34}
+            />
+            <button
+              type="button"
+              onClick={() => setIsCreateModalOpen(true)}
+              className="flex-1 text-left px-3.5 py-2 rounded-full bg-white/80 dark:bg-slate-800/80 border border-slate-300 dark:border-slate-700 text-xs text-[#0e1b33] dark:text-slate-100 hover:bg-white dark:hover:bg-slate-800 transition cursor-pointer shadow-2xs truncate font-medium"
+            >
+              Share an experience, idea, or upcoming hackathon...
+            </button>
+            <button
+              type="button"
+              onClick={() => setIsCreateModalOpen(true)}
+              className="px-3.5 py-1.5 rounded-full bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs transition cursor-pointer shrink-0 shadow-xs"
+            >
+              + Post
+            </button>
+          </div>
 
           {filteredPosts.length > 0 ? (
             filteredPosts.map((p: any) => (
@@ -1552,12 +1580,13 @@ export function Feed() {
                 key={p.id}
                 p={p}
                 onPostDeleted={(id) => setPosts(prev => prev.filter(item => String(item.id) !== String(id)))}
+                onPostCreated={(newPost) => setPosts(prev => [newPost, ...prev])}
               />
             ))
           ) : (
-            <Card className="text-center py-12 text-slate-500 text-xs pm-glass-card bg-white/80 border border-white/90">
-              <p className="font-semibold text-sm text-[#0e1b33] mb-1">No posts in this category yet</p>
-              <p className="mb-4">Be the first to share an update, or browse all community updates.</p>
+            <Card className="text-center py-12 text-[#0e1b33] dark:text-slate-200 text-xs pm-glass-card bg-white/50 backdrop-blur-2xl border border-white/60 shadow-[0_12px_36px_rgba(14,50,120,0.08)]">
+              <p className="font-bold text-sm text-[#0e1b33] dark:text-white mb-1">No posts in this category yet</p>
+              <p className="mb-4 text-[#0e1b33] dark:text-slate-200 font-medium">Be the first to share an update, or browse all community updates.</p>
               <button
                 onClick={() => setFilterCategory('All')}
                 className="px-4 py-2 rounded-full bg-[#112240] hover:bg-[#1a335e] text-xs font-bold text-white transition cursor-pointer shadow-xs"
@@ -1576,16 +1605,16 @@ export function Feed() {
             <QuickNavWidget />
           </div>
 
-          <Card className="p-4 sm:p-5 pm-glass-card bg-white/85 backdrop-blur-xl border border-white/90 shadow-sm text-[#0e1b33]">
-            <div className="flex items-center justify-between mb-3.5 pb-2 border-b border-slate-200/60">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
-                <Clock size={14} className="text-blue-600" />
+          <Card className="p-4 sm:p-5 pm-glass-card bg-white/45 backdrop-blur-2xl border border-white/60 shadow-[0_12px_36px_rgba(14,50,120,0.08)] text-[#0e1b33]">
+            <div className="flex items-center justify-between mb-3.5 pb-2 border-b border-slate-200/50">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-[#0e1b33] flex items-center gap-1.5">
+                <IconClock size={14} className="text-blue-600" />
                 <span>Closing Soon</span>
               </h3>
               <button
                 onClick={loadFeed}
                 disabled={refreshing}
-                className="text-[11px] text-blue-600 hover:text-blue-700 hover:underline font-semibold cursor-pointer disabled:opacity-50"
+                className="text-[11px] text-blue-600 hover:text-blue-700 hover:underline font-bold cursor-pointer disabled:opacity-50"
               >
                 {refreshing ? 'Refreshing...' : 'Refresh'}
               </button>
@@ -1601,7 +1630,7 @@ export function Feed() {
                     to={'/opportunities/' + o.id}
                     className="flex justify-between items-center text-xs group p-2 rounded-xl hover:bg-blue-50/50 border border-transparent hover:border-blue-100 transition"
                   >
-                    <span className="truncate pr-2 font-medium text-[#0e1b33] group-hover:text-blue-600 transition">
+                    <span className="truncate pr-2 font-bold text-[#0e1b33] group-hover:text-blue-600 transition">
                       {o.title}
                     </span>
                     <span className="shrink-0 px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 font-bold text-[10px] border border-blue-200/60 shadow-2xs">
@@ -1615,6 +1644,35 @@ export function Feed() {
           <Mini />
         </aside>
       </div>
+
+      {/* Create Post Dialog Modal */}
+      {isCreateModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md animate-in fade-in duration-150">
+          <div className="relative w-full max-w-xl max-h-[90vh] overflow-y-auto rounded-3xl pm-glass-card bg-white/95 dark:bg-slate-900/95 p-5 sm:p-6 shadow-2xl border border-white/80 dark:border-slate-700">
+            <div className="flex items-center justify-between pb-3 mb-4 border-b border-slate-200/60 dark:border-slate-800/60">
+              <h2 className="text-sm font-bold text-[#0e1b33] dark:text-white font-['Outfit',sans-serif]">
+                Create Community Post
+              </h2>
+              <button
+                type="button"
+                onClick={() => setIsCreateModalOpen(false)}
+                className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
+                title="Close"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <Composer
+              isModal={true}
+              onPostCreated={(newPost) => {
+                setPosts(prev => [newPost, ...prev]);
+                setIsCreateModalOpen(false);
+              }}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -1738,54 +1796,10 @@ export function Profile() {
     }
   }, [isViewingOtherUser, targetUid, targetName]);
 
-  // Academic / Profile settings edit state
-  const [nameInput, setNameInput] = useState(userProfile?.displayName || '');
-  const [collegeInput, setCollegeInput] = useState(userProfile?.college || '');
-  const [courseInput, setCourseInput] = useState(userProfile?.course || '');
-  const [customCourseInput, setCustomCourseInput] = useState('');
-  const [yearInput, setYearInput] = useState(userProfile?.yearOfStudy || '');
-  const [branchInput, setBranchInput] = useState(userProfile?.branch || '');
-  const [customBranchInput, setCustomBranchInput] = useState('');
-  const [savingSettings, setSavingSettings] = useState(false);
-
-  // Change password state
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmNewPassword, setConfirmNewPassword] = useState('');
-  const [pwdError, setPwdError] = useState('');
-  const [pwdSuccess, setPwdSuccess] = useState('');
-  const [changingPwd, setChangingPwd] = useState(false);
-
   // Sync inputs when userProfile loads
   useEffect(() => {
     if (userProfile) {
-      setNameInput(userProfile.displayName || '');
       setBioInput(userProfile.bio || 'Tech builder & hackathon enthusiast on Pixel Minds.');
-      setCollegeInput(userProfile.college || '');
-      setYearInput(userProfile.yearOfStudy || '');
-
-      const existingCourse = userProfile.course || '';
-      if (isPredefinedCourse(existingCourse)) {
-        setCourseInput(existingCourse);
-        setCustomCourseInput('');
-      } else if (existingCourse) {
-        setCourseInput('Other');
-        setCustomCourseInput(existingCourse);
-      } else {
-        setCourseInput('');
-        setCustomCourseInput('');
-      }
-
-      const existingBranch = userProfile.branch || '';
-      if (existingCourse && isPredefinedBranch(existingCourse, existingBranch)) {
-        setBranchInput(existingBranch);
-        setCustomBranchInput('');
-      } else if (existingBranch) {
-        setBranchInput('Other');
-        setCustomBranchInput(existingBranch);
-      } else {
-        setBranchInput('');
-        setCustomBranchInput('');
-      }
     }
   }, [userProfile]);
 
@@ -1880,62 +1894,6 @@ export function Profile() {
       say('Failed to update profile');
     } finally {
       setSavingBio(false);
-    }
-  };
-
-  const handleSaveAllSettings = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!user?.uid) return;
-    setSavingSettings(true);
-    try {
-      const finalCourse = courseInput === 'Other' ? customCourseInput.trim() : courseInput.trim();
-      const finalBranch = (courseInput === 'Other' || branchInput === 'Other')
-        ? customBranchInput.trim()
-        : branchInput.trim();
-
-      await updateUserProfile(user.uid, {
-        displayName: nameInput.trim(),
-        bio: bioInput.trim(),
-        college: collegeInput.trim(),
-        course: finalCourse,
-        yearOfStudy: yearInput.trim(),
-        branch: finalBranch
-      });
-      if (refreshProfile) await refreshProfile();
-      say('Profile details updated successfully');
-    } catch {
-      say('Failed to update profile details');
-    } finally {
-      setSavingSettings(false);
-    }
-  };
-
-  const handleChangePassword = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setPwdError('');
-    setPwdSuccess('');
-
-    if (newPassword.length < 6) {
-      setPwdError('New password must be at least 6 characters long.');
-      return;
-    }
-
-    if (newPassword !== confirmNewPassword) {
-      setPwdError('Passwords do not match.');
-      return;
-    }
-
-    setChangingPwd(true);
-    try {
-      await updatePassword(newPassword);
-      setPwdSuccess('Password changed successfully.');
-      setNewPassword('');
-      setConfirmNewPassword('');
-      say('Password changed successfully');
-    } catch (err: any) {
-      setPwdError(err.message || 'Failed to change password. Please try again.');
-    } finally {
-      setChangingPwd(false);
     }
   };
 
@@ -2171,9 +2129,11 @@ export function Profile() {
                   Edit Bio
                 </Btn>
               )}
-              <Btn v="ghost" onClick={() => setTab('Settings')} className="!min-h-9 !py-1.5 !text-xs text-[#5D574F] !rounded-full">
-                Settings
-              </Btn>
+              <Link to="/settings">
+                <Btn v="ghost" className="!min-h-9 !py-1.5 !text-xs text-[#5D574F] !rounded-full">
+                  Settings
+                </Btn>
+              </Link>
             </div>
           </div>
 
@@ -2195,7 +2155,7 @@ export function Profile() {
 
       {/* Tabs */}
       <div className="-mx-4 flex gap-1.5 overflow-x-auto px-4 pb-1 scrollbar-hide">
-        {['Posts', 'My Applications', 'My Submissions', 'Shared Opportunities', 'Pixel History', 'Referrals', 'Achievements', 'Settings'].map((t) => {
+        {['Posts', 'My Applications', 'My Submissions', 'Shared Opportunities', 'Pixel History', 'Referrals', 'Achievements'].map((t) => {
           const isActive = tab === t;
           return (
             <button
@@ -2606,217 +2566,6 @@ export function Profile() {
             ))}
           </div>
         )}
-
-        {tab === 'Settings' && (
-          <div className="space-y-6">
-            {/* Academic & Profile Details Card */}
-            <Card className="p-6 pm-glass-card bg-white/85 backdrop-blur-xl border border-white/90 shadow-sm text-[#0e1b33]">
-              <h2 className="text-sm font-bold text-[#16171D] uppercase tracking-wider mb-4 flex items-center gap-2">
-                <GraduationCap size={16} className="text-[#C5A059]" />
-                Profile &amp; Academic Information
-              </h2>
-              <form onSubmit={handleSaveAllSettings} className="space-y-4">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-bold text-[#2D2A26] mb-1">Full Name</label>
-                    <input
-                      type="text"
-                      value={nameInput}
-                      onChange={(e) => setNameInput(e.target.value)}
-                      className="w-full rounded-xl border border-black/10 bg-white/80 px-3.5 py-2.5 text-xs outline-none focus:border-[#C5A059] text-[#16171D]"
-                      placeholder="Your Name"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-bold text-[#2D2A26] mb-1">College / University</label>
-                    <input
-                      type="text"
-                      value={collegeInput}
-                      onChange={(e) => setCollegeInput(e.target.value)}
-                      className="w-full rounded-xl border border-black/10 bg-white/80 px-3.5 py-2.5 text-xs outline-none focus:border-[#C5A059] text-[#16171D]"
-                      placeholder="e.g. Stanford / IIT Delhi"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-[#2D2A26] mb-1">Bio</label>
-                  <textarea
-                    rows={2}
-                    value={bioInput}
-                    onChange={(e) => setBioInput(e.target.value)}
-                    className="w-full rounded-xl border border-black/10 bg-white/80 px-3.5 py-2.5 text-xs outline-none focus:border-[#C5A059] text-[#16171D]"
-                    placeholder="A short description about yourself..."
-                  />
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  <div>
-                    <label className="block text-xs font-bold text-[#2D2A26] mb-1">Course / Degree</label>
-                    <select
-                      value={courseInput}
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        setCourseInput(val);
-                        setBranchInput('');
-                        if (val !== 'Other') {
-                          setCustomCourseInput('');
-                        }
-                      }}
-                      className="w-full rounded-xl border border-black/10 bg-white/80 px-3.5 py-2.5 text-xs outline-none focus:border-[#C5A059] text-[#16171D] cursor-pointer"
-                    >
-                      <option value="">Select Course</option>
-                      {COURSE_OPTIONS.map((c) => (
-                        <option key={c} value={c}>
-                          {c}
-                        </option>
-                      ))}
-                    </select>
-
-                    {courseInput === 'Other' && (
-                      <div className="mt-2">
-                        <input
-                          type="text"
-                          value={customCourseInput}
-                          onChange={(e) => setCustomCourseInput(e.target.value)}
-                          placeholder="Enter your course name"
-                          className="w-full rounded-xl border border-[#C5A059]/60 bg-white px-3 py-2 text-xs outline-none focus:border-[#C5A059] text-[#16171D]"
-                        />
-                      </div>
-                    )}
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-bold text-[#2D2A26] mb-1">Year of Study</label>
-                    <select
-                      value={yearInput}
-                      onChange={(e) => setYearInput(e.target.value)}
-                      className="w-full rounded-xl border border-black/10 bg-white/80 px-3.5 py-2.5 text-xs outline-none focus:border-[#C5A059] text-[#16171D] cursor-pointer"
-                    >
-                      <option value="">Select Year</option>
-                      <option value="1st Year">1st Year</option>
-                      <option value="2nd Year">2nd Year</option>
-                      <option value="3rd Year">3rd Year</option>
-                      <option value="4th Year">4th Year</option>
-                      <option value="Postgraduate">Postgraduate</option>
-                      <option value="Graduate / Alum">Graduate / Alum</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-bold text-[#2D2A26] mb-1">Branch / Department</label>
-                    {courseInput && courseInput !== 'Other' ? (
-                      <>
-                        <select
-                          value={branchInput}
-                          onChange={(e) => {
-                            const val = e.target.value;
-                            setBranchInput(val);
-                            if (val !== 'Other') {
-                              setCustomBranchInput('');
-                            }
-                          }}
-                          className="w-full rounded-xl border border-black/10 bg-white/80 px-3.5 py-2.5 text-xs outline-none focus:border-[#C5A059] text-[#16171D] cursor-pointer"
-                        >
-                          <option value="">Select Branch</option>
-                          {getBranchesForCourse(courseInput).map((b) => (
-                            <option key={b} value={b}>
-                              {b}
-                            </option>
-                          ))}
-                        </select>
-
-                        {branchInput === 'Other' && (
-                          <div className="mt-2">
-                            <input
-                              type="text"
-                              value={customBranchInput}
-                              onChange={(e) => setCustomBranchInput(e.target.value)}
-                              placeholder="Enter your branch / specialization"
-                              className="w-full rounded-xl border border-[#C5A059]/60 bg-white px-3 py-2 text-xs outline-none focus:border-[#C5A059] text-[#16171D]"
-                            />
-                          </div>
-                        )}
-                      </>
-                    ) : (
-                      <input
-                        type="text"
-                        value={customBranchInput}
-                        onChange={(e) => setCustomBranchInput(e.target.value)}
-                        className="w-full rounded-xl border border-black/10 bg-white/80 px-3.5 py-2.5 text-xs outline-none focus:border-[#C5A059] text-[#16171D]"
-                        placeholder={courseInput === 'Other' ? "Enter your branch / specialization" : "Select course first or enter branch"}
-                      />
-                    )}
-                  </div>
-                </div>
-
-                <div className="pt-2 flex justify-end">
-                  <Btn type="submit" disabled={savingSettings} className="!text-xs !rounded-full !px-5">
-                    {savingSettings ? 'Saving...' : 'Save Profile Changes'}
-                  </Btn>
-                </div>
-              </form>
-            </Card>
-
-            {/* Change Password Card */}
-            <Card className="p-6 pm-glass-card bg-white/85 backdrop-blur-xl border border-white/90 shadow-sm text-[#0e1b33]">
-              <h2 className="text-sm font-bold text-[#16171D] uppercase tracking-wider mb-2 flex items-center gap-2">
-                <Lock size={16} className="text-[#C5A059]" />
-                Change Password
-              </h2>
-              <p className="text-xs text-slate-500 mb-4">
-                Update your account password securely.
-              </p>
-
-              {pwdError && (
-                <div className="mb-4 bg-red-50 border border-red-200 text-red-700 px-4 py-2.5 rounded-xl text-xs">
-                  {pwdError}
-                </div>
-              )}
-
-              {pwdSuccess && (
-                <div className="mb-4 bg-emerald-50 border border-emerald-200 text-emerald-800 px-4 py-2.5 rounded-xl text-xs">
-                  {pwdSuccess}
-                </div>
-              )}
-
-              <form onSubmit={handleChangePassword} className="space-y-4 max-w-md">
-                <div>
-                  <label className="block text-xs font-bold text-[#2D2A26] mb-1">New Password</label>
-                  <input
-                    type="password"
-                    required
-                    value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
-                    className="w-full rounded-xl border border-black/10 bg-white/80 px-3.5 py-2.5 text-xs outline-none focus:border-[#C5A059] text-[#16171D]"
-                    placeholder="Min. 6 characters"
-                    autoComplete="new-password"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-[#2D2A26] mb-1">Confirm New Password</label>
-                  <input
-                    type="password"
-                    required
-                    value={confirmNewPassword}
-                    onChange={(e) => setConfirmNewPassword(e.target.value)}
-                    className="w-full rounded-xl border border-black/10 bg-white/80 px-3.5 py-2.5 text-xs outline-none focus:border-[#C5A059] text-[#16171D]"
-                    placeholder="Repeat new password"
-                    autoComplete="new-password"
-                  />
-                </div>
-
-                <div className="pt-2">
-                  <Btn type="submit" disabled={changingPwd} className="!text-xs !rounded-full !px-5">
-                    {changingPwd ? 'Updating Password...' : 'Update Password'}
-                  </Btn>
-                </div>
-              </form>
-            </Card>
-          </div>
-        )}
       </div>
 
       {/* Submission Detail Modal */}
@@ -2872,6 +2621,7 @@ export function Submit() {
   const [officialUrl, setOfficialUrl] = useState('');
   const [imageUrls, setImageUrls] = useState<string[]>([]);
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const handleImagesUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files ? Array.from(e.target.files) : [];
@@ -3280,6 +3030,7 @@ const AdminOpportunityForm = ({ opp, onBack }: any) => {
   const [featured, setFeatured] = useState(opp?.featured || false);
   const [additionalInfo, setAdditionalInfo] = useState(opp?.additionalInfo || '');
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const handleImagesUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files ? Array.from(e.target.files) : [];
@@ -3418,7 +3169,6 @@ const AdminOpportunityForm = ({ opp, onBack }: any) => {
 
   const handleDelete = async () => {
     if (!opp?.id) return;
-    if (!confirm('Are you sure you want to permanently delete this opportunity?')) return;
     try {
       await deleteOpportunityAdmin(opp.id);
       try {
@@ -3531,14 +3281,10 @@ const AdminOpportunityForm = ({ opp, onBack }: any) => {
         <div className="flex gap-2 flex-wrap">
           {opp && (
             <>
-               <Btn v="danger" onClick={handleDelete} className="!text-xs !min-h-9">Delete</Btn>
+               <Btn v="danger" onClick={() => setShowDeleteConfirm(true)} className="!text-xs !min-h-9">Delete</Btn>
                <Btn v="outline" onClick={handleDuplicate} className="!text-xs !min-h-9">Duplicate</Btn>
                {opp.status !== 'archived' && (
-                 <Btn v="outline" onClick={() => {
-                   if (confirm('Archive this opportunity? It will be removed from public discovery.')) {
-                     handleSave('archived');
-                   }
-                 }} className="!text-xs !min-h-9">Archive</Btn>
+                 <Btn v="outline" onClick={() => handleSave('archived')} className="!text-xs !min-h-9">Archive</Btn>
                )}
                {opp.status !== 'expired' && (
                  <Btn v="outline" onClick={() => handleSave('expired')} className="!text-xs !min-h-9">Mark Expired</Btn>
@@ -3685,6 +3431,16 @@ const AdminOpportunityForm = ({ opp, onBack }: any) => {
           <FormField label="Additional Information"><textarea rows={2} value={additionalInfo} onChange={e=>setAdditionalInfo(e.target.value)} className={inpStyle} placeholder="Any specific instructions, perks, or Discord links..." /></FormField>
         </Card>
       </div>
+
+      <ConfirmModal
+        isOpen={showDeleteConfirm}
+        title="Delete Opportunity"
+        message="Are you sure you want to permanently delete this opportunity? It will be removed from all searches and public listings."
+        confirmLabel="Delete Opportunity"
+        variant="danger"
+        onConfirm={handleDelete}
+        onCancel={() => setShowDeleteConfirm(false)}
+      />
     </div>
   );
 };
@@ -3698,6 +3454,7 @@ const AdminCMS = ({ allOppsList, loadData }: any) => {
   const [categoryFilter, setCategoryFilter] = useState('All');
   const [sourceFilter, setSourceFilter] = useState('All');
   const [sortBy, setSortBy] = useState<'newest' | 'deadline' | 'views'>('newest');
+  const [deleteOppTarget, setDeleteOppTarget] = useState<{ id: string; title: string } | null>(null);
   const { say } = useApp();
   
   if (view === 'create' || view === 'edit') {
@@ -3758,7 +3515,6 @@ const AdminCMS = ({ allOppsList, loadData }: any) => {
   };
 
   const handleDeleteWithConfirm = async (id: string, title: string) => {
-    if (!confirm(`Are you sure you want to permanently delete "${title}"?`)) return;
     try {
       await deleteOpportunityAdmin(id);
       try {
@@ -3890,7 +3646,7 @@ const AdminCMS = ({ allOppsList, loadData }: any) => {
                       <Btn v="outline" onClick={() => handleUpdateStatus(o.id, 'draft', o.title)} className="!py-1 !px-2 !min-h-7 !text-[11px] text-amber-600 border-amber-200 bg-amber-50 hover:bg-amber-100">Unpublish</Btn>
                     )}
                     <Btn v="outline" onClick={() => { setEditingOpp(o); setView('edit'); }} className="!py-1 !px-2 !min-h-7 !text-[11px]">Edit</Btn>
-                    <Btn v="danger" onClick={() => handleDeleteWithConfirm(o.id, o.title)} className="!py-1 !px-2 !min-h-7 !text-[11px]">Delete</Btn>
+                    <Btn v="danger" onClick={() => setDeleteOppTarget({ id: o.id, title: o.title })} className="!py-1 !px-2 !min-h-7 !text-[11px]">Delete</Btn>
                   </td>
                 </tr>
               ))}
@@ -3905,6 +3661,21 @@ const AdminCMS = ({ allOppsList, loadData }: any) => {
           </table>
         </div>
       </Card>
+
+      <ConfirmModal
+        isOpen={Boolean(deleteOppTarget)}
+        title="Delete Opportunity"
+        message={`Are you sure you want to permanently delete "${deleteOppTarget?.title}"?`}
+        confirmLabel="Delete Opportunity"
+        variant="danger"
+        onConfirm={() => {
+          if (deleteOppTarget) {
+            handleDeleteWithConfirm(deleteOppTarget.id, deleteOppTarget.title);
+            setDeleteOppTarget(null);
+          }
+        }}
+        onCancel={() => setDeleteOppTarget(null)}
+      />
     </div>
   );
 };
@@ -3930,6 +3701,7 @@ export function Admin() {
 
   // New Post State
   const [showCreatePost, setShowCreatePost] = useState(false);
+  const [postTitle, setPostTitle] = useState('');
   const [postText, setPostText] = useState('');
   const [postCategory, setPostCategory] = useState('Announcements');
   const [postLink, setPostLink] = useState('');
@@ -3958,6 +3730,21 @@ export function Admin() {
   const [reportsList, setReportsList] = useState<ReportItem[]>([]);
   const [reportFilter, setReportFilter] = useState<'all' | 'pending' | 'opportunity' | 'post' | 'resolved'>('all');
   const [resolvingReportId, setResolvingReportId] = useState<string | null>(null);
+
+  // Modern Confirmation Modal State
+  const [confirmDialog, setConfirmDialog] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    confirmLabel?: string;
+    variant?: 'danger' | 'warning';
+    onConfirm: () => void;
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    onConfirm: () => {}
+  });
 
   const loadData = async () => {
     try {
@@ -3997,7 +3784,6 @@ export function Admin() {
 
   const handleUpdateStatus = async (id: string, status: 'published' | 'rejected', reason?: string) => {
     const opp = pendingOpps.find(o => o.id === id);
-    if (!reason && status === 'published' && !confirm(`Are you sure you want to approve and publish this submission?`)) return;
     try {
       await updateOpportunityAdmin(id, { status, rejectionReason: reason, adminNotes: reason });
       await recordAuditLog({
@@ -4060,24 +3846,35 @@ export function Admin() {
   const handleToggleUserSuspension = async (targetUser: UserType) => {
     const newStatus = targetUser.status === 'suspended' ? 'active' : 'suspended';
     const actionName = newStatus === 'suspended' ? 'suspend' : 'reactivate';
-    if (!confirm(`Are you sure you want to ${actionName} user ${targetUser.displayName}?`)) return;
-    try {
-      await toggleUserSuspension(
-        { uid: user?.uid || 'admin', email: user?.email || 'admin@pixelminds.org' },
-        targetUser.id,
-        newStatus,
-        `Admin clicked ${actionName}`
-      );
-      say(`User ${newStatus === 'suspended' ? 'suspended' : 'reactivated'} successfully`);
-      loadData();
-    } catch {
-      say(`Failed to ${actionName} user`);
-    }
+    setConfirmDialog({
+      isOpen: true,
+      title: `${actionName.charAt(0).toUpperCase() + actionName.slice(1)} User`,
+      message: `Are you sure you want to ${actionName} user "${targetUser.displayName}"?`,
+      confirmLabel: actionName.charAt(0).toUpperCase() + actionName.slice(1),
+      variant: newStatus === 'suspended' ? 'danger' : 'warning',
+      onConfirm: async () => {
+        try {
+          await toggleUserSuspension(
+            { uid: user?.uid || 'admin', email: user?.email || 'admin@pixelminds.org' },
+            targetUser.id,
+            newStatus,
+            `Admin clicked ${actionName}`
+          );
+          say(`User ${newStatus === 'suspended' ? 'suspended' : 'reactivated'} successfully`);
+          loadData();
+        } catch {
+          say(`Failed to ${actionName} user`);
+        }
+      }
+    });
   };
 
   const handleCreatePost = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!postText.trim()) return;
+    if (!postTitle.trim() || !postText.trim()) {
+      say('Title and description are required.');
+      return;
+    }
     try {
       await createAdminCommunityPost(
         {
@@ -4086,13 +3883,16 @@ export function Admin() {
           displayName: 'Pixel Minds Official'
         },
         {
-          text: postText.trim(),
+          title: postTitle.trim(),
+          description: postText.trim(),
+          text: `${postTitle.trim()}\n\n${postText.trim()}`,
           category: postCategory,
           link: postLink.trim() || undefined,
           status: 'published'
         }
       );
       say('Community post published to Feed successfully');
+      setPostTitle('');
       setPostText('');
       setPostLink('');
       setShowCreatePost(false);
@@ -4103,17 +3903,25 @@ export function Admin() {
   };
 
   const handleDeletePost = async (postId: string) => {
-    if (!confirm('Are you sure you want to delete this community post?')) return;
-    try {
-      await deleteCommunityPost(
-        { uid: user?.uid || 'admin', email: user?.email || 'admin@pixelminds.org' },
-        postId
-      );
-      say('Community post deleted');
-      loadData();
-    } catch {
-      say('Failed to delete post');
-    }
+    setConfirmDialog({
+      isOpen: true,
+      title: 'Delete Community Post',
+      message: 'Are you sure you want to permanently delete this community post?',
+      confirmLabel: 'Delete Post',
+      variant: 'danger',
+      onConfirm: async () => {
+        try {
+          await deleteCommunityPost(
+            { uid: user?.uid || 'admin', email: user?.email || 'admin@pixelminds.org' },
+            postId
+          );
+          say('Community post deleted');
+          loadData();
+        } catch {
+          say('Failed to delete post');
+        }
+      }
+    });
   };
 
   const handleAnnImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -4204,45 +4012,58 @@ export function Admin() {
   const [deletingNotifId, setDeletingNotifId] = useState<string | null>(null);
 
   const handleDeleteNotification = async (notifId: string, title: string) => {
-    if (!confirm(`Are you sure you want to delete notification "${title}"? This will also remove it from all recipients' notification inboxes.`)) {
-      return;
-    }
-
-    setDeletingNotifId(notifId);
-    try {
-      await deleteAdminNotification(notifId);
-      await recordAuditLog({
-        adminId: user?.uid || 'admin',
-        adminEmail: user?.email || 'admin@pixelminds.org',
-        action: 'Deleted notification',
-        targetType: 'system' as any,
-        targetId: notifId,
-        reason: title
-      });
-      say('Notification deleted successfully');
-      const updatedList = await getAdminSentNotifications();
-      setAdminNotifications(updatedList);
-    } catch (err: any) {
-      console.error('Failed to delete notification:', err);
-      say(err?.message || 'Failed to delete notification');
-    } finally {
-      setDeletingNotifId(null);
-    }
+    setConfirmDialog({
+      isOpen: true,
+      title: 'Delete Notification',
+      message: `Are you sure you want to delete notification "${title}"? This will also remove it from all recipients' inboxes.`,
+      confirmLabel: 'Delete Notification',
+      variant: 'danger',
+      onConfirm: async () => {
+        setDeletingNotifId(notifId);
+        try {
+          await deleteAdminNotification(notifId);
+          await recordAuditLog({
+            adminId: user?.uid || 'admin',
+            adminEmail: user?.email || 'admin@pixelminds.org',
+            action: 'Deleted notification',
+            targetType: 'system' as any,
+            targetId: notifId,
+            reason: title
+          });
+          say('Notification deleted successfully');
+          const updatedList = await getAdminSentNotifications();
+          setAdminNotifications(updatedList);
+        } catch (err: any) {
+          console.error('Failed to delete notification:', err);
+          say(err?.message || 'Failed to delete notification');
+        } finally {
+          setDeletingNotifId(null);
+        }
+      }
+    });
   };
 
   const handleDeleteAnnouncement = async (annId: string) => {
-    if (!confirm('Are you sure you want to delete this announcement?')) return;
-    try {
-      await deleteAnnouncement(
-        { uid: user?.uid || 'admin', email: user?.email || 'admin@pixelminds.org' },
-        annId
-      );
-      say('Announcement removed');
-      loadData();
-    } catch (err: any) {
-      console.error('Failed to remove announcement:', err);
-      say(err?.message || 'Failed to remove announcement');
-    }
+    setConfirmDialog({
+      isOpen: true,
+      title: 'Delete Announcement',
+      message: 'Are you sure you want to remove this announcement from the website?',
+      confirmLabel: 'Delete Announcement',
+      variant: 'danger',
+      onConfirm: async () => {
+        try {
+          await deleteAnnouncement(
+            { uid: user?.uid || 'admin', email: user?.email || 'admin@pixelminds.org' },
+            annId
+          );
+          say('Announcement removed');
+          loadData();
+        } catch (err: any) {
+          console.error('Failed to remove announcement:', err);
+          say(err?.message || 'Failed to remove announcement');
+        }
+      }
+    });
   };
 
   const handleResolveReport = async (reportId: string, notes?: string) => {
@@ -4280,22 +4101,30 @@ export function Admin() {
   };
 
   const handleDeleteReportedItem = async (report: ReportItem) => {
-    if (!confirm(`Are you sure you want to permanently delete this reported ${report.targetType}? This will delete the content from the website immediately.`)) return;
-    setResolvingReportId(report.id);
-    try {
-      await deleteReportedItem(report.id, report.targetType, report.targetId, {
-        uid: user?.uid || 'admin',
-        email: user?.email || 'admin@pixelminds.org'
-      });
-      say(`Reported ${report.targetType} deleted permanently and report resolved`);
-      loadData();
-      const updated = await getAllReports();
-      setReportsList(updated);
-    } catch (err: any) {
-      say(err?.message || 'Failed to delete reported item');
-    } finally {
-      setResolvingReportId(null);
-    }
+    setConfirmDialog({
+      isOpen: true,
+      title: `Delete Reported ${report.targetType === 'post' ? 'Post' : 'Opportunity'}`,
+      message: `Are you sure you want to permanently delete this reported ${report.targetType}? This will delete the content from the website immediately.`,
+      confirmLabel: 'Delete Item',
+      variant: 'danger',
+      onConfirm: async () => {
+        setResolvingReportId(report.id);
+        try {
+          await deleteReportedItem(report.id, report.targetType, report.targetId, {
+            uid: user?.uid || 'admin',
+            email: user?.email || 'admin@pixelminds.org'
+          });
+          say(`Reported ${report.targetType} deleted permanently and report resolved`);
+          loadData();
+          const updated = await getAllReports();
+          setReportsList(updated);
+        } catch (err: any) {
+          say(err?.message || 'Failed to delete reported item');
+        } finally {
+          setResolvingReportId(null);
+        }
+      }
+    });
   };
 
   // Real dashboard metrics
@@ -4708,6 +4537,17 @@ export function Admin() {
                 <form onSubmit={handleCreatePost} className="space-y-3">
                   <h4 className="font-bold text-xs uppercase tracking-wider text-[#16171D]">New Admin Post</h4>
                   <div>
+                    <label className="text-xs font-semibold text-[#5D574F] block mb-1">Title <span className="text-rose-500">*</span></label>
+                    <input
+                      type="text"
+                      value={postTitle}
+                      onChange={e=>setPostTitle(e.target.value)}
+                      placeholder="Post title (compulsory)..."
+                      className="w-full rounded-xl border border-black/10 bg-white/80 p-2.5 text-xs outline-none focus:border-[#C5A059] text-[#16171D] font-bold"
+                      required
+                    />
+                  </div>
+                  <div>
                     <label className="text-xs font-semibold text-[#5D574F] block mb-1">Category</label>
                     <select value={postCategory} onChange={e=>setPostCategory(e.target.value)} className="w-full rounded-xl border border-black/10 bg-white/80 p-2.5 text-xs outline-none focus:border-[#C5A059] text-[#16171D]">
                       {['Announcements', 'Internships', 'Hackathons', 'Jobs', 'Workshops', 'Scholarships', 'Competitions', 'Events', 'Courses', 'Tech Updates'].map(c => (
@@ -4716,7 +4556,7 @@ export function Admin() {
                     </select>
                   </div>
                   <div>
-                    <label className="text-xs font-semibold text-[#5D574F] block mb-1">Message Content</label>
+                    <label className="text-xs font-semibold text-[#5D574F] block mb-1">Description <span className="text-rose-500">*</span></label>
                     <textarea
                       rows={3}
                       value={postText}
@@ -4750,8 +4590,8 @@ export function Admin() {
                   <thead className="bg-slate-50 text-slate-500 font-bold uppercase tracking-wider border-b border-slate-100">
                     <tr>
                       <th className="px-4 py-3">Author</th>
+                      <th className="px-4 py-3">Title / Content</th>
                       <th className="px-4 py-3">Category</th>
-                      <th className="px-4 py-3">Content</th>
                       <th className="px-4 py-3">Source</th>
                       <th className="px-4 py-3 text-right">Actions</th>
                     </tr>
@@ -4760,8 +4600,11 @@ export function Admin() {
                     {communityPosts.map((p) => (
                       <tr key={p.id} className="hover:bg-slate-50/70 transition">
                         <td className="px-4 py-3.5 font-bold text-slate-900">{p.user}</td>
+                        <td className="px-4 py-3.5 max-w-[280px]">
+                          {p.title && <p className="font-bold text-slate-900 truncate">{p.title}</p>}
+                          <p className="text-slate-600 truncate">{p.description || p.text}</p>
+                        </td>
                         <td className="px-4 py-3.5 text-slate-600">{p.category || 'Discussion'}</td>
-                        <td className="px-4 py-3.5 max-w-[280px] truncate text-slate-700">{p.text}</td>
                         <td className="px-4 py-3.5">
                           <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold border ${p.source === 'admin' ? 'bg-purple-50 text-purple-700 border-purple-200' : 'bg-slate-50 text-slate-700 border-slate-200'}`}>
                             {p.source === 'admin' ? 'Admin' : 'User'}
@@ -5466,6 +5309,16 @@ export function Admin() {
           </div>
         </div>
       )}
+
+      <ConfirmModal
+        isOpen={confirmDialog.isOpen}
+        title={confirmDialog.title}
+        message={confirmDialog.message}
+        confirmLabel={confirmDialog.confirmLabel}
+        variant={confirmDialog.variant}
+        onConfirm={confirmDialog.onConfirm}
+        onCancel={() => setConfirmDialog((prev) => ({ ...prev, isOpen: false }))}
+      />
     </W>
   );
 }

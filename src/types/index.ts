@@ -167,16 +167,23 @@ export interface CommunityPost {
   userId: string;
   role: string;
   time: string;
+  title?: string;
+  description?: string;
   text: string;
   category?: string;
   likes: number;
   comments: number;
+  reposts?: number;
+  shares?: number;
+  bookmarksCount?: number;
   opp?: string | number;
   link?: string;
   imageUrl?: string;
   source: 'admin' | 'user';
   status: 'published' | 'draft' | 'archived';
   featured?: boolean;
+  isEdited?: boolean;
+  updatedAt?: number;
   createdAt: number;
 }
 

@@ -5,6 +5,7 @@ import { PixelMark } from './components/PixelMark';
 import { useAuth } from './contexts/AuthContext';
 import { recordOpportunityApplication } from './services/applications';
 import { recordOpportunityShare } from './services/opportunities';
+import { toggleBookmarkRecord, getUserBookmarks } from './services/community';
 import { supabase } from './lib/supabase';
 
 const ld = <T,>(k: string, d: T): T => {
@@ -93,12 +94,18 @@ export const AppProvider: FC<{ children: ReactNode }> = ({ children }) => {
   useEffect(() => {
     if (!user?.uid) return;
 
-    // Load any remote saved items stored in user profile or metadata
+    let isSubscribed = true;
     const loadUserSaved = async () => {
       try {
-        const local = ld<string[]>('pm_saved', []);
-        if (local.length > 0) {
-          setSaved(local);
+        const remoteBookmarks = await getUserBookmarks(user.uid);
+        if (!isSubscribed) return;
+
+        if (remoteBookmarks && remoteBookmarks.length > 0) {
+          setSaved((prev) => {
+            const merged = Array.from(new Set([...prev, ...remoteBookmarks]));
+            sv('pm_saved', merged);
+            return merged;
+          });
         }
       } catch (err) {
         console.warn('Bookmarks profile sync note:', err);
@@ -106,6 +113,10 @@ export const AppProvider: FC<{ children: ReactNode }> = ({ children }) => {
     };
 
     loadUserSaved();
+
+    return () => {
+      isSubscribed = false;
+    };
   }, [user?.uid]);
 
   const [applied, setApplied] = useState<(number | string)[]>(() => ld('pm_applied', []));
@@ -127,8 +138,14 @@ export const AppProvider: FC<{ children: ReactNode }> = ({ children }) => {
     sv('pm_saved', updated);
     say(isCurrentlySaved ? 'Removed from saved' : 'Saved to bookmarks');
 
-    // Record bookmark interaction event to database for user tracking
+    // Synchronize to user_bookmarks database table and analytics
     if (user?.uid) {
+      try {
+        await toggleBookmarkRecord(k, user.uid);
+      } catch (err) {
+        console.warn('[toggle] Remote bookmark sync notice:', err);
+      }
+
       try {
         await supabase.from('analytics_events').insert({
           user_id: user.uid,

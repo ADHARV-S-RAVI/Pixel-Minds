@@ -3,6 +3,7 @@ import { getAllOpportunities, getPendingSubmissions, updateOpportunityAdmin, del
 import type { Opportunity } from '../types';
 import { LayoutDashboard, FileText, Inbox, Users, BarChart3, Settings, Search, Trash2, Check, X, Eye } from 'lucide-react';
 import { SubmissionDetailModal } from '../components/SubmissionDetailModal';
+import { ConfirmModal } from '../components/ConfirmModal';
 
 type AdminTab = 'overview' | 'opportunities' | 'submissions' | 'users' | 'reports' | 'settings';
 
@@ -16,6 +17,19 @@ export function Admin() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [confirmDialog, setConfirmDialog] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    confirmLabel?: string;
+    variant?: 'danger' | 'warning';
+    onConfirm: () => void;
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    onConfirm: () => {}
+  });
 
   const fetchData = async () => {
     setLoading(true);
@@ -39,7 +53,6 @@ export function Admin() {
   }, [activeTab]);
 
   const handleApprove = async (id: string) => {
-    if (!window.confirm('Approve and publish this opportunity?')) return;
     try {
       await updateOpportunityAdmin(id, { status: 'published' });
       fetchData();
@@ -49,8 +62,7 @@ export function Admin() {
   };
 
   const handleReject = async (id: string, reason?: string) => {
-    const finalReason = reason !== undefined ? reason : window.prompt('Rejection reason (optional):');
-    if (finalReason === null) return;
+    const finalReason = reason !== undefined ? reason : 'Submission requirements not met';
     try {
       await updateOpportunityAdmin(id, { status: 'rejected', rejectionReason: finalReason || undefined, adminNotes: finalReason || undefined });
       fetchData();
@@ -60,17 +72,24 @@ export function Admin() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!window.confirm('Permanently delete this opportunity? This cannot be undone.')) return;
-    try {
-      await deleteOpportunityAdmin(id);
-      fetchData();
-    } catch (err) {
-      console.error('Failed to delete', err);
-    }
+    setConfirmDialog({
+      isOpen: true,
+      title: 'Delete Opportunity',
+      message: 'Are you sure you want to permanently delete this opportunity? This cannot be undone.',
+      confirmLabel: 'Delete Opportunity',
+      variant: 'danger',
+      onConfirm: async () => {
+        try {
+          await deleteOpportunityAdmin(id);
+          fetchData();
+        } catch (err) {
+          console.error('Failed to delete', err);
+        }
+      }
+    });
   };
 
   const handleStatusChange = async (id: string, newStatus: string) => {
-    if (!window.confirm(`Change status to "${newStatus}"?`)) return;
     try {
       await updateOpportunityAdmin(id, { status: newStatus as any });
       fetchData();
@@ -299,6 +318,16 @@ export function Admin() {
         isAdmin
         onApprove={handleApprove}
         onReject={handleReject}
+      />
+
+      <ConfirmModal
+        isOpen={confirmDialog.isOpen}
+        title={confirmDialog.title}
+        message={confirmDialog.message}
+        confirmLabel={confirmDialog.confirmLabel}
+        variant={confirmDialog.variant}
+        onConfirm={confirmDialog.onConfirm}
+        onCancel={() => setConfirmDialog((prev) => ({ ...prev, isOpen: false }))}
       />
     </div>
   );
