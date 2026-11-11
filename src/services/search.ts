@@ -100,3 +100,6 @@ export const searchGlobal = async (
     return { people: [], opportunities: [], posts: [] };
   }
 };
+
+export const globalSearch = searchGlobal;
+

@@ -26,7 +26,6 @@ import {
   Sliders,
   History,
   ShieldCheck,
-  Lock,
   GraduationCap,
   Building2,
   X,
@@ -67,12 +66,6 @@ import {
 } from './ui';
 import { opps as initialOpps, cats, rankOf } from './data';
 import type { Opp } from './data';
-import {
-  COURSE_OPTIONS,
-  getBranchesForCourse,
-  isPredefinedCourse,
-  isPredefinedBranch
-} from './data/academicOptions';
 import type { 
   User as UserType, 
   RewardConfig, 
@@ -1683,7 +1676,7 @@ export function Feed() {
 import { ReferralPanel as RP } from './pixels';
 
 export function Profile() {
-  const { userProfile, user, refreshProfile, updatePassword, incrementPixels } = useAuth();
+  const { userProfile, user, refreshProfile, incrementPixels } = useAuth();
   const [searchParams] = useSearchParams();
   const location = useLocation();
   const [tab, setTab] = useState(location.pathname === '/applications' ? 'My Applications' : 'Posts');
@@ -2621,7 +2614,6 @@ export function Submit() {
   const [officialUrl, setOfficialUrl] = useState('');
   const [imageUrls, setImageUrls] = useState<string[]>([]);
   const [uploadingImage, setUploadingImage] = useState(false);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const handleImagesUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files ? Array.from(e.target.files) : [];

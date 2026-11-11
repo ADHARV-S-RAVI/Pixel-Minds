@@ -6,25 +6,15 @@ import {
   Home,
   PlusSquare,
   User,
-  Heart,
-  MessageCircle,
   Share2,
   Bookmark,
   Calendar,
   MapPin,
   Trophy,
-  Link2,
-  CalendarDays,
   Briefcase,
-  Send,
-  ExternalLink,
   LogOut,
-  Trash2,
   ArrowRight,
   Sparkles,
-  Rocket,
-  Lightbulb,
-  BookOpen,
   PenSquare,
   MessageSquare,
   Sun,
@@ -37,8 +27,6 @@ import {
   Compass,
   HelpCircle,
   Layers,
-  PanelLeftClose,
-  PanelLeftOpen,
   Settings,
   X
 } from 'lucide-react';
@@ -70,14 +58,12 @@ import {
   IconCalendar,
   IconMapPin,
   IconExternalLink,
-  IconClock,
   IconSend,
   IconFlag,
   IconTrash,
   IconPen,
   IconBriefcase,
-  IconLink,
-  IconBadge
+  IconLink
 } from './components/FeedIcons';
 import { SearchAutocomplete } from './components/SearchAutocomplete';
 

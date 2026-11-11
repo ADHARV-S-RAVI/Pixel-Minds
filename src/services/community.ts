@@ -1,8 +1,5 @@
 import { supabase } from '../lib/supabase';
 import type { CommunityPost } from '../types';
-import type { Database } from '../types/database';
-
-type PostUpdate = Database['public']['Tables']['community_posts']['Update'];
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -401,15 +398,11 @@ export const updatePostComment = async (
   if (UUID_REGEX.test(commentId)) {
     const { error } = await supabase
       .from('community_comments')
-      .update({ text: clean, updated_at: new Date().toISOString() })
+      .update({ text: clean })
       .eq('id', commentId);
 
     if (error) {
-      // Fallback: update text only if updated_at is rejected
-      await supabase
-        .from('community_comments')
-        .update({ text: clean })
-        .eq('id', commentId);
+      console.warn('[updatePostComment] Supabase update notice:', error.message);
     }
   }
 };

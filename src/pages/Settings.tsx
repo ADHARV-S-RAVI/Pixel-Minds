@@ -3,8 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import {
   GraduationCap,
   Lock,
-  User,
-  ShieldCheck,
   CheckCircle2,
   ArrowLeft
 } from 'lucide-react';
@@ -47,7 +45,7 @@ export function Settings() {
       setBioInput(userProfile.bio || '');
       setCollegeInput(userProfile.college || '');
       const c = userProfile.course || '';
-      if (COURSE_OPTIONS.includes(c)) {
+      if ((COURSE_OPTIONS as readonly string[]).includes(c)) {
         setCourseInput(c);
       } else if (c) {
         setCourseInput('Other');

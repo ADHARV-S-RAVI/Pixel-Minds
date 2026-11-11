@@ -489,7 +489,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           }
         }
       )
-      .subscribe((status) => {
+      .subscribe(() => {
         // Connected to postgres_changes
       });
 
