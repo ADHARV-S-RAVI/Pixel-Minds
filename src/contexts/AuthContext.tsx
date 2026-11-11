@@ -86,16 +86,87 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
   };
 
+  // Helper to check if an email user has not yet verified their email OTP
+  const isEmailUnconfirmed = (sbUser: SupabaseAuthUser): boolean => {
+    const isEmailUser = !sbUser.app_metadata?.provider || sbUser.app_metadata?.provider === 'email';
+    const isConfirmed = Boolean(sbUser.email_confirmed_at || (sbUser as any).confirmed_at);
+    return isEmailUser && !isConfirmed;
+  };
+
+  // Helper to automatically attribute referral code if available
+  const handleReferralAttribution = async (uid: string, authUser?: SupabaseAuthUser) => {
+    if (typeof window === 'undefined') return;
+    try {
+      const onboardedKey = `pm_ref_onboarded_${uid}`;
+      const hasOnboarded = localStorage.getItem(onboardedKey) === 'true' || (authUser as any)?.user_metadata?.referral_onboarded;
+      const pendingRef = sessionStorage.getItem('pm_ref_code') || localStorage.getItem('pm_ref_code');
+
+      if (!hasOnboarded && pendingRef && pendingRef.trim()) {
+        const { recordReferralSignup } = await import('../services/referrals');
+        const res = await recordReferralSignup(pendingRef.trim(), uid);
+        if (res.success || res.message?.toLowerCase().includes('already') || res.message?.toLowerCase().includes('self-referral')) {
+          localStorage.setItem(onboardedKey, 'true');
+          sessionStorage.removeItem('pm_ref_code');
+          localStorage.removeItem('pm_ref_code');
+        }
+      }
+    } catch (refErr) {
+      console.warn('[AuthContext] Automatic referral attribution note:', refErr);
+    }
+  };
+
+  // Fetch user profile with retry polling to allow Postgres trigger (handle_new_user) to commit on new signups
+  const fetchProfileWithRetry = async (
+    uid: string,
+    authUser?: SupabaseAuthUser,
+    extraDetails?: {
+      college?: string;
+      course?: string;
+      yearOfStudy?: string;
+      branch?: string;
+      name?: string;
+    },
+    maxAttempts = 3
+  ): Promise<User | null> => {
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      try {
+        const profile = await getUserProfile(uid);
+        if (profile) {
+          await handleReferralAttribution(uid, authUser);
+          return profile;
+        }
+        if (attempt < maxAttempts) {
+          await new Promise((resolve) => setTimeout(resolve, 350));
+        }
+      } catch (e) {
+        console.warn(`[fetchProfileWithRetry] Attempt ${attempt} failed:`, e);
+      }
+    }
+
+    // Fallback: If DB trigger hasn't populated profile yet, attempt client-side creation
+    if (authUser) {
+      try {
+        const profile = await createUserProfile(uid, {
+          email: authUser.email || '',
+          displayName: extraDetails?.name || authUser.user_metadata?.full_name || authUser.user_metadata?.name || 'Pixel Builder',
+          photoURL: authUser.user_metadata?.avatar_url || authUser.user_metadata?.picture || '',
+          college: extraDetails?.college || authUser.user_metadata?.college,
+          course: extraDetails?.course || authUser.user_metadata?.course,
+          yearOfStudy: extraDetails?.yearOfStudy || authUser.user_metadata?.year_of_study,
+          branch: extraDetails?.branch || authUser.user_metadata?.branch
+        });
+        await handleReferralAttribution(uid, authUser);
+        return profile;
+      } catch (err) {
+        console.error('[fetchProfileWithRetry] Fallback creation note:', err);
+      }
+    }
+    return null;
+  };
+
   const fetchProfile = async (uid: string, authUser?: SupabaseAuthUser) => {
     try {
-      let profile = await getUserProfile(uid);
-      if (!profile && authUser) {
-        profile = await createUserProfile(uid, {
-          email: authUser.email || '',
-          displayName: authUser.user_metadata?.full_name || authUser.user_metadata?.name || 'Pixel Builder',
-          photoURL: authUser.user_metadata?.avatar_url || authUser.user_metadata?.picture || ''
-        });
-      }
+      const profile = await fetchProfileWithRetry(uid, authUser);
       if (profile) {
         if (typeof window !== 'undefined') {
           const storedLocal = localStorage.getItem(`pm_local_pixels_${uid}`);
@@ -108,27 +179,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
         setUserData(profile);
       }
-
-      // Automatically attribute pending referral code if available (e.g. Google OAuth signup)
-      if (typeof window !== 'undefined' && profile) {
-        const onboardedKey = `pm_ref_onboarded_${uid}`;
-        const hasOnboarded = localStorage.getItem(onboardedKey) === 'true' || (authUser as any)?.user_metadata?.referral_onboarded;
-        const pendingRef = sessionStorage.getItem('pm_ref_code') || localStorage.getItem('pm_ref_code');
-
-        if (!hasOnboarded && pendingRef && pendingRef.trim()) {
-          try {
-            const { recordReferralSignup } = await import('../services/referrals');
-            const res = await recordReferralSignup(pendingRef.trim(), uid);
-            if (res.success || res.message?.toLowerCase().includes('already') || res.message?.toLowerCase().includes('self-referral')) {
-              localStorage.setItem(onboardedKey, 'true');
-              sessionStorage.removeItem('pm_ref_code');
-              localStorage.removeItem('pm_ref_code');
-            }
-          } catch (refErr) {
-            console.warn('[AuthContext] Automatic referral attribution note:', refErr);
-          }
-        }
-      }
     } catch (err) {
       console.error('Failed to load profile:', err);
     }
@@ -137,53 +187,100 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     let isMounted = true;
 
-    // Check if current URL contains OAuth parameters
-    const checkOAuthParams = () => {
-      if (typeof window === 'undefined') return { hasCode: false };
+    // Check if an OAuth exchange or callback is actively in progress
+    const checkOAuthInProgress = () => {
+      if (typeof window === 'undefined') return false;
       try {
         const url = new URL(window.location.href);
         const hasCode = url.searchParams.has('code');
         const hasTokenInHash = url.hash.includes('access_token=');
-        const hasError = url.searchParams.has('error') || url.hash.includes('error=');
+        const storedOAuth = sessionStorage.getItem('pm_oauth_in_progress') === 'true' ||
+                            localStorage.getItem('pm_oauth_in_progress') === 'true';
 
+        const hasError = url.searchParams.has('error') || url.hash.includes('error=');
         if (hasError && !window.location.pathname.includes('reset-password')) {
           const errorDesc = url.searchParams.get('error_description') || url.searchParams.get('error') || 'Authentication failed or was cancelled.';
           console.warn('[AuthContext] OAuth error in URL:', errorDesc);
+          sessionStorage.removeItem('pm_oauth_in_progress');
+          localStorage.removeItem('pm_oauth_in_progress');
           url.searchParams.delete('error');
           url.searchParams.delete('error_code');
           url.searchParams.delete('error_description');
           window.history.replaceState(null, '', url.pathname + (url.search ? url.search : '') + url.hash);
+          return false;
         }
-        return { hasCode: hasCode || hasTokenInHash };
+
+        if (hasCode || hasTokenInHash) {
+          sessionStorage.setItem('pm_oauth_in_progress', 'true');
+          return true;
+        }
+        return storedOAuth;
       } catch {
-        return { hasCode: false };
+        return false;
       }
     };
 
-    const { hasCode } = checkOAuthParams();
+    const isOAuthInitially = checkOAuthInProgress();
 
     // 1. Listen to Supabase auth state changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!isMounted) return;
 
       if (session?.user) {
+        // Enforce email verification for email provider accounts
+        if (isEmailUnconfirmed(session.user)) {
+          console.warn('[AuthContext] Unverified email user session detected. Signing out.');
+          await supabase.auth.signOut();
+          if (isMounted) {
+            setCurrentUser(null);
+            setUserData(null);
+            sessionStorage.removeItem('pm_oauth_in_progress');
+            localStorage.removeItem('pm_oauth_in_progress');
+            setLoading(false);
+          }
+          return;
+        }
+
+        // Establish user profile first, then set currentUser to avoid page-level race conditions
+        const profile = await fetchProfileWithRetry(session.user.id, session.user);
+        if (!isMounted) return;
+
+        if (profile) {
+          setUserData(profile);
+        }
         const authUser = formatAuthUser(session.user);
         setCurrentUser(authUser);
-        await fetchProfile(session.user.id, session.user);
-        if (isMounted) {
-          setLoading(false);
-        }
+
+        sessionStorage.removeItem('pm_oauth_in_progress');
+        localStorage.removeItem('pm_oauth_in_progress');
+        setLoading(false);
       } else {
-        // If an OAuth exchange is actively taking place in URL, don't clear until exchange completes or times out
-        const stillHasCode = typeof window !== 'undefined' && (
-          new URL(window.location.href).searchParams.has('code') || 
-          window.location.hash.includes('access_token=')
-        );
-        if (!stillHasCode) {
+        if (event === 'SIGNED_OUT') {
+          sessionStorage.removeItem('pm_oauth_in_progress');
+          localStorage.removeItem('pm_oauth_in_progress');
           setCurrentUser(null);
           setUserData(null);
           if (isMounted) {
             setLoading(false);
+          }
+        } else if (event === 'INITIAL_SESSION') {
+          // If OAuth PKCE exchange is in flight, do NOT clear state or set loading false
+          const oauthActive = checkOAuthInProgress();
+          if (!oauthActive) {
+            setCurrentUser(null);
+            setUserData(null);
+            if (isMounted) {
+              setLoading(false);
+            }
+          }
+        } else {
+          const oauthActive = checkOAuthInProgress();
+          if (!oauthActive) {
+            setCurrentUser(null);
+            setUserData(null);
+            if (isMounted) {
+              setLoading(false);
+            }
           }
         }
       }
@@ -198,22 +295,43 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (!isMounted) return;
 
         if (session?.user) {
+          if (isEmailUnconfirmed(session.user)) {
+            await supabase.auth.signOut();
+            if (isMounted) {
+              setCurrentUser(null);
+              setUserData(null);
+              sessionStorage.removeItem('pm_oauth_in_progress');
+              localStorage.removeItem('pm_oauth_in_progress');
+              setLoading(false);
+            }
+            return;
+          }
+
+          const profile = await fetchProfileWithRetry(session.user.id, session.user);
+          if (!isMounted) return;
+
+          if (profile) {
+            setUserData(profile);
+          }
           const authUser = formatAuthUser(session.user);
           setCurrentUser(authUser);
-          await fetchProfile(session.user.id, session.user);
-          if (isMounted) {
-            setLoading(false);
-          }
-        } else if (!hasCode) {
-          setCurrentUser(null);
-          setUserData(null);
-          if (isMounted) {
-            setLoading(false);
+
+          sessionStorage.removeItem('pm_oauth_in_progress');
+          localStorage.removeItem('pm_oauth_in_progress');
+          setLoading(false);
+        } else {
+          const oauthActive = checkOAuthInProgress();
+          if (!oauthActive) {
+            setCurrentUser(null);
+            setUserData(null);
+            if (isMounted) {
+              setLoading(false);
+            }
           }
         }
       } catch (err) {
         console.error('Error initializing auth session:', err);
-        if (isMounted && !hasCode) {
+        if (isMounted && !checkOAuthInProgress()) {
           setLoading(false);
         }
       }
@@ -221,15 +339,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     initSession();
 
-    // Safety fallback: if OAuth code was in URL but exchange somehow stalled, ensure loading unblocks
+    // Safety fallback: if OAuth exchange was initiated but somehow stalled, unblock loading
     let fallbackTimer: ReturnType<typeof setTimeout> | null = null;
-    if (hasCode) {
+    if (isOAuthInitially) {
       fallbackTimer = setTimeout(() => {
         if (isMounted) {
-          console.warn('[AuthContext] OAuth callback resolution safety timeout reached');
+          console.warn('[AuthContext] OAuth resolution safety timeout reached');
+          sessionStorage.removeItem('pm_oauth_in_progress');
+          localStorage.removeItem('pm_oauth_in_progress');
           setLoading(false);
         }
-      }, 6000);
+      }, 7000);
     }
 
     return () => {
@@ -244,6 +364,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       sessionStorage.setItem('pm_auth_redirect', targetRedirect);
       localStorage.setItem('pm_auth_redirect', targetRedirect);
     }
+    sessionStorage.setItem('pm_oauth_in_progress', 'true');
+    localStorage.setItem('pm_oauth_in_progress', 'true');
+
     const redirectUrl = `${window.location.origin}/`;
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
@@ -251,19 +374,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         redirectTo: redirectUrl
       }
     });
-    if (error) throw error;
+    if (error) {
+      sessionStorage.removeItem('pm_oauth_in_progress');
+      localStorage.removeItem('pm_oauth_in_progress');
+      throw error;
+    }
   };
 
   const loginWithEmail = async (email: string, pass: string) => {
     const { data, error } = await supabase.auth.signInWithPassword({
-      email,
+      email: email.trim().toLowerCase(),
       password: pass
     });
     if (error) throw error;
     if (data.user) {
+      // Disallow unverified email accounts from logging in
+      if (isEmailUnconfirmed(data.user)) {
+        await supabase.auth.signOut();
+        throw new Error('Please verify your email before signing in. Check your inbox for the 6-digit verification code.');
+      }
+
+      const profile = await fetchProfileWithRetry(data.user.id, data.user);
+      if (profile) {
+        setUserData(profile);
+      }
       const authUser = formatAuthUser(data.user);
       setCurrentUser(authUser);
-      await fetchProfile(data.user.id, data.user);
     }
   };
 
@@ -284,7 +420,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const emailRedirectTo = `${origin}/`;
 
     const { data, error } = await supabase.auth.signUp({
-      email,
+      email: email.trim().toLowerCase(),
       password: pass,
       options: {
         emailRedirectTo,
@@ -299,37 +435,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     });
     if (error) throw error;
-    if (data.session && data.user) {
-      const authUser = formatAuthUser(data.user);
-      setCurrentUser(authUser);
-      await createUserProfile(data.user.id, {
-        email,
-        displayName: name,
-        photoURL: '',
-        college: studentDetails?.college,
-        course: studentDetails?.course,
-        yearOfStudy: studentDetails?.yearOfStudy,
-        branch: studentDetails?.branch
-      });
-      return { needsEmailVerification: false, user: data.user };
-    } else if (data.user && !data.session) {
-      // If email confirmation is enabled, insert profile directly or allow on trigger
-      try {
-        await createUserProfile(data.user.id, {
-          email,
-          displayName: name,
-          photoURL: '',
-          college: studentDetails?.college,
-          course: studentDetails?.course,
-          yearOfStudy: studentDetails?.yearOfStudy,
-          branch: studentDetails?.branch
-        });
-      } catch {
-        // Ignore potential duplicate or permission edge case
-      }
-      return { needsEmailVerification: true, user: data.user };
+
+    // Under no circumstances should newly registered email accounts be signed in before OTP verification
+    if (data.session) {
+      await supabase.auth.signOut();
     }
-    return { needsEmailVerification: false, user: data.user };
+    setCurrentUser(null);
+    setUserData(null);
+
+    return { needsEmailVerification: true, user: data.user };
   };
 
   const verifySignupOtp = async (
@@ -349,23 +463,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       type: 'signup'
     });
     if (error) throw error;
+
     if (data.user) {
+      const profile = await fetchProfileWithRetry(data.user.id, data.user, {
+        college: studentDetails?.college,
+        course: studentDetails?.course,
+        yearOfStudy: studentDetails?.yearOfStudy,
+        branch: studentDetails?.branch,
+        name: name || data.user.user_metadata?.full_name
+      });
+      if (profile) {
+        setUserData(profile);
+      }
       const authUser = formatAuthUser(data.user);
       setCurrentUser(authUser);
-      try {
-        await createUserProfile(data.user.id, {
-          email: data.user.email || email,
-          displayName: name || data.user.user_metadata?.full_name || 'Pixel Builder',
-          photoURL: '',
-          college: studentDetails?.college || data.user.user_metadata?.college,
-          course: studentDetails?.course || data.user.user_metadata?.course,
-          yearOfStudy: studentDetails?.yearOfStudy || data.user.user_metadata?.year_of_study,
-          branch: studentDetails?.branch || data.user.user_metadata?.branch
-        });
-      } catch (profileErr) {
-        console.warn('[verifySignupOtp] Profile creation note:', profileErr);
-      }
-      await fetchProfile(data.user.id, data.user);
     }
     return data as { user: any; session: any };
   };
