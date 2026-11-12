@@ -283,7 +283,7 @@ function getSidebarActiveIndex(items: NavItemDef[], pathname: string, search: st
   return -1;
 }
 
-export const SidebarGooeyNav: React.FC = () => {
+export const SidebarGooeyNav: React.FC<{ collapsed?: boolean }> = ({ collapsed = false }) => {
   const location = useLocation();
 
   const allItems = useMemo<NavItemDef[]>(() => {
@@ -860,13 +860,14 @@ export const SidebarGooeyNav: React.FC = () => {
             >
               <Link
                 to={item.to}
+                title={item.label}
                 aria-current={activeIndex === i ? 'page' : undefined}
-                className={`flex items-center gap-3.5 px-3.5 py-2 xl:py-2.5 rounded-2xl text-xs font-bold transition w-full select-none whitespace-nowrap ${activeIndex === i ? 'text-white' : 'text-slate-900 dark:text-slate-100 hover:text-blue-600 dark:hover:text-white hover:bg-slate-100/80 dark:hover:bg-white/10'}`}
+                className={`flex items-center ${collapsed ? 'justify-center px-1' : 'gap-3.5 px-3.5'} py-2 xl:py-2.5 rounded-2xl text-xs font-bold transition w-full select-none whitespace-nowrap ${activeIndex === i ? 'text-white' : 'text-slate-900 dark:text-slate-100 hover:text-blue-600 dark:hover:text-white hover:bg-slate-100/80 dark:hover:bg-white/10'}`}
               >
                 <span className="w-5 flex items-center justify-center shrink-0">
                   <item.icon size={17} className="text-slate-700 dark:text-slate-300" />
                 </span>
-                <span className="truncate">{item.label}</span>
+                {!collapsed && <span className="truncate">{item.label}</span>}
               </Link>
             </li>
           ))}
@@ -884,13 +885,14 @@ export const SidebarGooeyNav: React.FC = () => {
               >
                 <Link
                   to={item.to}
+                  title={item.label}
                   aria-current={activeIndex === globalIndex ? 'page' : undefined}
-                  className={`flex items-center gap-3.5 px-3.5 py-2 xl:py-2.5 rounded-2xl text-xs font-bold transition w-full select-none whitespace-nowrap ${activeIndex === globalIndex ? 'text-white' : 'text-slate-900 dark:text-slate-100 hover:text-blue-600 dark:hover:text-white hover:bg-slate-100/80 dark:hover:bg-white/10'}`}
+                  className={`flex items-center ${collapsed ? 'justify-center px-1' : 'gap-3.5 px-3.5'} py-2 xl:py-2.5 rounded-2xl text-xs font-bold transition w-full select-none whitespace-nowrap ${activeIndex === globalIndex ? 'text-white' : 'text-slate-900 dark:text-slate-100 hover:text-blue-600 dark:hover:text-white hover:bg-slate-100/80 dark:hover:bg-white/10'}`}
                 >
                   <span className="w-5 flex items-center justify-center shrink-0">
                     <item.icon size={17} className="text-slate-700 dark:text-slate-300" />
                   </span>
-                  <span className="truncate">{item.label}</span>
+                  {!collapsed && <span className="truncate">{item.label}</span>}
                 </Link>
               </li>
             );
@@ -909,13 +911,14 @@ export const SidebarGooeyNav: React.FC = () => {
               >
                 <Link
                   to={item.to}
+                  title={item.label}
                   aria-current={activeIndex === globalIndex ? 'page' : undefined}
-                  className={`flex items-center gap-3.5 px-3.5 py-2 xl:py-2.5 rounded-2xl text-xs font-bold transition w-full select-none whitespace-nowrap ${activeIndex === globalIndex ? 'text-white' : 'text-slate-900 dark:text-slate-100 hover:text-blue-600 dark:hover:text-white hover:bg-slate-100/80 dark:hover:bg-white/10'}`}
+                  className={`flex items-center ${collapsed ? 'justify-center px-1' : 'gap-3.5 px-3.5'} py-2 xl:py-2.5 rounded-2xl text-xs font-bold transition w-full select-none whitespace-nowrap ${activeIndex === globalIndex ? 'text-white' : 'text-slate-900 dark:text-slate-100 hover:text-blue-600 dark:hover:text-white hover:bg-slate-100/80 dark:hover:bg-white/10'}`}
                 >
                   <span className="w-5 flex items-center justify-center shrink-0">
                     <item.icon size={17} className="text-slate-700 dark:text-slate-300" />
                   </span>
-                  <span className="truncate">{item.label}</span>
+                  {!collapsed && <span className="truncate">{item.label}</span>}
                 </Link>
               </li>
             );
@@ -926,11 +929,11 @@ export const SidebarGooeyNav: React.FC = () => {
         <ul ref={overlayRef} className="gooey-nav__list gooey-nav__list--active" aria-hidden="true">
           {PRIMARY_ITEMS.map(item => (
             <li key={item.to} className="gooey-nav__item">
-              <div className="flex items-center gap-3.5 px-3.5 py-2 xl:py-2.5 rounded-2xl text-xs font-bold w-full select-none text-white whitespace-nowrap">
+              <div className={`flex items-center ${collapsed ? 'justify-center px-1' : 'gap-3.5 px-3.5'} py-2 xl:py-2.5 rounded-2xl text-xs font-bold w-full select-none text-white whitespace-nowrap`}>
                 <span className="w-5 flex items-center justify-center shrink-0">
                   <item.icon size={17} className="text-white" />
                 </span>
-                <span className="text-white truncate">{item.label}</span>
+                {!collapsed && <span className="text-white truncate">{item.label}</span>}
               </div>
             </li>
           ))}
@@ -939,11 +942,11 @@ export const SidebarGooeyNav: React.FC = () => {
 
           {SECONDARY_ITEMS.map(item => (
             <li key={item.to} className="gooey-nav__item">
-              <div className="flex items-center gap-3.5 px-3.5 py-2 xl:py-2.5 rounded-2xl text-xs font-bold w-full select-none text-white whitespace-nowrap">
+              <div className={`flex items-center ${collapsed ? 'justify-center px-1' : 'gap-3.5 px-3.5'} py-2 xl:py-2.5 rounded-2xl text-xs font-bold w-full select-none text-white whitespace-nowrap`}>
                 <span className="w-5 flex items-center justify-center shrink-0">
                   <item.icon size={17} className="text-white" />
                 </span>
-                <span className="text-white truncate">{item.label}</span>
+                {!collapsed && <span className="text-white truncate">{item.label}</span>}
               </div>
             </li>
           ))}
@@ -952,11 +955,11 @@ export const SidebarGooeyNav: React.FC = () => {
 
           {SUPPORT_ITEMS.map(item => (
             <li key={item.to} className="gooey-nav__item">
-              <div className="flex items-center gap-3.5 px-3.5 py-2 xl:py-2.5 rounded-2xl text-xs font-bold w-full select-none text-white whitespace-nowrap">
+              <div className={`flex items-center ${collapsed ? 'justify-center px-1' : 'gap-3.5 px-3.5'} py-2 xl:py-2.5 rounded-2xl text-xs font-bold w-full select-none text-white whitespace-nowrap`}>
                 <span className="w-5 flex items-center justify-center shrink-0">
                   <item.icon size={17} className="text-white" />
                 </span>
-                <span className="text-white truncate">{item.label}</span>
+                {!collapsed && <span className="text-white truncate">{item.label}</span>}
               </div>
             </li>
           ))}

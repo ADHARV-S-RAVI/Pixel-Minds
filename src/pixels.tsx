@@ -635,8 +635,9 @@ export function Leaderboard() {
           <div className="max-h-[580px] sm:max-h-[640px] overflow-y-auto pr-1.5 space-y-2.5 rounded-2xl pm-scrollbar">
             <ul className="space-y-2.5">
               {leaderboardUsers.map((u, i) => {
-                const ui = tierInfo(u.pixels);
-                const me = user?.uid && u.id === user.uid;
+                const me = Boolean(user?.uid && u.id === user.uid);
+                const effectivePixels = me ? (userProfile?.pixels ?? u.pixels) : u.pixels;
+                const ui = tierInfo(effectivePixels);
                 const top = i < 3;
                 return (
                   <li
@@ -678,7 +679,7 @@ export function Leaderboard() {
                         </p>
                         <span className="hidden sm:inline">
                           <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full border bg-slate-100 border-slate-200/80 text-slate-600">
-                            {rankOf(u.pixels)}
+                            {rankOf(effectivePixels)}
                           </span>
                         </span>
                       </div>
@@ -689,7 +690,7 @@ export function Leaderboard() {
 
                     <div className="text-right">
                       <p className="text-sm font-black text-blue-600">
-                        <Count n={u.pixels} />
+                        <Count n={effectivePixels} />
                       </p>
                       <div className="text-[10px] font-semibold text-slate-400">
                         Pixels

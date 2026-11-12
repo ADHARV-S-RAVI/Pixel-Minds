@@ -291,10 +291,15 @@ export type Database = {
           user_id: string;
           author_name: string;
           author_role: string;
+          title: string;
+          description: string;
           text: string;
           category: string | null;
           likes: number;
           comments: number;
+          reposts: number;
+          shares: number;
+          bookmarks_count: number;
           opportunity_id: string | null;
           link: string | null;
           image_url: string | null;
@@ -309,10 +314,15 @@ export type Database = {
           user_id: string;
           author_name: string;
           author_role?: string;
+          title?: string;
+          description?: string;
           text: string;
           category?: string | null;
           likes?: number;
           comments?: number;
+          reposts?: number;
+          shares?: number;
+          bookmarks_count?: number;
           opportunity_id?: string | null;
           link?: string | null;
           image_url?: string | null;
@@ -327,10 +337,15 @@ export type Database = {
           user_id?: string;
           author_name?: string;
           author_role?: string;
+          title?: string;
+          description?: string;
           text?: string;
           category?: string | null;
           likes?: number;
           comments?: number;
+          reposts?: number;
+          shares?: number;
+          bookmarks_count?: number;
           opportunity_id?: string | null;
           link?: string | null;
           image_url?: string | null;
@@ -372,6 +387,7 @@ export type Database = {
           author_role: string;
           author_avatar: string | null;
           text: string;
+          likes: number;
           created_at: string;
         };
         Insert: {
@@ -382,6 +398,7 @@ export type Database = {
           author_role?: string;
           author_avatar?: string | null;
           text: string;
+          likes?: number;
           created_at?: string;
         };
         Update: {
@@ -392,6 +409,76 @@ export type Database = {
           author_role?: string;
           author_avatar?: string | null;
           text?: string;
+          likes?: number;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      community_comment_likes: {
+        Row: {
+          id: string;
+          comment_id: string;
+          user_id: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          comment_id: string;
+          user_id: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          comment_id?: string;
+          user_id?: string;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      community_interactions: {
+        Row: {
+          id: string;
+          post_id: string;
+          user_id: string;
+          interaction_type: 'repost' | 'share';
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          post_id: string;
+          user_id: string;
+          interaction_type: 'repost' | 'share';
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          post_id?: string;
+          user_id?: string;
+          interaction_type?: 'repost' | 'share';
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      user_bookmarks: {
+        Row: {
+          id: string;
+          user_id: string;
+          target_id: string;
+          target_type: 'post' | 'opportunity';
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          target_id: string;
+          target_type?: 'post' | 'opportunity';
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          target_id?: string;
+          target_type?: 'post' | 'opportunity';
           created_at?: string;
         };
         Relationships: [];

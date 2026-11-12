@@ -79,6 +79,8 @@ export { getCommunityPosts } from './community';
 export const createAdminCommunityPost = async (
   adminUser: { uid: string; email: string; displayName?: string },
   postData: {
+    title?: string;
+    description?: string;
     text: string;
     category?: string;
     opp?: string | number;
