@@ -51,16 +51,68 @@ export const getUserProfile = async (uid: string): Promise<User | null> => {
 };
 
 /**
+ * Generate a deterministic, clean fallback username from email or display name
+ */
+export const generateFallbackUsername = (email?: string, name?: string): string => {
+  let base = '';
+  if (email && email.includes('@')) {
+    base = email.split('@')[0].toLowerCase().replace(/[^a-zA-Z0-9_]/g, '_');
+  }
+  if (!base || base.length < 3) {
+    if (name) {
+      base = name.toLowerCase().replace(/[^a-zA-Z0-9_]/g, '_');
+    }
+  }
+  if (!base || base.length < 3) {
+    base = 'pixel_builder';
+  }
+  base = base.replace(/_{2,}/g, '_').replace(/^_+|_+$/g, '');
+  if (base.length > 15) {
+    base = base.substring(0, 15);
+  }
+  if (base.length < 3) {
+    base = (base + '_pm').substring(0, 15);
+  }
+  return base;
+};
+
+/**
+ * Generate a unique username by verifying against database / RPC
+ */
+export const generateUniqueUsername = async (email?: string, name?: string): Promise<string> => {
+  const base = generateFallbackUsername(email, name);
+  try {
+    const check = await checkUsernameAvailable(base);
+    if (check.available) return base;
+  } catch {}
+
+  // Try random 3-4 digit suffixes
+  for (let i = 0; i < 5; i++) {
+    const randomSuffix = Math.floor(100 + Math.random() * 900);
+    const candidate = `${base.substring(0, 14)}_${randomSuffix}`;
+    try {
+      const check = await checkUsernameAvailable(candidate);
+      if (check.available) return candidate;
+    } catch {}
+  }
+
+  return `${base.substring(0, 12)}_${Date.now().toString().slice(-4)}`;
+};
+
+/**
  * Create or ensure user profile exists in Supabase
  */
 export const createUserProfile = async (uid: string, data: Partial<User>): Promise<User> => {
   const referralId = 'PM-' + Math.random().toString(36).substring(2, 8).toUpperCase();
-  
-  const insertPayload = {
+  const chosenUsername = data.username
+    ? data.username.toLowerCase().trim()
+    : generateFallbackUsername(data.email, data.displayName);
+
+  const insertPayload: any = {
     id: uid,
     email: data.email || '',
     full_name: data.displayName || 'New User',
-    username: data.username ? data.username.toLowerCase().trim() : null,
+    username: chosenUsername,
     avatar_url: data.photoURL || '',
     role: 'user' as const, // Strict enforcement: only 'user' on signup
     pixels: 0,
@@ -72,9 +124,19 @@ export const createUserProfile = async (uid: string, data: Partial<User>): Promi
     branch: data.branch || null
   };
 
-  const { error } = await supabase
+  let { error } = await supabase
     .from('profiles')
     .upsert(insertPayload, { onConflict: 'id' });
+
+  // Schema cache resilience: if 'username' column is not in PostgREST schema cache yet
+  if (error && (error.message?.includes("'username'") || (error as any).code === 'PGRST204')) {
+    console.warn('[createUserProfile] Schema cache does not have username column yet, retrying without username');
+    delete insertPayload.username;
+    const retry = await supabase
+      .from('profiles')
+      .upsert(insertPayload, { onConflict: 'id' });
+    error = retry.error;
+  }
 
   if (error) {
     console.warn('Profile upsert note (trigger might have handled it):', error.message);
@@ -104,6 +166,7 @@ export const createUserProfile = async (uid: string, data: Partial<User>): Promi
     id: uid,
     email: data.email || '',
     displayName: data.displayName || 'New User',
+    username: insertPayload.username || undefined,
     photoURL: data.photoURL || '',
     role: 'user',
     pixels: 0,
@@ -147,10 +210,25 @@ export const updateUserProfile = async (uid: string, data: Partial<User>): Promi
 
   if (Object.keys(updates).length === 0) return;
 
-  const { error } = await supabase
+  let { error } = await supabase
     .from('profiles')
     .update(updates)
     .eq('id', uid);
+
+  // Schema cache resilience: if 'username' column is not in PostgREST schema cache yet
+  if (error && (error.message?.includes("'username'") || (error as any).code === 'PGRST204') && updates.username !== undefined) {
+    console.warn('[updateUserProfile] Schema cache does not have username column yet, retrying without username');
+    delete updates.username;
+    if (Object.keys(updates).length > 0) {
+      const retry = await supabase
+        .from('profiles')
+        .update(updates)
+        .eq('id', uid);
+      error = retry.error;
+    } else {
+      error = null;
+    }
+  }
 
   if (error) {
     console.error('Error updating profile:', error.message);
@@ -205,6 +283,10 @@ export const checkUsernameAvailable = async (
 
     const { data, error } = await query.maybeSingle();
     if (error && error.code !== 'PGRST116') {
+      if (error.message?.includes("'username'") || (error as any).code === 'PGRST204') {
+        console.warn('[checkUsernameAvailable] Schema cache does not have username column yet, assuming available');
+        return { available: true };
+      }
       console.warn('[checkUsernameAvailable] Query note:', error.message);
     }
 

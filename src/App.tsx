@@ -13,7 +13,6 @@ import { AdminRoute } from './components/AdminRoute';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { Analytics } from '@vercel/analytics/react';
 import { ReferralOnboardingModal } from './components/ReferralOnboardingModal';
-import { UsernameOnboardingModal } from './components/UsernameOnboardingModal';
 import { useAuth } from './contexts/AuthContext';
 
 export default function App() {
@@ -35,7 +34,6 @@ export default function App() {
     <ErrorBoundary>
       <Analytics />
       <ReferralOnboardingModal />
-      <UsernameOnboardingModal />
       <Routes>
         <Route element={<Layout />}>
           {/* Public Routes */}

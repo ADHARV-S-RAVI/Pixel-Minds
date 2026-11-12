@@ -2,7 +2,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import type { User as SupabaseAuthUser } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
 import type { User } from '../types';
-import { getUserProfile, createUserProfile, updateUserProfile } from '../services/users';
+import { getUserProfile, createUserProfile, updateUserProfile, generateUniqueUsername } from '../services/users';
 
 // User interface bridging Supabase Auth User with legacy uid/id properties
 export interface AuthUser extends SupabaseAuthUser {
@@ -135,9 +135,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       try {
         const profile = await getUserProfile(uid);
         if (profile) {
-          // If profile exists but username is missing, and we have an extra username, update it
-          if (!profile.username && (extraDetails?.username || authUser?.user_metadata?.username)) {
-            const u = (extraDetails?.username || authUser?.user_metadata?.username || '').toLowerCase().trim();
+          // If profile exists but username is missing, assign or auto-generate fallback without modal
+          if (!profile.username) {
+            const desired = (extraDetails?.username || authUser?.user_metadata?.username || '').toLowerCase().trim();
+            const u = desired || (await generateUniqueUsername(authUser?.email, profile.displayName));
             if (u) {
               await updateUserProfile(uid, { username: u }).catch(() => {});
               profile.username = u;
@@ -157,10 +158,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Fallback: If DB trigger hasn't populated profile yet, attempt client-side creation
     if (authUser) {
       try {
+        const desired = (extraDetails?.username || authUser.user_metadata?.username || '').toLowerCase().trim();
+        const autoUsername = desired || (await generateUniqueUsername(authUser.email, extraDetails?.name || authUser.user_metadata?.full_name));
+
         const profile = await createUserProfile(uid, {
           email: authUser.email || '',
           displayName: extraDetails?.name || authUser.user_metadata?.full_name || authUser.user_metadata?.name || 'Pixel Builder',
-          username: (extraDetails?.username || authUser.user_metadata?.username || '').toLowerCase().trim() || undefined,
+          username: autoUsername || undefined,
           photoURL: authUser.user_metadata?.avatar_url || authUser.user_metadata?.picture || '',
           college: extraDetails?.college || authUser.user_metadata?.college,
           course: extraDetails?.course || authUser.user_metadata?.course,
