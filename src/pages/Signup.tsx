@@ -15,10 +15,18 @@ import { useAuth } from '../contexts/AuthContext';
 import { PixelMark } from '../components/PixelMark';
 import { OtpInput } from '../components/OtpInput';
 import { validateReferralCode, recordReferralSignup } from '../services/referrals';
+import { checkUsernameAvailable } from '../services/users';
 import { COURSE_OPTIONS, getBranchesForCourse } from '../data/academicOptions';
 
 export function Signup() {
   const [name, setName] = useState('');
+  const [username, setUsername] = useState('');
+  const [usernameStatus, setUsernameStatus] = useState<{
+    checking: boolean;
+    valid: boolean;
+    available: boolean;
+    message: string;
+  } | null>(null);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -76,6 +84,68 @@ export function Signup() {
     }, 1000);
     return () => clearInterval(interval);
   }, [resendCooldown]);
+
+  // Username validation & live availability debounce
+  useEffect(() => {
+    const raw = username.trim().toLowerCase();
+    if (!raw) {
+      setUsernameStatus(null);
+      return;
+    }
+
+    if (raw.length < 3) {
+      setUsernameStatus({
+        checking: false,
+        valid: false,
+        available: false,
+        message: 'Username must be at least 3 characters.'
+      });
+      return;
+    }
+
+    if (raw.length > 20) {
+      setUsernameStatus({
+        checking: false,
+        valid: false,
+        available: false,
+        message: 'Username cannot exceed 20 characters.'
+      });
+      return;
+    }
+
+    if (!/^[a-zA-Z0-9_]{3,20}$/.test(raw)) {
+      setUsernameStatus({
+        checking: false,
+        valid: false,
+        available: false,
+        message: 'Only letters, numbers, and underscores allowed.'
+      });
+      return;
+    }
+
+    setUsernameStatus({ checking: true, valid: true, available: false, message: 'Checking availability...' });
+
+    const timer = setTimeout(async () => {
+      try {
+        const res = await checkUsernameAvailable(raw);
+        setUsernameStatus({
+          checking: false,
+          valid: res.available,
+          available: res.available,
+          message: res.available ? `@${raw} is available` : (res.error || 'Username already taken.')
+        });
+      } catch {
+        setUsernameStatus({
+          checking: false,
+          valid: false,
+          available: false,
+          message: 'Error checking username.'
+        });
+      }
+    }, 350);
+
+    return () => clearTimeout(timer);
+  }, [username]);
 
   // Automatically redirect if user is already authenticated (unless waiting on OTP verification)
   useEffect(() => {
@@ -156,6 +226,22 @@ export function Signup() {
     setError('');
     setSuccessMsg('');
 
+    const cleanUsername = username.trim().toLowerCase();
+    if (!cleanUsername) {
+      setError('Please choose a username.');
+      return;
+    }
+
+    if (!/^[a-zA-Z0-9_]{3,20}$/.test(cleanUsername)) {
+      setError('Username must be 3-20 characters: letters, numbers, and underscores only.');
+      return;
+    }
+
+    if (usernameStatus && !usernameStatus.available && !usernameStatus.checking) {
+      setError(usernameStatus.message || 'Please choose an available username.');
+      return;
+    }
+
     if (password.length < 6) {
       setError('Password should be at least 6 characters.');
       return;
@@ -200,7 +286,7 @@ export function Signup() {
         ? customBranch.trim()
         : selectedBranch.trim();
 
-      await signupWithEmail(email, password, name, {
+      await signupWithEmail(email, password, name, cleanUsername, {
         college: college.trim(),
         course: finalCourse,
         yearOfStudy: yearOfStudy.trim(),
@@ -256,7 +342,8 @@ export function Signup() {
         ? customBranch.trim()
         : selectedBranch.trim();
 
-      const verified = await verifySignupOtp(email, token, name, {
+      const cleanUsername = username.trim().toLowerCase();
+      const verified = await verifySignupOtp(email, token, name, cleanUsername, {
         college: college.trim(),
         course: finalCourse,
         yearOfStudy: yearOfStudy.trim(),
@@ -504,7 +591,56 @@ export function Signup() {
               />
             </div>
 
-            {/* 2. Email Address */}
+            {/* 2. Unique Username */}
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <label htmlFor="username" className="block text-xs font-semibold text-slate-300 uppercase tracking-wider">
+                  Username <span className="text-rose-400">*</span>
+                </label>
+                <span className="text-[11px] text-slate-400">Letters, numbers, underscores (3-20 chars)</span>
+              </div>
+              <div className="relative">
+                <span className="absolute left-3.5 top-2.5 text-slate-400 font-semibold text-xs sm:text-sm">@</span>
+                <input
+                  id="username"
+                  name="username"
+                  type="text"
+                  required
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/[^a-zA-Z0-9_]/g, ''))}
+                  className={`block w-full pl-8 pr-10 py-2.5 bg-[#0B1628]/70 border ${
+                    usernameStatus
+                      ? usernameStatus.available
+                        ? 'border-emerald-500/80 focus:border-emerald-400 focus:ring-emerald-400'
+                        : 'border-rose-500/80 focus:border-rose-400 focus:ring-rose-400'
+                      : 'border-slate-700/80 focus:border-sky-400 focus:ring-sky-400'
+                  } rounded-xl text-xs sm:text-sm text-white placeholder-slate-400 focus:outline-none focus:ring-1 transition-all`}
+                  placeholder="pixel_builder"
+                  maxLength={20}
+                />
+                {usernameStatus?.checking && (
+                  <div className="absolute right-3 top-3">
+                    <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-slate-400/30 border-t-sky-400" />
+                  </div>
+                )}
+                {usernameStatus && !usernameStatus.checking && (
+                  <div className="absolute right-3 top-2.5">
+                    {usernameStatus.available ? (
+                      <CheckCircle2 size={16} className="text-emerald-400" />
+                    ) : (
+                      <AlertCircle size={16} className="text-rose-400" />
+                    )}
+                  </div>
+                )}
+              </div>
+              {usernameStatus && (
+                <p className={`mt-1 text-[11px] font-medium ${usernameStatus.available ? 'text-emerald-400' : 'text-rose-400'}`}>
+                  {usernameStatus.message}
+                </p>
+              )}
+            </div>
+
+            {/* 3. Email Address */}
             <div>
               <label htmlFor="email" className="block text-xs font-semibold text-slate-300 mb-1.5 uppercase tracking-wider">
                 Email address <span className="text-rose-400">*</span>

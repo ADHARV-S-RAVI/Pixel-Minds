@@ -14,6 +14,7 @@ export type Database = {
           id: string;
           email: string;
           full_name: string | null;
+          username: string | null;
           avatar_url: string | null;
           bio: string | null;
           role: 'user' | 'admin';
@@ -37,6 +38,7 @@ export type Database = {
           id: string;
           email: string;
           full_name?: string | null;
+          username?: string | null;
           avatar_url?: string | null;
           bio?: string | null;
           role?: 'user' | 'admin';
@@ -60,6 +62,7 @@ export type Database = {
           id?: string;
           email?: string;
           full_name?: string | null;
+          username?: string | null;
           avatar_url?: string | null;
           bio?: string | null;
           role?: 'user' | 'admin';
@@ -815,6 +818,25 @@ export type Database = {
       increment_opportunity_apply_clicks: {
         Args: { opp_id: string };
         Returns: undefined;
+      };
+      check_username_available: {
+        Args: {
+          p_username: string;
+          p_exclude_user_id?: string | null;
+        };
+        Returns: boolean;
+      };
+      search_usernames_for_mention: {
+        Args: {
+          prefix: string;
+          p_limit?: number;
+        };
+        Returns: {
+          id: string;
+          username: string;
+          full_name: string | null;
+          avatar_url: string | null;
+        }[];
       };
       send_notification_rpc: {
         Args: {

@@ -242,7 +242,7 @@ export const createCommunityPost = async (
   }
 
   // Dispatch mention notifications asynchronously for @mentions in post
-  handleContentMentions(fullText, data.id, payload.author_name, 'post').catch((err) => {
+  handleContentMentions(fullText, data.id, payload.author_name, 'post', payload.author_id).catch((err) => {
     console.warn('[createCommunityPost] Mention dispatch notice:', err);
   });
 
@@ -577,7 +577,7 @@ export const addPostComment = async (
       };
 
       // Dispatch mention notifications asynchronously for @mentions in comment
-      handleContentMentions(cleanText, postId, author.name, 'comment').catch(() => {});
+      handleContentMentions(cleanText, postId, author.name, 'comment', author.id).catch(() => {});
 
       return commentRes;
     }
@@ -615,7 +615,7 @@ export const addPostComment = async (
         .eq('id', postId);
 
       // Dispatch mention notifications
-      handleContentMentions(cleanText, postId, author.name, 'comment').catch(() => {});
+      handleContentMentions(cleanText, postId, author.name, 'comment', author.id).catch(() => {});
 
       return {
         id: inserted.id,
@@ -908,33 +908,51 @@ export const getUserBookmarks = async (userId: string): Promise<string[]> => {
 };
 
 /**
- * Detect mentions in content and dispatch notifications to mentioned users
+ * Detect mentions in content and dispatch notifications to mentioned users.
+ * Strictly uses unique usernames, ignores email addresses, and prevents self-notifications.
  */
 export const handleContentMentions = async (
   content: string,
   postId: string,
   actorName: string,
-  contextType: 'post' | 'comment' = 'post'
+  contextType: 'post' | 'comment' = 'post',
+  actorId?: string
 ): Promise<void> => {
   if (!content || !postId) return;
 
-  // Extract unique @usernames (letters, numbers, underscores)
-  const matches = content.match(/@([a-zA-Z0-9_-]{2,30})/g);
+  // Protect against parsing email addresses as mentions
+  // Extract tokens that look like emails or mentions
+  const tokenRegex = /([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}|@[a-zA-Z0-9_]{3,20}\b)/g;
+  const matches = content.match(tokenRegex);
   if (!matches || matches.length === 0) return;
 
-  const usernames = Array.from(new Set(matches.map((m) => m.slice(1).trim().toLowerCase())));
+  // Filter for valid mentions only (excluding emails)
+  const validUsernames: string[] = [];
+  for (const token of matches) {
+    if (token.startsWith('@') && !token.includes('.')) {
+      const u = token.slice(1).trim().toLowerCase();
+      if (/^[a-zA-Z0-9_]{3,20}$/.test(u)) {
+        validUsernames.push(u);
+      }
+    }
+  }
 
-  for (const username of usernames) {
+  const uniqueUsernames = Array.from(new Set(validUsernames));
+  if (uniqueUsernames.length === 0) return;
+
+  for (const username of uniqueUsernames) {
     try {
-      // Find matching user profile by username / full_name / email prefix
+      // Find matching active user profile by unique username
       const { data: matchedProfiles } = await supabase
         .from('profiles')
-        .select('id, full_name, email')
-        .or(`full_name.ilike.%${username}%,email.ilike.${username}@%`)
+        .select('id, username, full_name')
+        .ilike('username', username)
+        .eq('is_suspended', false)
         .limit(1);
 
       const targetUser = matchedProfiles?.[0];
-      if (targetUser && targetUser.id) {
+      // Do not notify self or missing accounts
+      if (targetUser && targetUser.id && targetUser.id !== actorId) {
         // Try RPC first
         try {
           await (supabase.rpc as any)('dispatch_mention_notification', {
@@ -949,7 +967,7 @@ export const handleContentMentions = async (
           const { data: notif } = await supabase
             .from('notifications')
             .insert({
-              title: `${actorName} mentioned you`,
+              title: `${actorName} mentioned you in a ${contextType}`,
               message: `"${content.substring(0, 100)}"`,
               type: 'community',
               link: `/feed#${postId}`

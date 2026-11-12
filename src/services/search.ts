@@ -4,6 +4,7 @@ export interface SearchResults {
   people: Array<{
     id: string;
     displayName: string;
+    username?: string;
     avatarUrl?: string;
     role: string;
     bio?: string;
@@ -45,9 +46,9 @@ export const searchGlobal = async (
       // 1. Search People (Only active, non-suspended, public profile fields)
       supabase
         .from('profiles')
-        .select('id, full_name, avatar_url, role, bio')
+        .select('id, full_name, username, avatar_url, role, bio')
         .eq('is_suspended', false)
-        .ilike('full_name', `%${clean}%`)
+        .or(`full_name.ilike.%${clean}%,username.ilike.%${clean}%`)
         .limit(limitPerCategory),
 
       // 2. Search Published Opportunities
@@ -70,6 +71,7 @@ export const searchGlobal = async (
     const people = (peopleRes.data || []).map((p: any) => ({
       id: p.id,
       displayName: p.full_name || 'Pixel Builder',
+      username: p.username || undefined,
       avatarUrl: p.avatar_url || undefined,
       role: p.role || 'user',
       bio: p.bio || undefined

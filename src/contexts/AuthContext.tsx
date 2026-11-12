@@ -2,7 +2,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import type { User as SupabaseAuthUser } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
 import type { User } from '../types';
-import { getUserProfile, createUserProfile } from '../services/users';
+import { getUserProfile, createUserProfile, updateUserProfile } from '../services/users';
 
 // User interface bridging Supabase Auth User with legacy uid/id properties
 export interface AuthUser extends SupabaseAuthUser {
@@ -23,6 +23,7 @@ export interface AuthContextType {
     email: string,
     pass: string,
     name: string,
+    username?: string,
     studentDetails?: {
       college?: string;
       course?: string;
@@ -34,6 +35,7 @@ export interface AuthContextType {
     email: string,
     token: string,
     name?: string,
+    username?: string,
     studentDetails?: {
       college?: string;
       course?: string;
@@ -125,6 +127,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       yearOfStudy?: string;
       branch?: string;
       name?: string;
+      username?: string;
     },
     maxAttempts = 3
   ): Promise<User | null> => {
@@ -132,6 +135,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       try {
         const profile = await getUserProfile(uid);
         if (profile) {
+          // If profile exists but username is missing, and we have an extra username, update it
+          if (!profile.username && (extraDetails?.username || authUser?.user_metadata?.username)) {
+            const u = (extraDetails?.username || authUser?.user_metadata?.username || '').toLowerCase().trim();
+            if (u) {
+              await updateUserProfile(uid, { username: u }).catch(() => {});
+              profile.username = u;
+            }
+          }
           await handleReferralAttribution(uid, authUser);
           return profile;
         }
@@ -149,6 +160,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const profile = await createUserProfile(uid, {
           email: authUser.email || '',
           displayName: extraDetails?.name || authUser.user_metadata?.full_name || authUser.user_metadata?.name || 'Pixel Builder',
+          username: (extraDetails?.username || authUser.user_metadata?.username || '').toLowerCase().trim() || undefined,
           photoURL: authUser.user_metadata?.avatar_url || authUser.user_metadata?.picture || '',
           college: extraDetails?.college || authUser.user_metadata?.college,
           course: extraDetails?.course || authUser.user_metadata?.course,
@@ -407,6 +419,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     email: string,
     pass: string,
     name: string,
+    username?: string,
     studentDetails?: {
       college?: string;
       course?: string;
@@ -418,6 +431,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       ? window.location.origin
       : 'https://pixelmindss.vercel.app';
     const emailRedirectTo = `${origin}/`;
+    const cleanUsername = username ? username.toLowerCase().trim() : undefined;
 
     const { data, error } = await supabase.auth.signUp({
       email: email.trim().toLowerCase(),
@@ -427,6 +441,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         data: {
           full_name: name,
           name: name,
+          username: cleanUsername,
           college: studentDetails?.college || '',
           course: studentDetails?.course || '',
           year_of_study: studentDetails?.yearOfStudy || '',
@@ -450,6 +465,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     email: string,
     token: string,
     name?: string,
+    username?: string,
     studentDetails?: {
       college?: string;
       course?: string;
@@ -465,12 +481,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (error) throw error;
 
     if (data.user) {
+      const cleanUsername = username ? username.toLowerCase().trim() : undefined;
       const profile = await fetchProfileWithRetry(data.user.id, data.user, {
         college: studentDetails?.college,
         course: studentDetails?.course,
         yearOfStudy: studentDetails?.yearOfStudy,
         branch: studentDetails?.branch,
-        name: name || data.user.user_metadata?.full_name
+        name: name || data.user.user_metadata?.full_name,
+        username: cleanUsername || data.user.user_metadata?.username
       });
       if (profile) {
         setUserData(profile);

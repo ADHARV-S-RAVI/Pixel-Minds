@@ -101,7 +101,7 @@ import {
   validateOpportunityDates,
   getOpportunityDeadlineInfo
 } from './utils/dateUtils';
-import { updateUserProfile, getUserProfile, getLeaderboardUsers, getUserGlobalRank, type LeaderboardUserEntry } from './services/users';
+import { updateUserProfile, getUserProfile, getUserProfileByUsername, getLeaderboardUsers, getUserGlobalRank, type LeaderboardUserEntry } from './services/users';
 import { getRecentPlatformActivities, type RecentActivityItem } from './services/activity';
 import { getUserCommunityPosts } from './services/community';
 import {
@@ -1473,6 +1473,9 @@ export function Feed() {
           />
         </div>
         <p className="mt-2.5 font-['Outfit',sans-serif] font-bold text-[#0e1b33] text-sm">{userName}</p>
+        {userProfile?.username && (
+          <p className="text-[11px] font-semibold text-blue-600">@{userProfile.username}</p>
+        )}
         <p className="text-xs text-blue-600 font-bold flex items-center gap-1.5 mt-0.5">
           <IconBadge size={13} className="text-blue-500" />
           {rankOf(pixels)}
@@ -1762,32 +1765,54 @@ export function Profile() {
   // Target User check for viewing other user's public profile
   const targetUid = searchParams.get('uid');
   const targetName = searchParams.get('name');
-  const isViewingOtherUser = Boolean(targetUid && (!user || targetUid !== user.uid));
+  const targetUsername = searchParams.get('u') || searchParams.get('username');
+  const isViewingOtherUser = Boolean(
+    (targetUid && (!user || targetUid !== user.uid)) ||
+    (targetUsername && (!userProfile?.username || targetUsername.toLowerCase() !== userProfile.username.toLowerCase()))
+  );
 
   const [otherUser, setOtherUser] = useState<UserType | null>(null);
   const [otherUserPosts, setOtherUserPosts] = useState<CommunityPost[]>([]);
   const [loadingOtherUser, setLoadingOtherUser] = useState(false);
+  const [otherUserNotFound, setOtherUserNotFound] = useState(false);
 
   useEffect(() => {
-    if (isViewingOtherUser && targetUid) {
+    if (isViewingOtherUser) {
       setLoadingOtherUser(true);
-      Promise.all([
-        getUserProfile(targetUid),
-        getUserCommunityPosts(targetUid)
-      ])
-        .then(([profile, posts]) => {
+      setOtherUserNotFound(false);
+
+      const resolveProfile = async () => {
+        try {
+          let profile: UserType | null = null;
+          if (targetUsername) {
+            profile = await getUserProfileByUsername(targetUsername);
+          } else if (targetUid) {
+            profile = await getUserProfile(targetUid);
+          }
+
+          if (!profile) {
+            setOtherUser(null);
+            setOtherUserPosts([]);
+            setOtherUserNotFound(true);
+            return;
+          }
+
           setOtherUser(profile);
+          const posts = await getUserCommunityPosts(profile.id);
           setOtherUserPosts(posts || []);
-        })
-        .catch((err) => {
+        } catch (err) {
           console.error('Failed to load user profile or posts:', err);
+          setOtherUser(null);
           setOtherUserPosts([]);
-        })
-        .finally(() => {
+          setOtherUserNotFound(true);
+        } finally {
           setLoadingOtherUser(false);
-        });
+        }
+      };
+
+      resolveProfile();
     }
-  }, [isViewingOtherUser, targetUid, targetName]);
+  }, [isViewingOtherUser, targetUid, targetUsername, targetName]);
 
   // Sync inputs when userProfile loads
   useEffect(() => {
@@ -1891,6 +1916,31 @@ export function Profile() {
   };
 
   if (isViewingOtherUser) {
+    if (otherUserNotFound) {
+      return (
+        <W className="max-w-4xl py-12 space-y-6">
+          <div className="flex items-center justify-start">
+            <Link
+              to="/feed"
+              className="inline-flex items-center gap-2 rounded-xl bg-black/[0.04] hover:bg-black/[0.08] px-4 py-2 text-xs font-bold text-[#16171D] transition"
+            >
+              <ArrowLeft size={14} />
+              <span>Back to Community Feed</span>
+            </Link>
+          </div>
+          <Card className="p-12 pm-glass-card bg-white/85 backdrop-blur-xl border border-white/90 shadow-sm text-center space-y-3">
+            <div className="h-14 w-14 rounded-full bg-slate-100 flex items-center justify-center mx-auto text-slate-400">
+              <AlertCircle size={28} />
+            </div>
+            <h2 className="text-xl font-bold text-[#16171D] font-['Outfit',sans-serif]">User Not Found</h2>
+            <p className="text-xs text-slate-500 max-w-sm mx-auto">
+              The user profile ({targetUsername ? `@${targetUsername}` : 'this member'}) does not exist or has been suspended.
+            </p>
+          </Card>
+        </W>
+      );
+    }
+
     const profileName = otherUser?.displayName || targetName || 'Community Member';
     const profileRole = otherUser?.role === 'admin' ? 'Community Admin' : 'Pixel Member';
     const profileBio = otherUser?.bio || 'Active hackathon participant and builder in the Pixel Minds community.';
@@ -1945,6 +1995,9 @@ export function Profile() {
                     {profileRole}
                   </span>
                 </div>
+                {otherUser?.username && (
+                  <p className="text-xs font-bold text-sky-600 mt-1">@{otherUser.username}</p>
+                )}
                 <p className="mt-1.5 max-w-xl text-xs leading-relaxed text-[#5D574F]">
                   {profileBio}
                 </p>
@@ -2070,7 +2123,14 @@ export function Profile() {
 
           <div className="mt-4 flex flex-wrap items-start justify-between gap-4">
             <div>
-              <h1 className="font-['Outfit',sans-serif] text-2xl font-extrabold text-[#16171D] sm:text-3xl">{userName}</h1>
+              <div className="flex items-center gap-2.5 flex-wrap">
+                <h1 className="font-['Outfit',sans-serif] text-2xl font-extrabold text-[#16171D] sm:text-3xl">{userName}</h1>
+                {userProfile?.username && (
+                  <span className="text-xs font-bold text-sky-600 bg-sky-50 dark:bg-sky-950/40 px-2.5 py-0.5 rounded-full border border-sky-200/60">
+                    @{userProfile.username}
+                  </span>
+                )}
+              </div>
               {editing ? (
                 <div className="mt-2.5 flex gap-2 max-w-md">
                   <input
