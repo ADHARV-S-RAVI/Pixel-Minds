@@ -68,7 +68,18 @@ export const searchGlobal = async (
         .limit(limitPerCategory)
     ]);
 
-    const people = (peopleRes.data || []).map((p: any) => ({
+    let rawPeople: any[] | null = peopleRes.data;
+    if (peopleRes.error && (peopleRes.error.message?.includes("'username'") || (peopleRes.error as any).code === 'PGRST204')) {
+      const fallback = await supabase
+        .from('profiles')
+        .select('id, full_name, avatar_url, role, bio')
+        .eq('is_suspended', false)
+        .ilike('full_name', `%${clean}%`)
+        .limit(limitPerCategory);
+      rawPeople = fallback.data;
+    }
+
+    const people = (rawPeople || []).map((p: any) => ({
       id: p.id,
       displayName: p.full_name || 'Pixel Builder',
       username: p.username || undefined,

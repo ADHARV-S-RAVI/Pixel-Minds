@@ -8,7 +8,9 @@ import {
   AlertCircle,
   RotateCw,
   Eye,
-  EyeOff
+  EyeOff,
+  Sparkles,
+  X
 } from 'lucide-react';
 import { Card, Btn } from '../ui';
 import { useAuth } from '../contexts/AuthContext';
@@ -42,6 +44,16 @@ export function Settings() {
   const [branchInput, setBranchInput] = useState(userProfile?.branch || '');
   const [customBranchInput, setCustomBranchInput] = useState('');
   const [savingSettings, setSavingSettings] = useState(false);
+  const [showUsernameSuggestion, setShowUsernameSuggestion] = useState(false);
+
+  useEffect(() => {
+    if (user?.uid) {
+      const dismissed = localStorage.getItem(`pm_dismiss_username_tip_${user.uid}`);
+      if (!dismissed) {
+        setShowUsernameSuggestion(true);
+      }
+    }
+  }, [user?.uid]);
 
   // OTP-Protected Change password state
   const [pwdStep, setPwdStep] = useState<'init' | 'otp' | 'new_password'>('init');
@@ -330,6 +342,31 @@ export function Settings() {
             <GraduationCap size={16} className="text-[#C5A059]" />
             Profile &amp; Academic Information
           </h2>
+
+          {showUsernameSuggestion && (
+            <div className="mb-4 rounded-xl border border-sky-200/80 bg-sky-50/80 p-3 text-xs text-sky-950 flex items-start justify-between gap-3 shadow-2xs">
+              <div className="flex items-start gap-2.5">
+                <Sparkles size={16} className="text-sky-600 shrink-0 mt-0.5" />
+                <div className="leading-relaxed">
+                  <span className="font-bold text-sky-900">Profile Tip:</span> Your public handle is{' '}
+                  <span className="font-bold text-[#C5A059]">@{usernameInput || userProfile?.username || 'handle'}</span>.
+                  You can personalize your unique username below anytime so members can easily mention you in posts and comments.
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowUsernameSuggestion(false);
+                  if (user?.uid) localStorage.setItem(`pm_dismiss_username_tip_${user.uid}`, 'true');
+                }}
+                className="text-sky-400 hover:text-sky-700 p-0.5 rounded transition cursor-pointer shrink-0"
+                title="Dismiss suggestion"
+              >
+                <X size={15} />
+              </button>
+            </div>
+          )}
+
           <form onSubmit={handleSaveAllSettings} className="space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>

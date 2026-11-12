@@ -182,11 +182,29 @@ BEGIN
     v_username := NULL;
   END IF;
 
-  -- Ensure uniqueness if provided, else keep NULL for onboarding modal prompt
+  -- If username is provided, ensure uniqueness; if not (e.g. Google OAuth signups), auto-generate fallback
   IF v_username IS NOT NULL THEN
     v_candidate := v_username;
     WHILE EXISTS (SELECT 1 FROM public.profiles WHERE LOWER(username) = LOWER(v_candidate)) LOOP
       v_candidate := substring(v_username from 1 for 15) || '_' || v_suffix;
+      v_suffix := v_suffix + 1;
+    END LOOP;
+    v_username := v_candidate;
+  ELSE
+    -- Auto-generate clean, unique handle for Google signups and external OAuth accounts
+    v_candidate := LOWER(REGEXP_REPLACE(SPLIT_PART(NEW.email, '@', 1), '[^a-zA-Z0-9_]', '_', 'g'));
+    IF v_candidate IS NULL OR length(v_candidate) < 3 THEN
+      v_candidate := LOWER(REGEXP_REPLACE(COALESCE(NEW.raw_user_meta_data->>'full_name', NEW.raw_user_meta_data->>'name', 'builder'), '[^a-zA-Z0-9_]', '_', 'g'));
+    END IF;
+    IF v_candidate IS NULL OR length(v_candidate) < 3 THEN
+      v_candidate := 'user_' || LOWER(SUBSTRING(MD5(RANDOM()::TEXT) FROM 1 FOR 6));
+    END IF;
+    IF length(v_candidate) > 15 THEN
+      v_candidate := SUBSTRING(v_candidate FROM 1 FOR 15);
+    END IF;
+
+    WHILE EXISTS (SELECT 1 FROM public.profiles WHERE LOWER(username) = LOWER(v_candidate)) LOOP
+      v_candidate := SUBSTRING(v_candidate FROM 1 FOR 14) || '_' || v_suffix;
       v_suffix := v_suffix + 1;
     END LOOP;
     v_username := v_candidate;
@@ -229,4 +247,7 @@ BEGIN
   RETURN NEW;
 END;
 $$;
+
+-- 8. Notify PostgREST to immediately refresh its OpenAPI schema cache
+NOTIFY pgrst, 'reload schema';
 
