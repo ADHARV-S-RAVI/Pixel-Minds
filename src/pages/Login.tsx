@@ -43,8 +43,8 @@ export function Login() {
         msg.toLowerCase().includes('invalid email or password')
       ) {
         setError('Incorrect email or password.');
-      } else if (msg.toLowerCase().includes('email not confirmed')) {
-        setError('Please check your inbox to confirm your email before signing in.');
+      } else if (msg.toLowerCase().includes('email not confirmed') || msg.toLowerCase().includes('verify your email')) {
+        setError('Please verify your email before signing in. Check your inbox for the 6-digit verification code.');
       } else {
         setError(msg || 'Unable to sign in. Please try again.');
       }

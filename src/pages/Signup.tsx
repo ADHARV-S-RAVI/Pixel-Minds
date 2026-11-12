@@ -77,15 +77,16 @@ export function Signup() {
     return () => clearInterval(interval);
   }, [resendCooldown]);
 
-  // Automatically redirect if user is already authenticated
+  // Automatically redirect if user is already authenticated (unless waiting on OTP verification)
   useEffect(() => {
+    if (step === 'otp') return;
     if (!authLoading && user) {
       const target = sessionStorage.getItem('pm_auth_redirect') || localStorage.getItem('pm_auth_redirect') || redirect || '/';
       sessionStorage.removeItem('pm_auth_redirect');
       localStorage.removeItem('pm_auth_redirect');
       navigate(target, { replace: true });
     }
-  }, [user, authLoading, navigate, redirect]);
+  }, [user, authLoading, navigate, redirect, step]);
 
   // Auto-detect and populate referral code from URL or persisted storage
   useEffect(() => {
@@ -199,32 +200,19 @@ export function Signup() {
         ? customBranch.trim()
         : selectedBranch.trim();
 
-      const result = await signupWithEmail(email, password, name, {
+      await signupWithEmail(email, password, name, {
         college: college.trim(),
         course: finalCourse,
         yearOfStudy: yearOfStudy.trim(),
         branch: finalBranch
       });
 
-      if (result?.needsEmailVerification) {
-        setStep('otp');
-        setOtp('');
-        setResendCooldown(60);
-        setError('');
-        setSuccessMsg(`We have sent a 6-digit verification code to ${email}.`);
-        return;
-      }
-
-      // If user session was immediately established and referral was verified, record it
-      if (user?.id && activeReferral && referralStatus?.valid) {
-        try {
-          await recordReferralSignup(activeReferral, user.id);
-        } catch (refErr) {
-          console.warn('[Signup] Referral record note:', refErr);
-        }
-      }
-
-      navigate(redirect);
+      // Email registration strictly requires OTP verification
+      setStep('otp');
+      setOtp('');
+      setResendCooldown(60);
+      setError('');
+      setSuccessMsg(`We have sent a 6-digit verification code to ${email}. Please check your inbox and spam folder.`);
     } catch (err: any) {
       const msg = err.message || '';
       if (
@@ -297,7 +285,10 @@ export function Signup() {
         }
       }
 
-      navigate(redirect);
+      const target = sessionStorage.getItem('pm_auth_redirect') || localStorage.getItem('pm_auth_redirect') || redirect || '/';
+      sessionStorage.removeItem('pm_auth_redirect');
+      localStorage.removeItem('pm_auth_redirect');
+      navigate(target, { replace: true });
     } catch (err: any) {
       const msg = err?.message || '';
       if (msg.toLowerCase().includes('expired')) {
