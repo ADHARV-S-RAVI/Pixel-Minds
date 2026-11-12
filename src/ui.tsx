@@ -494,19 +494,19 @@ export const Composer: FC<{ onPostCreated?: (p: any) => void; isModal?: boolean 
     { id: 'General', label: 'General', icon: IconMessage }
   ] as const;
 
-  // Search people for @mentions as the user types
+  // Search people for @mentions as the user types using unique usernames
   const handleTextChange = async (val: string, cursorPos: number) => {
     setT(val);
     setMentionCursorPos(cursorPos);
     const textBeforeCursor = val.slice(0, cursorPos);
-    const mentionMatch = textBeforeCursor.match(/@([a-zA-Z0-9_\-\.]*)$/);
+    const mentionMatch = textBeforeCursor.match(/@([a-zA-Z0-9_]*)$/);
     if (mentionMatch) {
       const q = mentionMatch[1];
       setMentionQuery(q);
       try {
-        const { globalSearch } = await import('./services/search');
-        const res = await globalSearch(q || 'a', 5);
-        setMentionSuggestions(res.people || []);
+        const { searchUsernamesForMention } = await import('./services/users');
+        const res = await searchUsernamesForMention(q, 5);
+        setMentionSuggestions(res || []);
       } catch {
         setMentionSuggestions([]);
       }
@@ -517,11 +517,10 @@ export const Composer: FC<{ onPostCreated?: (p: any) => void; isModal?: boolean 
   };
 
   const selectMention = (person: any) => {
-    const rawName = person.name || person.displayName || 'user';
-    const cleanUsername = rawName.replace(/\s+/g, '_').toLowerCase();
+    const cleanUsername = person.username || (person.displayName ? person.displayName.replace(/\s+/g, '_').toLowerCase() : 'user');
     const textBeforeCursor = t.slice(0, mentionCursorPos);
     const textAfterCursor = t.slice(mentionCursorPos);
-    const replacedBefore = textBeforeCursor.replace(/@([a-zA-Z0-9_\-\.]*)$/, `@${cleanUsername} `);
+    const replacedBefore = textBeforeCursor.replace(/@([a-zA-Z0-9_]*)$/, `@${cleanUsername} `);
     setT(replacedBefore + textAfterCursor);
     setMentionQuery(null);
     setMentionSuggestions([]);
@@ -846,10 +845,10 @@ export const Composer: FC<{ onPostCreated?: (p: any) => void; isModal?: boolean 
                         onClick={() => selectMention(person)}
                         className="w-full text-left px-2 py-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center gap-2 transition cursor-pointer"
                       >
-                        <Avatar name={person.name} photoURL={person.avatar} size={22} />
+                        <Avatar name={person.displayName || person.name} photoURL={person.avatar} size={22} />
                         <div className="truncate">
-                          <p className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">{person.name}</p>
-                          <p className="text-[10px] text-slate-500 truncate">@{person.name.replace(/\s+/g, '_').toLowerCase()}</p>
+                          <p className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">{person.displayName || person.name}</p>
+                          <p className="text-[10px] text-slate-500 truncate">@{person.username || (person.displayName || person.name).replace(/\s+/g, '_').toLowerCase()}</p>
                         </div>
                       </button>
                     ))}
@@ -995,6 +994,40 @@ export const PostCard: FC<{ p: any; onPostDeleted?: (id: string) => void; onPost
   });
   const [commentText, setCommentText] = useState('');
   const [submittingComment, setSubmittingComment] = useState(false);
+  const [commentMentionSuggestions, setCommentMentionSuggestions] = useState<any[]>([]);
+  const [commentMentionQuery, setCommentMentionQuery] = useState<string | null>(null);
+  const [commentMentionCursorPos, setCommentMentionCursorPos] = useState<number>(0);
+
+  const handleCommentTextChange = async (val: string, cursorPos: number) => {
+    setCommentText(val);
+    setCommentMentionCursorPos(cursorPos);
+    const textBeforeCursor = val.slice(0, cursorPos);
+    const mentionMatch = textBeforeCursor.match(/@([a-zA-Z0-9_]*)$/);
+    if (mentionMatch) {
+      const q = mentionMatch[1];
+      setCommentMentionQuery(q);
+      try {
+        const { searchUsernamesForMention } = await import('./services/users');
+        const res = await searchUsernamesForMention(q, 5);
+        setCommentMentionSuggestions(res || []);
+      } catch {
+        setCommentMentionSuggestions([]);
+      }
+    } else {
+      setCommentMentionQuery(null);
+      setCommentMentionSuggestions([]);
+    }
+  };
+
+  const selectCommentMention = (person: any) => {
+    const cleanUsername = person.username || (person.displayName ? person.displayName.replace(/\s+/g, '_').toLowerCase() : 'user');
+    const textBeforeCursor = commentText.slice(0, commentMentionCursorPos);
+    const textAfterCursor = commentText.slice(commentMentionCursorPos);
+    const replacedBefore = textBeforeCursor.replace(/@([a-zA-Z0-9_]*)$/, `@${cleanUsername} `);
+    setCommentText(replacedBefore + textAfterCursor);
+    setCommentMentionQuery(null);
+    setCommentMentionSuggestions([]);
+  };
 
   useEffect(() => {
     if (open) {
@@ -1093,6 +1126,8 @@ export const PostCard: FC<{ p: any; onPostDeleted?: (id: string) => void; onPost
       const updated = [...comments, created];
       setComments(updated);
       setCommentText('');
+      setCommentMentionQuery(null);
+      setCommentMentionSuggestions([]);
       localStorage.setItem(`pm_post_comments_${p.id}`, JSON.stringify(updated));
       incrementPixels?.(2);
       say('Comment posted (+2 Pixels)');
@@ -1908,29 +1943,54 @@ export const PostCard: FC<{ p: any; onPostDeleted?: (id: string) => void; onPost
             )}
           </div>
 
-          <div className="flex gap-2 items-center">
-            <Avatar name={currentUserName} photoURL={userProfile?.photoURL || user?.photoURL || undefined} size={30} />
-            <input
-              value={commentText}
-              onChange={(e) => setCommentText(e.target.value)}
-              onFocus={() => {
-                if (!user) {
-                  setAuthActionText('join this discussion and post comments');
-                  setShowAuthModal(true);
-                }
-              }}
-              onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleSendComment()}
-              placeholder={user ? "Add a comment to this discussion…" : "Sign in to add a comment…"}
-              className="min-w-0 flex-1 rounded-full bg-white/70 dark:bg-slate-800/70 border border-white/80 dark:border-slate-700 px-4 py-2 text-xs outline-none focus:border-blue-500 text-[#0e1b33] dark:text-white placeholder-slate-400"
-            />
-            <button
-              onClick={handleSendComment}
-              disabled={!commentText.trim() || submittingComment}
-              className="grid h-8 w-8 place-items-center rounded-full bg-[#112240] text-white font-bold disabled:opacity-40 transition cursor-pointer shrink-0 hover:bg-[#1a335e]"
-              title="Post comment"
-            >
-              <IconSend size={13} />
-            </button>
+          <div className="relative">
+            {/* @mention autocomplete popup for comments */}
+            {commentMentionQuery !== null && commentMentionSuggestions.length > 0 && (
+              <div className="absolute left-0 bottom-full mb-1 w-64 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-200 dark:border-slate-700 p-1.5 z-50">
+                <p className="text-[10px] font-bold text-slate-400 px-2 py-1 uppercase tracking-wider">Mention People</p>
+                <div className="space-y-0.5 max-h-40 overflow-y-auto">
+                  {commentMentionSuggestions.map((person) => (
+                    <button
+                      key={person.id}
+                      type="button"
+                      onClick={() => selectCommentMention(person)}
+                      className="w-full text-left px-2 py-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center gap-2 transition cursor-pointer"
+                    >
+                      <Avatar name={person.displayName || person.name} photoURL={person.avatar} size={22} />
+                      <div className="truncate">
+                        <p className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">{person.displayName || person.name}</p>
+                        <p className="text-[10px] text-slate-500 truncate">@{person.username || (person.displayName || person.name).replace(/\s+/g, '_').toLowerCase()}</p>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div className="flex gap-2 items-center">
+              <Avatar name={currentUserName} photoURL={userProfile?.photoURL || user?.photoURL || undefined} size={30} />
+              <input
+                value={commentText}
+                onChange={(e) => handleCommentTextChange(e.target.value, e.target.selectionStart || e.target.value.length)}
+                onFocus={() => {
+                  if (!user) {
+                    setAuthActionText('join this discussion and post comments');
+                    setShowAuthModal(true);
+                  }
+                }}
+                onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleSendComment()}
+                placeholder={user ? "Add a comment to this discussion… (type @ to mention)" : "Sign in to add a comment…"}
+                className="min-w-0 flex-1 rounded-full bg-white/70 dark:bg-slate-800/70 border border-white/80 dark:border-slate-700 px-4 py-2 text-xs outline-none focus:border-blue-500 text-[#0e1b33] dark:text-white placeholder-slate-400"
+              />
+              <button
+                onClick={handleSendComment}
+                disabled={!commentText.trim() || submittingComment}
+                className="grid h-8 w-8 place-items-center rounded-full bg-[#112240] text-white font-bold disabled:opacity-40 transition cursor-pointer shrink-0 hover:bg-[#1a335e]"
+                title="Post comment"
+              >
+                <IconSend size={13} />
+              </button>
+            </div>
           </div>
         </div>
       )}

@@ -5,6 +5,7 @@ export interface User {
   id: string;
   email: string;
   displayName: string;
+  username?: string;
   photoURL?: string;
   role: Role;
   pixels: number;

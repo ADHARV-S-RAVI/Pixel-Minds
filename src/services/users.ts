@@ -26,6 +26,7 @@ export const getUserProfile = async (uid: string): Promise<User | null> => {
       id: data.id,
       email: data.email,
       displayName: data.full_name || 'Pixel Builder',
+      username: data.username || undefined,
       photoURL: data.avatar_url || '',
       role: data.role || 'user',
       pixels: data.pixels || 0,
@@ -59,6 +60,7 @@ export const createUserProfile = async (uid: string, data: Partial<User>): Promi
     id: uid,
     email: data.email || '',
     full_name: data.displayName || 'New User',
+    username: data.username ? data.username.toLowerCase().trim() : null,
     avatar_url: data.photoURL || '',
     role: 'user' as const, // Strict enforcement: only 'user' on signup
     pixels: 0,
@@ -126,6 +128,7 @@ export const createUserProfile = async (uid: string, data: Partial<User>): Promi
 export const updateUserProfile = async (uid: string, data: Partial<User>): Promise<void> => {
   const updates: {
     full_name?: string | null;
+    username?: string | null;
     avatar_url?: string | null;
     bio?: string | null;
     college?: string | null;
@@ -134,6 +137,7 @@ export const updateUserProfile = async (uid: string, data: Partial<User>): Promi
     branch?: string | null;
   } = {};
   if (data.displayName !== undefined) updates.full_name = data.displayName;
+  if (data.username !== undefined) updates.username = data.username ? data.username.toLowerCase().trim() : null;
   if (data.photoURL !== undefined) updates.avatar_url = data.photoURL;
   if (data.bio !== undefined) updates.bio = data.bio;
   if (data.college !== undefined) updates.college = data.college;
@@ -151,6 +155,156 @@ export const updateUserProfile = async (uid: string, data: Partial<User>): Promi
   if (error) {
     console.error('Error updating profile:', error.message);
     throw error;
+  }
+};
+
+/**
+ * Validate and check unique username availability
+ */
+export const checkUsernameAvailable = async (
+  username: string,
+  excludeUserId?: string
+): Promise<{ available: boolean; error?: string }> => {
+  const normalized = (username || '').toLowerCase().trim();
+  if (!normalized) {
+    return { available: false, error: 'Username is required.' };
+  }
+  if (normalized.length < 3) {
+    return { available: false, error: 'Username must be at least 3 characters.' };
+  }
+  if (normalized.length > 20) {
+    return { available: false, error: 'Username cannot exceed 20 characters.' };
+  }
+  if (!/^[a-zA-Z0-9_]{3,20}$/.test(normalized)) {
+    return { available: false, error: 'Only letters, numbers, and underscores allowed.' };
+  }
+
+  // 1. Try RPC check_username_available
+  try {
+    const { data: rpcData, error: rpcError } = await (supabase.rpc as any)('check_username_available', {
+      p_username: normalized,
+      p_exclude_user_id: excludeUserId || null
+    });
+    if (!rpcError && rpcData && typeof rpcData.available === 'boolean') {
+      return rpcData;
+    }
+  } catch {
+    // Fallback to direct table check
+  }
+
+  // 2. Direct database query fallback
+  try {
+    let query = supabase
+      .from('profiles')
+      .select('id')
+      .ilike('username', normalized);
+
+    if (excludeUserId) {
+      query = query.neq('id', excludeUserId);
+    }
+
+    const { data, error } = await query.maybeSingle();
+    if (error && error.code !== 'PGRST116') {
+      console.warn('[checkUsernameAvailable] Query note:', error.message);
+    }
+
+    if (data) {
+      return { available: false, error: 'This username is already taken.' };
+    }
+    return { available: true };
+  } catch (err: any) {
+    return { available: false, error: err?.message || 'Error checking username availability.' };
+  }
+};
+
+/**
+ * Fetch public user profile by unique username
+ */
+export const getUserProfileByUsername = async (username: string): Promise<User | null> => {
+  if (!username) return null;
+  const clean = username.replace(/^@/, '').toLowerCase().trim();
+  try {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('*')
+      .ilike('username', clean)
+      .eq('is_suspended', false)
+      .maybeSingle();
+
+    if (error || !data) return null;
+
+    return {
+      id: data.id,
+      email: data.email,
+      displayName: data.full_name || 'Pixel Builder',
+      username: data.username || undefined,
+      photoURL: data.avatar_url || '',
+      role: data.role || 'user',
+      pixels: data.pixels || 0,
+      status: data.is_suspended ? 'suspended' : 'active',
+      bio: data.bio || '',
+      opportunitiesShared: data.opportunities_shared || 0,
+      approvedSubmissions: data.approved_submissions || 0,
+      referrals: data.referrals || 0,
+      contributions: data.contributions || 0,
+      badges: data.badges || [],
+      referralId: data.referral_id || '',
+      college: data.college || '',
+      course: data.course || '',
+      yearOfStudy: data.year_of_study || '',
+      branch: data.branch || '',
+      createdAt: new Date(data.created_at).getTime()
+    };
+  } catch {
+    return null;
+  }
+};
+
+/**
+ * Real-time username mention search for @ tagging in posts and comments
+ */
+export const searchUsernamesForMention = async (
+  query: string,
+  limit = 5
+): Promise<Array<{ id: string; username: string; displayName: string; photoURL?: string }>> => {
+  const clean = (query || '').replace(/^@/, '').toLowerCase().trim();
+
+  // Try RPC search_usernames_for_mention
+  try {
+    const { data: rpcData, error: rpcError } = await (supabase.rpc as any)('search_usernames_for_mention', {
+      p_query: clean,
+      p_limit: limit
+    });
+    if (!rpcError && Array.isArray(rpcData) && rpcData.length > 0) {
+      return rpcData.map((u: any) => ({
+        id: u.id,
+        username: u.username || '',
+        displayName: u.full_name || 'Pixel Member',
+        photoURL: u.avatar_url || undefined
+      }));
+    }
+  } catch {}
+
+  // Direct table query fallback
+  try {
+    let dbQuery = supabase
+      .from('profiles')
+      .select('id, username, full_name, avatar_url')
+      .eq('is_suspended', false);
+
+    if (clean) {
+      dbQuery = dbQuery.or(`username.ilike.%${clean}%,full_name.ilike.%${clean}%`);
+    }
+
+    const { data } = await dbQuery.limit(limit);
+    return (data || []).map((u: any) => ({
+      id: u.id,
+      username: u.username || (u.full_name ? u.full_name.replace(/\s+/g, '_').toLowerCase() : 'user'),
+      displayName: u.full_name || 'Pixel Member',
+      photoURL: u.avatar_url || undefined
+    }));
+  } catch {
+    return [];
   }
 };
 
