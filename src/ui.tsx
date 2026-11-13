@@ -581,7 +581,12 @@ export const Composer: FC<{ onPostCreated?: (p: any) => void; isModal?: boolean 
       setOid(0);
       setLnk('');
       setShowL(false);
-      incrementPixels?.(10);
+      incrementPixels?.(
+        10,
+        'Created Post (+10 Pixels)',
+        `Created community post: "${cleanTitle.substring(0, 50)}"`,
+        `feed_post_${newPost.id}`
+      );
       say(`Shared ${selectedCategory.toLowerCase()} with community (+10 Pixels)`);
     } catch (err: any) {
       console.error('Failed to create post:', err);
@@ -647,7 +652,12 @@ export const Composer: FC<{ onPostCreated?: (p: any) => void; isModal?: boolean 
       setHLink('');
       setHDesc('');
       setComposerMode('update');
-      incrementPixels?.(15);
+      incrementPixels?.(
+        15,
+        'Shared Hackathon (+15 Pixels)',
+        `Shared upcoming hackathon: "${cleanName.substring(0, 50)}"`,
+        `feed_hackathon_${newPost.id}`
+      );
       say('Upcoming hackathon shared with community! (+15 Pixels)');
     } catch (err: any) {
       console.error('Failed to share hackathon:', err);
@@ -1129,7 +1139,13 @@ export const PostCard: FC<{ p: any; onPostDeleted?: (id: string) => void; onPost
       setCommentMentionQuery(null);
       setCommentMentionSuggestions([]);
       localStorage.setItem(`pm_post_comments_${p.id}`, JSON.stringify(updated));
-      incrementPixels?.(2);
+      const postContext = p.title || p.text || 'Community Post';
+      incrementPixels?.(
+        2,
+        'Comment Posted (+2 Pixels)',
+        `Commented on discussion: "${postContext.substring(0, 50)}"`,
+        `feed_comment_made_${created.id}`
+      );
       say('Comment posted (+2 Pixels)');
     } catch (err) {
       console.warn('Could not sync comment to server:', err);

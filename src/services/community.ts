@@ -241,6 +241,15 @@ export const createCommunityPost = async (
     data = insertFallback.data;
   }
 
+  // Server-side atomic reward for post creation
+  try {
+    await (supabase.rpc as any)('reward_community_post_creation', {
+      p_post_id: data.id
+    });
+  } catch (rewardErr) {
+    console.warn('[createCommunityPost] Post creation reward notice:', rewardErr);
+  }
+
   // Dispatch mention notifications asynchronously for @mentions in post
   handleContentMentions(fullText, data.id, payload.author_name, 'post', payload.author_id).catch((err) => {
     console.warn('[createCommunityPost] Mention dispatch notice:', err);

@@ -1679,7 +1679,7 @@ export function Feed() {
 import { ReferralPanel as RP } from './pixels';
 
 export function Profile() {
-  const { userProfile, user, refreshProfile, incrementPixels } = useAuth();
+  const { userProfile, user, refreshProfile } = useAuth();
   const [searchParams] = useSearchParams();
   const location = useLocation();
   const [tab, setTab] = useState(location.pathname === '/applications' ? 'My Applications' : 'Posts');
@@ -1734,9 +1734,6 @@ export function Profile() {
       );
       say(res.message);
       if (res.success) {
-        if (incrementPixels && res.pixelsRewarded > 0) {
-          incrementPixels(res.pixelsRewarded);
-        }
         loadApplications();
         if (refreshProfile) await refreshProfile();
       }
@@ -1899,6 +1896,17 @@ export function Profile() {
       }).catch(() => {});
     }
   }, [user, searchParams]);
+
+  // Re-fetch transactions whenever the Transactions tab is selected
+  useEffect(() => {
+    if (user?.uid && tab === 'Transactions') {
+      getPixelTransactions(user.uid)
+        .then((txs) => {
+          setUserTransactions(txs);
+        })
+        .catch(() => {});
+    }
+  }, [user?.uid, tab]);
 
   const handleSaveBio = async () => {
     if (!user?.uid) return;

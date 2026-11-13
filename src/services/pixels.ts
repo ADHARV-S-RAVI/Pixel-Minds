@@ -129,8 +129,10 @@ export const getPixelTransactions = async (userId?: string): Promise<PixelTransa
       id: row.id,
       userId: row.user_id,
       amount: row.amount,
-      reason: row.reason || row.action,
+      action: row.action || undefined,
+      reason: row.reason && !row.reason.startsWith('feed_') ? row.reason : (row.action || 'Community activity reward'),
       type: row.type,
+      idempotencyKey: (row as any).idempotency_key || undefined,
       createdAt: new Date(row.created_at).getTime()
     }));
   } catch (err) {
@@ -143,54 +145,33 @@ export const getPixelTransactions = async (userId?: string): Promise<PixelTransa
  * Admin adjustment of user Pixels with mandatory reason and Supabase transaction logging
  */
 export const adjustUserPixels = async (
-  adminUser: { uid: string; email: string },
+  _adminUser: { uid: string; email: string },
   targetUserId: string,
   amount: number,
   reason: string
 ): Promise<void> => {
-  // 1. Check user exists
-  const { data: userProfile, error: profileErr } = await supabase
-    .from('profiles')
-    .select('id, pixels')
-    .eq('id', targetUserId)
-    .maybeSingle();
-
-  if (profileErr || !userProfile) {
-    throw new Error('User profile not found in Supabase');
+  const cleanReason = (reason || '').trim();
+  if (!cleanReason || cleanReason.length < 3) {
+    throw new Error('A meaningful adjustment reason is required (minimum 3 characters).');
   }
 
-  const oldBalance = userProfile.pixels || 0;
-  const newBalance = Math.max(0, oldBalance + amount);
+  if (amount === 0) {
+    throw new Error('Adjustment amount cannot be zero.');
+  }
 
-  // 2. Insert into immutable Supabase pixel_transactions ledger
-  const { error: txErr } = await supabase
-    .from('pixel_transactions')
-    .insert({
-      user_id: targetUserId,
-      amount,
-      action: amount >= 0 ? `Admin Award (+${amount} Pixels)` : `Admin Deduction (${amount} Pixels)`,
-      reason: reason || 'Admin adjustment',
-      type: 'adjustment',
-      admin_id: adminUser.uid
-    });
+  const { data, error } = await (supabase.rpc as any)('admin_adjust_user_pixels', {
+    p_target_user_id: targetUserId,
+    p_amount: amount,
+    p_reason: cleanReason
+  });
 
-  if (txErr) {
-    console.error('Failed to insert pixel_transaction:', txErr.message);
-    // If trigger didn't execute or failed, apply direct admin update
-    const { error: updateErr } = await supabase
-      .from('profiles')
-      .update({ pixels: newBalance, updated_at: new Date().toISOString() })
-      .eq('id', targetUserId);
+  if (error) {
+    console.error('Failed to adjust user Pixels via RPC:', error.message);
+    throw new Error(error.message);
+  }
 
-    if (updateErr) {
-      throw new Error(txErr.message || updateErr.message);
-    }
-  } else {
-    // Explicitly update profile pixels for immediate consistency
-    await supabase
-      .from('profiles')
-      .update({ pixels: newBalance, updated_at: new Date().toISOString() })
-      .eq('id', targetUserId);
+  if (!data?.success) {
+    throw new Error(data?.error || 'Failed to adjust user Pixels');
   }
 };
 

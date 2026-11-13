@@ -76,7 +76,9 @@ export interface PixelTransaction {
   userId: string;
   amount: number;
   reason: string;
+  action?: string;
   type: 'earn' | 'spend' | 'adjustment';
+  idempotencyKey?: string;
   createdAt: number;
 }
 

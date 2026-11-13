@@ -184,15 +184,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       const profile = await fetchProfileWithRetry(uid, authUser);
       if (profile) {
-        if (typeof window !== 'undefined') {
-          const storedLocal = localStorage.getItem(`pm_local_pixels_${uid}`);
-          if (storedLocal !== null) {
-            const parsed = parseInt(storedLocal, 10);
-            if (!isNaN(parsed) && parsed > (profile.pixels || 0)) {
-              profile.pixels = parsed;
-            }
-          }
-        }
         setUserData(profile);
       }
     } catch (err) {
@@ -632,65 +623,33 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
   }, [currentUser?.id]);
 
-  const incrementPixels = (delta: number, actionName?: string, reasonText?: string, idempotencyKey?: string) => {
+  const incrementPixels = (delta: number, _actionName?: string, _reasonText?: string, idempotencyKey?: string) => {
     if (!currentUser?.id) return;
 
-    // Persist optimistic state locally across all tabs and components
+    // Apply optimistic UI increment for immediate responsiveness
     setUserData((prev) => {
       if (!prev) return prev;
       const updatedPixels = Math.max(0, (prev.pixels || 0) + delta);
-      try {
-        localStorage.setItem(`pm_local_pixels_${currentUser.id}`, String(updatedPixels));
-      } catch {}
       return { ...prev, pixels: updatedPixels };
     });
 
-    // Asynchronously synchronize with server/ledger without crashing UI state
+    // Reconcile with verified database state backed by ledger
     (async () => {
       try {
-        // 1. Try atomic server-side RPC execute_pixel_transaction
-        const { data, error } = await (supabase.rpc as any)('execute_pixel_transaction', {
-          p_user_id: currentUser.id,
-          p_delta: delta,
-          p_action: actionName || (delta >= 0 ? `Earned (+${delta} Pixels)` : `Deducted (${delta} Pixels)`),
-          p_reason: reasonText || 'Community activity reward',
-          p_type: delta >= 0 ? 'earn' : 'spend',
-          p_idempotency_key: idempotencyKey || null
-        });
-
-        if (!error && data?.success && typeof data.pixels === 'number') {
-          setUserData((prev) => (prev ? { ...prev, pixels: data.pixels } : prev));
-          try {
-            localStorage.setItem(`pm_local_pixels_${currentUser.id}`, String(data.pixels));
-          } catch {}
-          return;
+        // If an explicit post reward was targeted, trigger server-verified RPC
+        if (idempotencyKey && (idempotencyKey.startsWith('feed_post_') || idempotencyKey.startsWith('feed_hackathon_'))) {
+          const postId = idempotencyKey.replace('feed_post_', '').replace('feed_hackathon_', '');
+          await (supabase.rpc as any)('reward_community_post_creation', {
+            p_post_id: postId
+          });
         }
 
-        // 2. Direct profiles table balance update fallback
-        const { data: currentP } = await supabase
-          .from('profiles')
-          .select('pixels')
-          .eq('id', currentUser.id)
-          .maybeSingle();
-
-        if (currentP) {
-          const currentBalance = typeof currentP.pixels === 'number' ? currentP.pixels : 0;
-          const newBalance = Math.max(0, currentBalance + delta);
-
-          const { error: updateErr } = await supabase
-            .from('profiles')
-            .update({ pixels: newBalance, updated_at: new Date().toISOString() })
-            .eq('id', currentUser.id);
-
-          if (!updateErr) {
-            setUserData((prev) => (prev ? { ...prev, pixels: newBalance } : prev));
-            try {
-              localStorage.setItem(`pm_local_pixels_${currentUser.id}`, String(newBalance));
-            } catch {}
-          }
-        }
+        // Fetch source-of-truth profile balance from Supabase (never blindly override via client update)
+        await refreshProfile();
       } catch (err) {
-        console.warn('[incrementPixels] Backend sync notice:', err);
+        console.warn('[incrementPixels] Sync note:', err);
+        // On error, reconcile UI to verified database balance
+        await refreshProfile().catch(() => {});
       }
     })();
   };
