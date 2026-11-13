@@ -24,7 +24,7 @@ import {
 } from 'lucide-react';
 import { ClickStack } from '../components/ClickStack';
 import { useApp } from '../store';
-import { getPublishedOpportunities } from '../services/opportunities';
+import { getPublishedOpportunities, getOpportunityById } from '../services/opportunities';
 import { VERIFIED_OPPORTUNITIES } from '../data/verifiedOpportunities';
 import { getCategoryMeta, grad } from '../utils/meta';
 import type { Opportunity } from '../types';
@@ -118,6 +118,7 @@ export function Explore() {
               shares: 18,
               source: 'admin',
               featured: false,
+              additionalInfo: v.benefits || '',
               createdBy: 'pixel-minds-team',
               createdAt: Date.now() - 86400000,
               updatedAt: Date.now(),
@@ -200,6 +201,21 @@ export function Explore() {
   // Handle register / apply click
   const handleApplyClick = (opp: Opportunity) => {
     window.open(opp.officialUrl || 'https://google.com', '_blank', 'noopener,noreferrer');
+  };
+
+  // Open full details view using selected card's ID
+  const handleOpenDetails = async (opp: Opportunity) => {
+    setActiveDetailOpp(opp);
+    try {
+      const fullDetails = await getOpportunityById(opp.id);
+      if (fullDetails) {
+        setActiveDetailOpp((current) =>
+          current && current.id === opp.id ? { ...current, ...fullDetails } : current
+        );
+      }
+    } catch (err) {
+      console.warn('[Explore] Failed to load full opportunity details for ID:', opp.id, err);
+    }
   };
 
   // Helper date formatter
@@ -529,13 +545,27 @@ export function Explore() {
                         </div>
 
                         {/* Swipe Right Callout Banner */}
-                        <div className="pt-2 pointer-events-auto">
+                        <div className="pt-2 pointer-events-auto" data-no-drag="true">
                           <div
                             role="button"
                             tabIndex={0}
+                            data-no-drag="true"
+                            onPointerDown={(e) => {
+                              e.stopPropagation();
+                            }}
+                            onPointerUp={(e) => {
+                              e.stopPropagation();
+                            }}
                             onClick={(e) => {
                               e.stopPropagation();
-                              setActiveDetailOpp(opp);
+                              handleOpenDetails(opp);
+                            }}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter' || e.key === ' ') {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                handleOpenDetails(opp);
+                              }
                             }}
                             className="w-full py-2.5 px-4 rounded-2xl bg-white/15 hover:bg-white/25 active:scale-[0.98] border border-white/25 backdrop-blur-md flex items-center justify-between transition cursor-pointer text-xs font-extrabold text-white group select-none pointer-events-auto"
                           >
@@ -566,7 +596,7 @@ export function Explore() {
                 onIndexChange={setCurrentIndex}
                 onSwipeRight={(index) => {
                   const opp = filteredOpportunities[index];
-                  if (opp) setActiveDetailOpp(opp);
+                  if (opp) handleOpenDetails(opp);
                 }}
               />
             </div>
@@ -633,7 +663,7 @@ export function Explore() {
               <button
                 type="button"
                 onClick={() => {
-                  if (activeOpp) setActiveDetailOpp(activeOpp);
+                  if (activeOpp) handleOpenDetails(activeOpp);
                 }}
                 className="px-5 py-2.5 rounded-full bg-[#112240] hover:bg-[#1a335e] text-white text-xs font-extrabold shadow-md shadow-slate-900/10 flex items-center gap-2 active:scale-98 transition cursor-pointer"
               >
@@ -732,7 +762,9 @@ export function Explore() {
                   <span>Start Date</span>
                 </p>
                 <p className="text-xs font-extrabold text-[#0e1b33] dark:text-white mt-1">
-                  {formatDate(activeDetailOpp.startDate)}
+                  {activeDetailOpp.endDate && activeDetailOpp.endDate !== activeDetailOpp.startDate
+                    ? `${formatDate(activeDetailOpp.startDate)} – ${formatDate(activeDetailOpp.endDate)}`
+                    : formatDate(activeDetailOpp.startDate)}
                 </p>
               </div>
 
@@ -751,7 +783,7 @@ export function Explore() {
                   <Trophy size={11} className="text-emerald-500" />
                   <span>Prize / Stipend</span>
                 </p>
-                <p className="text-xs font-extrabold text-[#0e1b33] dark:text-white mt-1 truncate">
+                <p className="text-xs font-extrabold text-[#0e1b33] dark:text-white mt-1">
                   {activeDetailOpp.prize || activeDetailOpp.stipend || 'Recognition & Perks'}
                 </p>
               </div>
@@ -817,6 +849,19 @@ export function Explore() {
                       {skill}
                     </span>
                   ))}
+                </div>
+              </div>
+            )}
+
+            {/* Benefits & Key Details */}
+            {activeDetailOpp.additionalInfo && (
+              <div className="space-y-2">
+                <h4 className="text-xs font-extrabold text-[#0e1b33] dark:text-white uppercase tracking-wider flex items-center gap-1.5">
+                  <Sparkles size={13} className="text-amber-500" />
+                  <span>Benefits &amp; Key Details</span>
+                </h4>
+                <div className="p-3.5 rounded-2xl bg-amber-50/70 dark:bg-amber-950/30 border border-amber-200/60 dark:border-amber-900/40 text-xs text-slate-700 dark:text-slate-300">
+                  <p className="leading-relaxed whitespace-pre-line">{activeDetailOpp.additionalInfo}</p>
                 </div>
               </div>
             )}
