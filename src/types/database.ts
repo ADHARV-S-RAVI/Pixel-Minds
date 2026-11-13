@@ -495,6 +495,7 @@ export type Database = {
           reason: string;
           type: 'earn' | 'spend' | 'adjustment';
           admin_id: string | null;
+          idempotency_key: string | null;
           created_at: string;
         };
         Insert: {
@@ -505,6 +506,7 @@ export type Database = {
           reason: string;
           type: 'earn' | 'spend' | 'adjustment';
           admin_id?: string | null;
+          idempotency_key?: string | null;
           created_at?: string;
         };
         Update: {
@@ -515,6 +517,7 @@ export type Database = {
           reason?: string;
           type?: 'earn' | 'spend' | 'adjustment';
           admin_id?: string | null;
+          idempotency_key?: string | null;
           created_at?: string;
         };
         Relationships: [];
@@ -851,6 +854,61 @@ export type Database = {
           success: boolean;
           notification_id: string;
           recipients_count: number;
+        };
+      };
+      admin_adjust_user_pixels: {
+        Args: {
+          p_target_user_id: string;
+          p_amount: number;
+          p_reason: string;
+        };
+        Returns: {
+          success: boolean;
+          tx_id?: string;
+          pixels?: number;
+          delta?: number;
+          error?: string;
+        };
+      };
+      reward_community_post_creation: {
+        Args: {
+          p_post_id: string;
+        };
+        Returns: {
+          success: boolean;
+          tx_id?: string;
+          pixels?: number;
+          delta?: number;
+          already_processed?: boolean;
+          error?: string;
+        };
+      };
+      toggle_community_post_like: {
+        Args: {
+          p_post_id: string;
+        };
+        Returns: {
+          success: boolean;
+          liked: boolean;
+          likes_count: number;
+        };
+      };
+      add_community_post_comment: {
+        Args: {
+          p_post_id: string;
+          p_text: string;
+        };
+        Returns: {
+          success: boolean;
+          comment: {
+            id: string;
+            author_name: string;
+            author_role: string;
+            author_avatar: string | null;
+            text: string;
+            created_at: string;
+          };
+          comments_count: number;
         };
       };
     };
