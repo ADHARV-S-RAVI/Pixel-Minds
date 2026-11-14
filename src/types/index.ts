@@ -188,5 +188,7 @@ export interface CommunityPost {
   isEdited?: boolean;
   updatedAt?: number;
   createdAt: number;
+  liked?: boolean;
+  likerIds?: string[];
 }
 
