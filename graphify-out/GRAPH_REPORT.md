@@ -1,16 +1,16 @@
-# Graph Report - Pixel Minds  (2026-11-15)
+# Graph Report - Pixel Minds  (2026-11-09)
 
 ## Corpus Check
-- 110 files · ~171,736 words
+- 94 files · ~124,666 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 694 nodes · 1550 edges · 49 communities (40 shown, 9 thin omitted)
-- Extraction: 99% EXTRACTED · 1% INFERRED · 0% AMBIGUOUS · INFERRED: 17 edges (avg confidence: 0.64)
+- 671 nodes · 1403 edges · 48 communities (40 shown, 8 thin omitted)
+- Extraction: 99% EXTRACTED · 1% INFERRED · 0% AMBIGUOUS · INFERRED: 9 edges (avg confidence: 0.5)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `e7b364cd`
+- Built from commit: `50d4bd4d`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -18,221 +18,220 @@
 - useAuth
 - compilerOptions
 - firebase.ts
-- components.json
+- Phase 4A: Pixel Rewards & Transaction Ledger Supabase Migration Report
 - compilerOptions
-- useApp
+- pixel-minds/src/pages.tsx
 - dependencies
 - plugins
-- ui.tsx
+- src/ui.tsx
 - tsconfig.json
 - opportunities.ts
-- notifications.ts
-- Pixel Minds
+- devDependencies
+- compilerOptions
+- React + TypeScript + Vite
 - rules/graphify.md
 - workflows/graphify.md
-- Contributing to Pixel Minds
-- pages.tsx
-- package.json
-- Pixel Minds Roadmap
-- LevelUpOverlay.tsx
-- feature_request.md
-- Changelog
-- bug_report.md
-- ErrorBoundary.tsx
+- admin.ts
+- Pixel Minds Backend Integration Audit
+- Phase 3: Community Posts & Feed Supabase Migration Report
+- Pixel Minds - Auth & Profile Completion Update Report
+- 1. Verified Opportunities Directory (By Category)
+- audit-test.mjs
+- storage.ts
+- 2. Features Inspected & Audit Findings
 - vercel.json
 - devDependencies
 - GooeyNav.tsx
 - send-email.ts
-- Pixel Minds Community Code of Conduct
-- PULL_REQUEST_TEMPLATE.md
-- Security Policy
-- documentation.md
-- ✅ Completed Milestones
-- store.tsx
-- Support & Community Resources
-- @tailwindcss/postcss
-- data.ts
-- @types/node
-- @types/react
-- @types/react-dom
-- typescript
+- package.json
+- @playwright/test
+- postcss
+- vite
+- @vitejs/plugin-react
+- src/store.tsx
+- src/pages.tsx
+- announcements.ts
+- reports.ts
+- src/data.ts
+- community.ts
+- notifications.ts
 
 ## God Nodes (most connected - your core abstractions)
-1. `useAuth()` - 50 edges
-2. `react` - 43 edges
-3. `Admin()` - 29 edges
-4. `PostCard()` - 24 edges
-5. `useApp()` - 22 edges
-6. `supabase` - 21 edges
-7. `compilerOptions` - 19 edges
-8. `Composer()` - 17 edges
-9. `Profile()` - 16 edges
-10. `recordAuditLog()` - 16 edges
+1. `useAuth()` - 48 edges
+2. `react` - 35 edges
+3. `Admin()` - 28 edges
+4. `supabase` - 19 edges
+5. `compilerOptions` - 18 edges
+6. `Profile()` - 17 edges
+7. `recordAuditLog()` - 16 edges
+8. `useApp()` - 16 edges
+9. `AdminOpportunityForm()` - 15 edges
+10. `compilerOptions` - 15 edges
 
 ## Surprising Connections (you probably didn't know these)
+- `NotificationBell()` --calls--> `useAuth()`  [EXTRACTED]
+  src/components/NotificationBell.tsx → src/contexts/AuthContext.tsx
+- `ReportModal()` --calls--> `useAuth()`  [EXTRACTED]
+  src/components/ReportModal.tsx → src/contexts/AuthContext.tsx
+- `ReportModal()` --calls--> `useApp()`  [EXTRACTED]
+  src/components/ReportModal.tsx → src/store.tsx
+- `SubmissionDetailModalProps` --references--> `Opportunity`  [EXTRACTED]
+  src/components/SubmissionDetailModal.tsx → src/types/index.ts
 - `AuthContextType` --references--> `User`  [EXTRACTED]
   src/contexts/AuthContext.tsx → src/types/index.ts
-- `Composer()` --indirect_call--> `IconMessage()`  [INFERRED]
-  src/ui.tsx → src/components/FeedIcons.tsx
-- `Composer()` --indirect_call--> `IconTrophy()`  [INFERRED]
-  src/ui.tsx → src/components/FeedIcons.tsx
-- `Composer()` --indirect_call--> `IconLightbulb()`  [INFERRED]
-  src/ui.tsx → src/components/FeedIcons.tsx
-- `Composer()` --indirect_call--> `IconBook()`  [INFERRED]
-  src/ui.tsx → src/components/FeedIcons.tsx
 
 ## Import Cycles
 - 2-file cycle: `src/services/admin.ts -> src/services/announcements.ts -> src/services/admin.ts`
 
-## Communities (49 total, 9 thin omitted)
+## Communities (48 total, 8 thin omitted)
 
 ### Community 0 - "useAuth"
 Cohesion: 0.06
-Nodes (65): react, App(), AdminRoute(), Footer(), Navbar(), OtpInput(), OtpInputProps, PixelMark() (+57 more)
+Nodes (54): react, App(), AdminRoute(), ErrorBoundary, Props, State, Footer(), Navbar() (+46 more)
 
 ### Community 1 - "compilerOptions"
 Cohesion: 0.08
-Nodes (24): DOM, src, vite/client, compilerOptions, allowArbitraryExtensions, allowImportingTsExtensions, erasableSyntaxOnly, jsx (+16 more)
+Nodes (23): vite/client, compilerOptions, allowArbitraryExtensions, allowImportingTsExtensions, erasableSyntaxOnly, jsx, lib, module (+15 more)
 
 ### Community 2 - "firebase.ts"
 Cohesion: 0.29
 Nodes (6): app, auth, db, firebaseConfig, googleProvider, storage
 
-### Community 3 - "components.json"
-Cohesion: 0.09
-Nodes (23): aliases, components, hooks, lib, ui, utils, Authorization, headers (+15 more)
+### Community 3 - "Phase 4A: Pixel Rewards & Transaction Ledger Supabase Migration Report"
+Cohesion: 0.20
+Nodes (9): 1. Overview & Objectives Achieved, 2. Files Changed & Created, 3. Data Flow & Architecture, 4. Manual Supabase SQL Check (If Tables Do Not Already Exist), 5. Verification Results, A. User Pixel Balance & History, B. Admin Pixel Adjustments, C. Reward Configuration (+1 more)
 
 ### Community 4 - "compilerOptions"
 Cohesion: 0.10
 Nodes (19): node, vite.config.ts, compilerOptions, allowImportingTsExtensions, erasableSyntaxOnly, lib, module, moduleDetection (+11 more)
 
-### Community 5 - "useApp"
-Cohesion: 0.13
-Nodes (17): ClickStack(), ClickStackProps, OPPORTUNITY_REASONS, POST_REASONS, ReportModal(), ReportModalProps, CATEGORIES, CategoryFilter (+9 more)
+### Community 5 - "pixel-minds/src/pages.tsx"
+Cohesion: 0.06
+Nodes (51): App(), cats, moves, Opp, opps, posts, rankOf(), refs (+43 more)
 
 ### Community 6 - "dependencies"
 Cohesion: 0.11
-Nodes (19): firebase, gsap, lucide-react, nodemailer, dependencies, firebase, gsap, lucide-react (+11 more)
+Nodes (19): firebase, nodemailer, dependencies, firebase, lucide-react, nodemailer, react, react-dom (+11 more)
 
 ### Community 7 - "plugins"
 Cohesion: 0.22
 Nodes (8): plugins, rules, react/only-export-components, react/rules-of-hooks, $schema, oxc, typescript, warn
 
-### Community 8 - "ui.tsx"
-Cohesion: 0.08
-Nodes (51): AuthPromptModal(), AuthPromptModalProps, IconBadge(), IconBook(), IconBookmark(), IconBriefcase(), IconCalendar(), IconClock() (+43 more)
+### Community 8 - "src/ui.tsx"
+Cohesion: 0.14
+Nodes (18): Opportunities(), updateCommunityPost(), useApp(), Badge(), Btn(), BtnLink(), Card(), cls() (+10 more)
 
 ### Community 10 - "opportunities.ts"
+Cohesion: 0.11
+Nodes (38): SubmissionDetailModal(), SubmissionDetailModalProps, Admin(), AdminTab, STATUS_OPTIONS, AdminCMS(), MySubmissions(), OppDetail() (+30 more)
+
+### Community 15 - "devDependencies"
 Cohesion: 0.06
-Nodes (71): ConfirmModal(), ConfirmModalProps, SubmissionDetailModal(), SubmissionDetailModalProps, Admin(), AdminTab, STATUS_OPTIONS, AdminCMS() (+63 more)
+Nodes (32): dependencies, lucide-react, react, react-dom, react-router-dom, devDependencies, tailwindcss, @tailwindcss/vite (+24 more)
 
-### Community 15 - "notifications.ts"
-Cohesion: 0.62
-Nodes (5): NotificationBell(), getUserNotifications(), markAllNotificationsAsRead(), markNotificationAsRead(), AppNotification
+### Community 16 - "compilerOptions"
+Cohesion: 0.14
+Nodes (13): compilerOptions, jsx, lib, module, moduleResolution, noEmit, skipLibCheck, strict (+5 more)
 
-### Community 16 - "Pixel Minds"
-Cohesion: 0.10
-Nodes (20): 🌟 About the Project, 🏗️ Architecture & Tech Stack, 📜 Available Scripts, 💬 Community & Support, 🤝 Contributing, Database Setup (Supabase), Deploying to Vercel, 🚀 Deployment (+12 more)
+### Community 17 - "React + TypeScript + Vite"
+Cohesion: 0.50
+Nodes (3): Expanding the Oxlint configuration, React Compiler, React + TypeScript + Vite
 
-### Community 23 - "Contributing to Pixel Minds"
+### Community 24 - "admin.ts"
 Cohesion: 0.18
-Nodes (11): Branch Naming Conventions, Code of Conduct, Code Quality & Guidelines, Commit Message Guidelines, Common Types, Contributing to Pixel Minds, Examples, Quick Development Workflow (+3 more)
+Nodes (18): AuthContextType, Admin(), AdminMetrics, createAdminCommunityPost(), deleteCommunityPost(), getAuditLogs(), recordAuditLog(), deleteAnnouncement() (+10 more)
 
-### Community 24 - "pages.tsx"
-Cohesion: 0.07
-Nodes (57): AnnouncementModal(), FAQ_DATA, FAQItem, FAQSection(), adminTabs, Landing(), Admin(), Opportunities() (+49 more)
+### Community 25 - "Pixel Minds Backend Integration Audit"
+Cohesion: 0.08
+Nodes (23): 10. Problems Found & Technical Analysis, 11. Recommended Next Technical Steps, 12. Verification Sign-Off, 1. Executive Summary, 2. Architecture, 3. Feature-by-Feature Audit, 4. Cross-User Data Flow, 5. Database Mapping (Supabase Schema vs Code) (+15 more)
 
-### Community 25 - "package.json"
+### Community 26 - "Phase 3: Community Posts & Feed Supabase Migration Report"
+Cohesion: 0.29
+Nodes (6): 1. Summary of Migration, 2. Files Changed & Added, 3. RLS & Security Status, 4. Dependencies Removed, 5. Verification & Quality Checks, Phase 3: Community Posts & Feed Supabase Migration Report
+
+### Community 27 - "Pixel Minds - Auth & Profile Completion Update Report"
 Cohesion: 0.20
-Nodes (9): name, private, scripts, build, dev, lint, preview, type (+1 more)
+Nodes (9): 1. Summary of Changes, 2. Files Changed & Created, 3. Flows & Logic, 4. Supabase Database Migration (Manual SQL), 5. Verification Results, A. Password Recovery Flow, B. Change Password Flow (Authenticated), C. Signup Details Flow (+1 more)
 
-### Community 26 - "Pixel Minds Roadmap"
-Cohesion: 0.20
-Nodes (10): 1. Calendar & Event Integrations, 2. Hackathon Teammate Matching, 3. Extended Achievements & Badges, 4. Progressive Web App (PWA), 🚧 In Progress, Open Source Standardization, 🏁 Phase Status Overview, Pixel Minds Roadmap (+2 more)
+### Community 28 - "1. Verified Opportunities Directory (By Category)"
+Cohesion: 0.17
+Nodes (11): 1. Verified Opportunities Directory (By Category), 2. Automatic Expiry & 30-Day Cleanup Mechanism, 3. UI Contrast & Theme Enhancements, Category 1: Hackathons (6 Verified), Category 2: Internships (6 Verified), Category 3: Events (5 Verified), Category 4: Workshops (5 Verified), Category 5: Scholarships (5 Verified) (+3 more)
 
-### Community 27 - "LevelUpOverlay.tsx"
-Cohesion: 0.25
-Nodes (7): CELEBRATION_COLORS, CelebrationConfetti(), Particle, LEVEL_METAS, LevelMeta, LevelUpOverlay(), LevelUpOverlayProps
+### Community 29 - "audit-test.mjs"
+Cohesion: 0.43
+Nodes (6): fail(), manual(), pass(), results, runAudit(), supabase
 
-### Community 28 - "feature_request.md"
-Cohesion: 0.29
-Nodes (5): Additional Context, Alternatives Considered, Problem Description, Proposed Solution, Target Audience
+### Community 30 - "storage.ts"
+Cohesion: 0.26
+Nodes (15): AdminOpportunityForm(), Submit(), CATEGORIES, SubmitOpportunity(), submitOpportunity(), ALLOWED_IMAGE_TYPES, deleteStorageFile(), MAX_IMAGE_SIZE_BYTES (+7 more)
 
-### Community 29 - "Changelog"
-Cohesion: 0.29
-Nodes (6): [1.0.0] - 2026-11-15, Added, Changelog, Core Features, Initial Open Source Release, [Unreleased]
-
-### Community 30 - "bug_report.md"
-Cohesion: 0.29
-Nodes (6): Additional Context, Describe the Bug, Environment & Device, Expected Behavior, Screenshots or Screen Recordings, Steps to Reproduce
-
-### Community 31 - "ErrorBoundary.tsx"
-Cohesion: 0.29
-Nodes (3): ErrorBoundary, Props, State
+### Community 31 - "2. Features Inspected & Audit Findings"
+Cohesion: 0.12
+Nodes (15): 1. Executive Summary, 2. Features Inspected & Audit Findings, 3. Bugs Identified & Fixes Applied, 4. Security Audit Matrix, 5. Automated Build & Test Results, 6. Features Requiring Manual Verification (Multi-Account Scenarios), 7. Remaining Known Issues & Supabase Recommendations, A. User Management (`Users & Pixels` Tab) (+7 more)
 
 ### Community 33 - "devDependencies"
 Cohesion: 0.12
-Nodes (17): autoprefixer, oxlint, devDependencies, autoprefixer, oxlint, @playwright/test, postcss, tailwindcss (+9 more)
+Nodes (17): autoprefixer, oxlint, devDependencies, autoprefixer, oxlint, tailwindcss, @types/node, @types/nodemailer (+9 more)
 
 ### Community 34 - "GooeyNav.tsx"
 Cohesion: 0.12
-Nodes (23): bezier(), build(), clamp01(), compile(), DropState, getSidebarActiveIndex(), NavItemDef, parse() (+15 more)
+Nodes (22): bezier(), build(), clamp01(), compile(), DropState, getSidebarActiveIndex(), NavItemDef, parse() (+14 more)
 
 ### Community 35 - "send-email.ts"
 Cohesion: 0.27
 Nodes (10): buildRegistrationHtml(), buildSubmissionHtml(), escapeHtml(), handler(), isRateLimited(), rateLimitMap, RateRecord, RegistrationData (+2 more)
 
-### Community 36 - "Pixel Minds Community Code of Conduct"
-Cohesion: 0.33
-Nodes (6): Attribution, Community Standards, Enforcement Responsibilities, Our Pledge, Pixel Minds Community Code of Conduct, Reporting & Inquiries
+### Community 36 - "package.json"
+Cohesion: 0.20
+Nodes (9): name, private, scripts, build, dev, lint, preview, type (+1 more)
 
-### Community 37 - "PULL_REQUEST_TEMPLATE.md"
-Cohesion: 0.33
-Nodes (5): Checklist, Description, Key Areas Affected, Type of Change, Verification Steps
+### Community 41 - "src/store.tsx"
+Cohesion: 0.16
+Nodes (21): confirmOpportunityRegistration(), getLocalStorageApplications(), getUserApplications(), recordOpportunityApplication(), saveLocalStorageApplications(), UserApplication, dispatchEmail(), getSentEmailKeys() (+13 more)
 
-### Community 38 - "Security Policy"
-Cohesion: 0.33
-Nodes (6): Information to Include in Your Report, Our Security Commitment, Reporting a Vulnerability, Security Best Practices for Self-Hosters, Security Policy, Supported Versions
+### Community 42 - "src/pages.tsx"
+Cohesion: 0.17
+Nodes (12): adminTabs, formatRelativeTime(), getRecentPlatformActivities(), RecentActivityItem, sanitizeDisplayName(), AdminSentNotification, AuditLog, OpportunityStatus (+4 more)
 
-### Community 39 - "documentation.md"
-Cohesion: 0.40
-Nodes (4): Additional Context, Documentation Page or Section, Proposed Content, What Needs to Be Changed?
+### Community 43 - "announcements.ts"
+Cohesion: 0.21
+Nodes (11): AnnouncementModal(), AnnouncementUpdate, createAnnouncement(), formatAnnouncementRow(), getActiveAnnouncements(), getAnnouncements(), updateAnnouncement(), uploadAnnouncementImage() (+3 more)
 
-### Community 40 - "✅ Completed Milestones"
-Cohesion: 0.40
-Nodes (5): Community Feed & Engagement, ✅ Completed Milestones, Core Platform & Authentication, Gamified Pixel Rewards & Ledger, Opportunities Engine
+### Community 44 - "reports.ts"
+Cohesion: 0.25
+Nodes (13): OPPORTUNITY_REASONS, POST_REASONS, ReportModal(), ReportModalProps, deleteCommunityPost(), createReport(), deleteReportedItem(), dismissReport() (+5 more)
 
-### Community 41 - "store.tsx"
-Cohesion: 0.24
-Nodes (16): confirmOpportunityRegistration(), getLocalStorageApplications(), getUserApplications(), parseEpochMs(), recordOpportunityApplication(), saveLocalStorageApplications(), UserApplication, userAppsTable() (+8 more)
+### Community 45 - "src/data.ts"
+Cohesion: 0.15
+Nodes (13): cats, FeedPost, initialOpps, initialPosts, LeaderboardUser, moves, Opp, opps (+5 more)
 
-### Community 42 - "Support & Community Resources"
-Cohesion: 0.40
-Nodes (5): 🐛 How to Report Bugs, 🚀 Requesting Features, Support & Community Resources, 💡 Where to Ask Questions, 📢 Where to Find Updates
+### Community 46 - "community.ts"
+Cohesion: 0.20
+Nodes (13): Landing(), updateCommunityPost(), createAdminCommunityPost(), createCommunityPost(), formatTimeAgo(), getCommunityPosts(), getUserCommunityPosts(), mapPostRow() (+5 more)
 
-### Community 44 - "data.ts"
-Cohesion: 0.10
-Nodes (21): POPULAR_KEYWORDS, SearchAutocomplete(), SearchAutocompleteProps, SearchPrediction, cats, FeedPost, initialOpps, initialPosts (+13 more)
+### Community 47 - "notifications.ts"
+Cohesion: 0.62
+Nodes (5): NotificationBell(), getUserNotifications(), markAllNotificationsAsRead(), markNotificationAsRead(), AppNotification
 
 ## Knowledge Gaps
-- **251 isolated node(s):** `$schema`, `typescript`, `oxc`, `react/rules-of-hooks`, `warn` (+246 more)
+- **243 isolated node(s):** `$schema`, `typescript`, `oxc`, `react/rules-of-hooks`, `warn` (+238 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **9 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **8 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `react` connect `useAuth` to `GooeyNav.tsx`, `useApp`, `plugins`, `ui.tsx`, `store.tsx`, `opportunities.ts`, `data.ts`, `notifications.ts`, `pages.tsx`, `LevelUpOverlay.tsx`, `ErrorBoundary.tsx`?**
-  _High betweenness centrality (0.074) - this node is a cross-community bridge._
-- **Why does `useAuth()` connect `useAuth` to `useApp`, `ui.tsx`, `store.tsx`, `opportunities.ts`, `notifications.ts`, `pages.tsx`?**
-  _High betweenness centrality (0.026) - this node is a cross-community bridge._
+- **Why does `react` connect `useAuth` to `GooeyNav.tsx`, `pixel-minds/src/pages.tsx`, `plugins`, `src/ui.tsx`, `src/store.tsx`, `opportunities.ts`, `announcements.ts`, `reports.ts`, `src/pages.tsx`, `notifications.ts`, `storage.ts`?**
+  _High betweenness centrality (0.138) - this node is a cross-community bridge._
+- **Why does `useAuth()` connect `useAuth` to `src/ui.tsx`, `src/store.tsx`, `src/pages.tsx`, `opportunities.ts`, `reports.ts`, `community.ts`, `notifications.ts`, `admin.ts`, `storage.ts`?**
+  _High betweenness centrality (0.020) - this node is a cross-community bridge._
 - **Why does `plugins` connect `plugins` to `useAuth`?**
   _High betweenness centrality (0.014) - this node is a cross-community bridge._
 - **What connects `$schema`, `typescript`, `oxc` to the rest of the system?**
-  _251 weakly-connected nodes found - possible documentation gaps or missing edges._
+  _243 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `useAuth` be split into smaller, more focused modules?**
-  _Cohesion score 0.05811027224891329 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.06473953628425173 - nodes in this community are weakly interconnected._
 - **Should `compilerOptions` be split into smaller, more focused modules?**
-  _Cohesion score 0.08 - nodes in this community are weakly interconnected._
-- **Should `components.json` be split into smaller, more focused modules?**
-  _Cohesion score 0.08695652173913043 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.08333333333333333 - nodes in this community are weakly interconnected._
+- **Should `compilerOptions` be split into smaller, more focused modules?**
+  _Cohesion score 0.1 - nodes in this community are weakly interconnected._

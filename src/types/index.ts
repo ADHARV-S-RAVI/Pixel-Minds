@@ -190,6 +190,5 @@ export interface CommunityPost {
   createdAt: number;
   liked?: boolean;
   likerIds?: string[];
-  reposterIds?: string[];
 }
 
