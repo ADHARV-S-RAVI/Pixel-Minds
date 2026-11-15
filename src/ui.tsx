@@ -10,9 +10,7 @@ import {
   MapPin,
   Trophy,
   Briefcase,
-  LogOut,
   ArrowRight,
-  Award,
   PenSquare,
   Sun,
   Moon,
@@ -21,11 +19,6 @@ import {
   GraduationCap,
   Flag,
   ShieldCheck,
-  Compass,
-  HelpCircle,
-  Layers,
-  Settings,
-  FileText,
   X
 } from 'lucide-react';
 import { opps } from './data';
@@ -1979,7 +1972,7 @@ export const PostCard: FC<{ p: any; onPostDeleted?: (id: string) => void; onPost
 };
 
 export const Layout: FC = () => {
-  const { user, userProfile, logout } = useAuth();
+  const { user, userProfile } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const [showUserMenu, setShowUserMenu] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);

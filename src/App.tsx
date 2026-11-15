@@ -9,6 +9,7 @@ import { Signup } from './pages/Signup';
 import { ForgotPassword } from './pages/ForgotPassword';
 import { ResetPassword } from './pages/ResetPassword';
 import { AdminLogin } from './pages/AdminLogin';
+import { NotFound } from './pages/NotFound';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { AdminRoute } from './components/AdminRoute';
 import { ErrorBoundary } from './components/ErrorBoundary';
@@ -94,6 +95,9 @@ export default function App() {
               </AdminRoute>
             }
           />
+
+          {/* 404 Fallback Route */}
+          <Route path="*" element={<NotFound />} />
         </Route>
       </Routes>
     </ErrorBoundary>

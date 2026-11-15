@@ -10,7 +10,6 @@ import {
   BarChart2,
   Bookmark,
   FileText,
-  Bell,
   CircleHelp,
 } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';

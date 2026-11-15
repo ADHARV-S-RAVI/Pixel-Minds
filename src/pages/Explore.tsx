@@ -10,7 +10,6 @@ import {
   Bookmark,
   Share2,
   ExternalLink,
-  Award,
   X,
   RotateCcw,
   Users,
