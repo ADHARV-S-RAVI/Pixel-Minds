@@ -374,7 +374,7 @@ BEGIN
     RETURN jsonb_build_object('success', false, 'error', 'Authentication required');
   END IF;
 
-  SELECT id, user_id, text, category, status INTO v_post
+  SELECT id, user_id, title, category, status INTO v_post
   FROM public.community_posts
   WHERE id = p_post_id
   FOR UPDATE;
@@ -396,15 +396,15 @@ BEGIN
   -- Reward classification: Only posts explicitly shared as hackathons receive 15 Pixels
   IF v_post.category = 'Upcoming Hackathon' 
      OR v_post.category ILIKE '%hackathon%' 
-     OR v_post.text ILIKE 'Upcoming Hackathon:%' THEN
+     OR v_post.title ILIKE 'Upcoming Hackathon:%' THEN
     v_is_hackathon := TRUE;
   END IF;
 
   v_amount := CASE WHEN v_is_hackathon THEN 15 ELSE 10 END;
   v_action := CASE WHEN v_is_hackathon THEN 'Shared Hackathon (+15 Pixels)' ELSE 'Created Post (+10 Pixels)' END;
   v_reason := CASE 
-    WHEN v_is_hackathon THEN 'Shared upcoming hackathon: "' || substring(COALESCE(v_post.text, 'Hackathon') from 1 for 50) || '"'
-    ELSE 'Created community post: "' || substring(COALESCE(v_post.text, 'Community Post') from 1 for 50) || '"'
+    WHEN v_is_hackathon THEN 'Shared upcoming hackathon: "' || substring(COALESCE(v_post.title, 'Hackathon') from 1 for 50) || '"'
+    ELSE 'Created community post: "' || substring(COALESCE(v_post.title, 'Community Post') from 1 for 50) || '"'
   END;
 
   v_res := public.record_pixel_transaction_internal(
@@ -442,7 +442,7 @@ DECLARE
   v_liked BOOLEAN;
   v_new_likes INTEGER;
   v_post_author_id UUID;
-  v_post_text TEXT;
+  v_post_title TEXT;
   v_post_status TEXT;
   v_reward_res JSONB;
 BEGIN
@@ -452,7 +452,7 @@ BEGIN
   END IF;
 
   -- Row-level lock on the post row to prevent concurrent race conditions
-  SELECT user_id, text, status INTO v_post_author_id, v_post_text, v_post_status
+  SELECT user_id, title, status INTO v_post_author_id, v_post_title, v_post_status
   FROM public.community_posts
   WHERE id = p_post_id
   FOR UPDATE;
@@ -484,7 +484,7 @@ BEGIN
         v_post_author_id,
         1,
         'Like Received (+1 Pixel)',
-        'Received a like on post: "' || substring(COALESCE(v_post_text, 'Community Post') from 1 for 50) || '"',
+        'Received a like on post: "' || substring(COALESCE(v_post_title, 'Community Post') from 1 for 50) || '"',
         'earn',
         'feed_like_' || p_post_id::text || '_' || v_user_id::text
       );
@@ -539,7 +539,7 @@ DECLARE
   v_comment_row public.community_comments%ROWTYPE;
   v_new_comments INTEGER;
   v_post_author_id UUID;
-  v_post_text TEXT;
+  v_post_title TEXT;
   v_post_status TEXT;
   v_reward_res JSONB;
 BEGIN
@@ -558,7 +558,7 @@ BEGIN
   END IF;
 
   -- Row-level lock on the post row
-  SELECT user_id, text, status INTO v_post_author_id, v_post_text, v_post_status
+  SELECT user_id, title, status INTO v_post_author_id, v_post_title, v_post_status
   FROM public.community_posts
   WHERE id = p_post_id
   FOR UPDATE;
@@ -612,7 +612,7 @@ BEGIN
     v_user_id,
     2,
     'Comment Posted (+2 Pixels)',
-    'Commented on discussion: "' || substring(COALESCE(v_post_text, 'Community Post') from 1 for 50) || '"',
+    'Commented on discussion: "' || substring(COALESCE(v_post_title, 'Community Post') from 1 for 50) || '"',
     'earn',
     'feed_comment_made_' || v_comment_row.id::text
   );
@@ -627,7 +627,7 @@ BEGIN
       v_post_author_id,
       2,
       'Comment Received (+2 Pixels)',
-      'Received comment on post: "' || substring(COALESCE(v_post_text, 'Community Post') from 1 for 50) || '"',
+      'Received comment on post: "' || substring(COALESCE(v_post_title, 'Community Post') from 1 for 50) || '"',
       'earn',
       'feed_comment_received_' || v_comment_row.id::text
     );

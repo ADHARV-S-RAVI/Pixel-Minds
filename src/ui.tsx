@@ -43,7 +43,7 @@ import { NotificationBell } from './components/NotificationBell';
 import { useAuth } from './contexts/AuthContext';
 import { useTheme } from './contexts/ThemeContext';
 import { createCommunityPost, deleteCommunityPost, formatTimeAgo, togglePostLike, getPostComments, addPostComment } from './services/community';
-import { renderWithHashtags, validateMessageSafety, sanitizeInput, sanitizeSafeUrl } from './utils/text';
+import { renderWithHashtags, validateMessageSafety, sanitizeInput } from './utils/text';
 import {
   IconHeart,
   IconMessage,
@@ -469,12 +469,10 @@ export const Composer: FC<{ onPostCreated?: (p: any) => void; isModal?: boolean 
   const [lnk, setLnk] = useState('');
   const [showL, setShowL] = useState(false);
 
-  // Mention autocomplete state with race condition protection
+  // Mention autocomplete state
   const [mentionSuggestions, setMentionSuggestions] = useState<any[]>([]);
   const [mentionQuery, setMentionQuery] = useState<string | null>(null);
-  const [mentionLoading, setMentionLoading] = useState(false);
   const [mentionCursorPos, setMentionCursorPos] = useState<number>(0);
-  const mentionQueryRef = useRef<string | null>(null);
 
   // Share Upcoming Hackathon form state
   const [hName, setHName] = useState('');
@@ -496,7 +494,7 @@ export const Composer: FC<{ onPostCreated?: (p: any) => void; isModal?: boolean 
     { id: 'General', label: 'General', icon: IconMessage }
   ] as const;
 
-  // Search people for @mentions as the user types using unique usernames with race-condition guards
+  // Search people for @mentions as the user types using unique usernames
   const handleTextChange = async (val: string, cursorPos: number) => {
     setT(val);
     setMentionCursorPos(cursorPos);
@@ -505,26 +503,16 @@ export const Composer: FC<{ onPostCreated?: (p: any) => void; isModal?: boolean 
     if (mentionMatch) {
       const q = mentionMatch[1];
       setMentionQuery(q);
-      mentionQueryRef.current = q;
-      setMentionLoading(true);
       try {
         const { searchUsernamesForMention } = await import('./services/users');
         const res = await searchUsernamesForMention(q, 5);
-        if (mentionQueryRef.current === q) {
-          setMentionSuggestions(res || []);
-          setMentionLoading(false);
-        }
+        setMentionSuggestions(res || []);
       } catch {
-        if (mentionQueryRef.current === q) {
-          setMentionSuggestions([]);
-          setMentionLoading(false);
-        }
+        setMentionSuggestions([]);
       }
     } else {
-      mentionQueryRef.current = null;
       setMentionQuery(null);
       setMentionSuggestions([]);
-      setMentionLoading(false);
     }
   };
 
@@ -534,10 +522,8 @@ export const Composer: FC<{ onPostCreated?: (p: any) => void; isModal?: boolean 
     const textAfterCursor = t.slice(mentionCursorPos);
     const replacedBefore = textBeforeCursor.replace(/@([a-zA-Z0-9_]*)$/, `@${cleanUsername} `);
     setT(replacedBefore + textAfterCursor);
-    mentionQueryRef.current = null;
     setMentionQuery(null);
     setMentionSuggestions([]);
-    setMentionLoading(false);
   };
 
   const postStandard = async () => {
@@ -560,16 +546,6 @@ export const Composer: FC<{ onPostCreated?: (p: any) => void; isModal?: boolean 
       return;
     }
 
-    let cleanLink: string | undefined = undefined;
-    if (lnk.trim()) {
-      const validatedUrl = sanitizeSafeUrl(lnk.trim());
-      if (!validatedUrl) {
-        say('Invalid link URL. Only safe http:// and https:// URLs are permitted.');
-        return;
-      }
-      cleanLink = validatedUrl;
-    }
-
     setPosting(true);
     try {
       const cleanTitle = sanitizeInput(postTitle.trim());
@@ -588,7 +564,7 @@ export const Composer: FC<{ onPostCreated?: (p: any) => void; isModal?: boolean 
           text: combinedText,
           category: selectedCategory,
           opp: oid || undefined,
-          link: cleanLink,
+          link: lnk.trim() || undefined,
           status: 'published'
         }
       );
@@ -636,18 +612,12 @@ export const Composer: FC<{ onPostCreated?: (p: any) => void; isModal?: boolean 
       return;
     }
 
-    const safeHackLink = sanitizeSafeUrl(hLink.trim());
-    if (!safeHackLink) {
-      say('Invalid registration link. Only safe http:// and https:// URLs are permitted.');
-      return;
-    }
-
     setPosting(true);
     try {
       const cleanName = sanitizeInput(hName.trim());
       const cleanDate = sanitizeInput(hDate.trim());
       const cleanLoc = sanitizeInput(hLoc.trim());
-      const cleanLink = safeHackLink;
+      const cleanLink = sanitizeInput(hLink.trim());
       const cleanDesc = sanitizeInput(hDesc.trim());
 
       const hackTitle = `Upcoming Hackathon: ${cleanName}`;
@@ -874,36 +844,25 @@ export const Composer: FC<{ onPostCreated?: (p: any) => void; isModal?: boolean 
               />
 
               {/* @mention autocomplete popup */}
-              {mentionQuery !== null && (
+              {mentionQuery !== null && mentionSuggestions.length > 0 && (
                 <div className="absolute left-0 bottom-full mb-1 w-64 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-200 dark:border-slate-700 p-1.5 z-50">
                   <p className="text-[10px] font-bold text-slate-400 px-2 py-1 uppercase tracking-wider">Mention People</p>
-                  {mentionLoading ? (
-                    <div className="py-2.5 px-3 text-xs text-slate-400 flex items-center gap-2">
-                      <span className="w-2.5 h-2.5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></span>
-                      <span>Searching builders...</span>
-                    </div>
-                  ) : mentionSuggestions.length === 0 ? (
-                    <div className="py-2 px-3 text-xs text-slate-400">
-                      No matching builders found
-                    </div>
-                  ) : (
-                    <div className="space-y-0.5 max-h-40 overflow-y-auto">
-                      {mentionSuggestions.map((person) => (
-                        <button
-                          key={person.id}
-                          type="button"
-                          onClick={() => selectMention(person)}
-                          className="w-full text-left px-2 py-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center gap-2 transition cursor-pointer"
-                        >
-                          <Avatar name={person.displayName || person.name} photoURL={person.avatar} size={22} />
-                          <div className="truncate">
-                            <p className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">{person.displayName || person.name}</p>
-                            <p className="text-[10px] text-slate-500 truncate">@{person.username || (person.displayName || person.name).replace(/\s+/g, '_').toLowerCase()}</p>
-                          </div>
-                        </button>
-                      ))}
-                    </div>
-                  )}
+                  <div className="space-y-0.5 max-h-40 overflow-y-auto">
+                    {mentionSuggestions.map((person) => (
+                      <button
+                        key={person.id}
+                        type="button"
+                        onClick={() => selectMention(person)}
+                        className="w-full text-left px-2 py-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center gap-2 transition cursor-pointer"
+                      >
+                        <Avatar name={person.displayName || person.name} photoURL={person.avatar} size={22} />
+                        <div className="truncate">
+                          <p className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">{person.displayName || person.name}</p>
+                          <p className="text-[10px] text-slate-500 truncate">@{person.username || (person.displayName || person.name).replace(/\s+/g, '_').toLowerCase()}</p>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
                 </div>
               )}
 
@@ -1094,48 +1053,7 @@ export const PostCard: FC<{ p: any; onPostDeleted?: (id: string) => void; onPost
   const [submittingComment, setSubmittingComment] = useState(false);
   const [commentMentionSuggestions, setCommentMentionSuggestions] = useState<any[]>([]);
   const [commentMentionQuery, setCommentMentionQuery] = useState<string | null>(null);
-  const [commentMentionLoading, setCommentMentionLoading] = useState(false);
   const [commentMentionCursorPos, setCommentMentionCursorPos] = useState<number>(0);
-  const commentMentionQueryRef = useRef<string | null>(null);
-
-  // Repost state with user-scoped persistence
-  const [hasReposted, setHasReposted] = useState(() => {
-    if (!user?.uid) return false;
-    try {
-      const key = `pm_post_reposted_${p.id}_${user.uid}`;
-      const val = localStorage.getItem(key);
-      if (val !== null) return val === 'true';
-    } catch {}
-    if (Array.isArray(p.reposterIds)) {
-      return p.reposterIds.includes(user.uid);
-    }
-    return false;
-  });
-
-  useEffect(() => {
-    if (!user?.uid) {
-      setHasReposted(false);
-      return;
-    }
-    const isReposter = Array.isArray(p.reposterIds) && p.reposterIds.includes(user.uid);
-    const key = `pm_post_reposted_${p.id}_${user.uid}`;
-    let storedVal: boolean | null = null;
-    try {
-      const val = localStorage.getItem(key);
-      if (val !== null) storedVal = val === 'true';
-    } catch {}
-
-    if (isReposter) {
-      setHasReposted(true);
-      try {
-        localStorage.setItem(key, 'true');
-      } catch {}
-    } else if (storedVal !== null) {
-      setHasReposted(storedVal);
-    } else {
-      setHasReposted(false);
-    }
-  }, [p.id, user?.uid, p.reposterIds]);
 
   const handleCommentTextChange = async (val: string, cursorPos: number) => {
     setCommentText(val);
@@ -1145,26 +1063,16 @@ export const PostCard: FC<{ p: any; onPostDeleted?: (id: string) => void; onPost
     if (mentionMatch) {
       const q = mentionMatch[1];
       setCommentMentionQuery(q);
-      commentMentionQueryRef.current = q;
-      setCommentMentionLoading(true);
       try {
         const { searchUsernamesForMention } = await import('./services/users');
         const res = await searchUsernamesForMention(q, 5);
-        if (commentMentionQueryRef.current === q) {
-          setCommentMentionSuggestions(res || []);
-          setCommentMentionLoading(false);
-        }
+        setCommentMentionSuggestions(res || []);
       } catch {
-        if (commentMentionQueryRef.current === q) {
-          setCommentMentionSuggestions([]);
-          setCommentMentionLoading(false);
-        }
+        setCommentMentionSuggestions([]);
       }
     } else {
-      commentMentionQueryRef.current = null;
       setCommentMentionQuery(null);
       setCommentMentionSuggestions([]);
-      setCommentMentionLoading(false);
     }
   };
 
@@ -1174,10 +1082,8 @@ export const PostCard: FC<{ p: any; onPostDeleted?: (id: string) => void; onPost
     const textAfterCursor = commentText.slice(commentMentionCursorPos);
     const replacedBefore = textBeforeCursor.replace(/@([a-zA-Z0-9_]*)$/, `@${cleanUsername} `);
     setCommentText(replacedBefore + textAfterCursor);
-    commentMentionQueryRef.current = null;
     setCommentMentionQuery(null);
     setCommentMentionSuggestions([]);
-    setCommentMentionLoading(false);
   };
 
   useEffect(() => {
@@ -1359,45 +1265,20 @@ export const PostCard: FC<{ p: any; onPostDeleted?: (id: string) => void; onPost
 
   // Handle Comment Deletion (Author or Admin)
   const handleDeleteComment = async (commentId: string) => {
-    if (!user) {
-      setAuthActionText('manage comments');
-      setShowAuthModal(true);
-      return;
-    }
-
-    const targetComment = comments.find((c) => c.id === commentId);
-    const isCommentAuthor = targetComment?.authorId === user.uid;
-    const isAdmin = userProfile?.role === 'admin';
-
-    if (!isCommentAuthor && !isAdmin) {
-      say('You do not have permission to delete this comment.');
-      return;
-    }
-
-    const previousComments = [...comments];
-    const remaining = comments.filter((c) => c.id !== commentId);
-
-    // Optimistic UI update
-    setComments(remaining);
-    try {
-      localStorage.setItem(`pm_post_comments_${p.id}`, JSON.stringify(remaining));
-    } catch {}
-
+    if (!user) return;
     try {
       const { deletePostComment } = await import('./services/community');
       const res = await deletePostComment(commentId, String(p.id), user.uid);
       if (res.success) {
+        const remaining = comments.filter((c) => c.id !== commentId);
+        setComments(remaining);
+        try {
+          localStorage.setItem(`pm_post_comments_${p.id}`, JSON.stringify(remaining));
+        } catch {}
         say('Comment deleted');
-      } else {
-        throw new Error('Failed to delete comment from server.');
       }
     } catch (err: any) {
-      console.error('Failed to delete comment, rolling back:', err);
-      // Rollback on failure
-      setComments(previousComments);
-      try {
-        localStorage.setItem(`pm_post_comments_${p.id}`, JSON.stringify(previousComments));
-      } catch {}
+      console.error('Failed to delete comment:', err);
       say(err?.message || 'Failed to delete comment');
     }
   };
@@ -1492,10 +1373,6 @@ export const PostCard: FC<{ p: any; onPostDeleted?: (id: string) => void; onPost
       setShowAuthModal(true);
       return;
     }
-    if (hasReposted) {
-      say('You have already reposted this post.');
-      return;
-    }
     if (reposting) return;
     setReposting(true);
     try {
@@ -1532,11 +1409,6 @@ export const PostCard: FC<{ p: any; onPostDeleted?: (id: string) => void; onPost
         setRepostsCount((c) => c + 1);
       }
 
-      setHasReposted(true);
-      try {
-        localStorage.setItem(`pm_post_reposted_${p.id}_${user.uid}`, 'true');
-      } catch {}
-
       if (onPostCreated) {
         onPostCreated(newPost);
       } else {
@@ -1558,17 +1430,20 @@ export const PostCard: FC<{ p: any; onPostDeleted?: (id: string) => void; onPost
       return;
     }
 
-    // Record interaction in DB ledger ONLY for authenticated users, avoiding false/duplicate increments
     if (user?.uid) {
       try {
         const { recordPostInteraction } = await import('./services/community');
         const res = await recordPostInteraction(String(p.id), user.uid, 'share');
         if (res.success && typeof res.count === 'number') {
           setSharesCount(res.count);
+        } else {
+          setSharesCount((c) => c + 1);
         }
-      } catch (shareErr) {
-        console.warn('[handleShare] Database sync notice:', shareErr);
+      } catch {
+        setSharesCount((c) => c + 1);
       }
+    } else {
+      setSharesCount((c) => c + 1);
     }
 
     // Determine production / current domain cleanly
@@ -1636,21 +1511,16 @@ export const PostCard: FC<{ p: any; onPostDeleted?: (id: string) => void; onPost
   };
 
   const handleDelete = async () => {
-    if (!user || !canDelete) {
-      say('You do not have permission to delete this post.');
-      setShowDeletePostConfirm(false);
-      return;
-    }
     setDeleting(true);
-    setShowDeletePostConfirm(false);
     try {
       await deleteCommunityPost(String(p.id));
       say('Post deleted');
       if (onPostDeleted) onPostDeleted(String(p.id));
-    } catch (err: any) {
-      console.error('Failed to delete post, rolling back:', err);
+    } catch (err) {
+      console.error('Failed to delete post:', err);
+      say('Failed to delete post');
+    } finally {
       setDeleting(false);
-      say(err?.message || 'Failed to delete post');
     }
   };
 
@@ -1686,9 +1556,6 @@ export const PostCard: FC<{ p: any; onPostDeleted?: (id: string) => void; onPost
   const authorProfileUrl = p.userId
     ? `/profile?uid=${p.userId}&name=${encodeURIComponent(p.user)}`
     : `/profile?name=${encodeURIComponent(p.user)}`;
-
-  const safeHackathonLink = sanitizeSafeUrl(parsedDetails?.link);
-  const safePostLink = sanitizeSafeUrl(p.link);
 
   return (
     <div id={String(p.id)} className="rounded-3xl pm-glass-card bg-white/35 dark:bg-slate-900/40 backdrop-blur-2xl border border-white/50 dark:border-white/10 p-5 sm:p-6 shadow-[0_12px_36px_rgba(14,50,120,0.08)] text-[#0e1b33] dark:text-white transition hover:shadow-md">
@@ -1754,9 +1621,9 @@ export const PostCard: FC<{ p: any; onPostDeleted?: (id: string) => void; onPost
               <IconRocket size={12} />
               Upcoming Hackathon
             </span>
-            {safeHackathonLink && (
+            {parsedDetails.link && (
               <a
-                href={safeHackathonLink}
+                href={parsedDetails.link}
                 target="_blank"
                 rel="noreferrer"
                 className="inline-flex items-center gap-1 text-xs font-semibold text-blue-600 dark:text-sky-400 hover:underline"
@@ -1794,10 +1661,10 @@ export const PostCard: FC<{ p: any; onPostDeleted?: (id: string) => void; onPost
             </p>
           )}
 
-          {safeHackathonLink && (
+          {parsedDetails.link && (
             <div className="pt-1">
               <a
-                href={safeHackathonLink}
+                href={parsedDetails.link}
                 target="_blank"
                 rel="noreferrer"
                 className="inline-flex items-center justify-center gap-2 w-full sm:w-auto rounded-xl bg-[#112240] hover:bg-[#1a335e] px-5 py-2.5 text-xs font-bold text-white shadow-sm active:scale-[0.98] transition cursor-pointer"
@@ -1893,15 +1760,15 @@ export const PostCard: FC<{ p: any; onPostDeleted?: (id: string) => void; onPost
                 {renderWithHashtags(postDesc || postText)}
               </p>
 
-              {safePostLink && (
+              {p.link && (
                 <a
-                  href={safePostLink}
+                  href={p.link}
                   target="_blank"
                   rel="noreferrer"
                   className="mt-2.5 inline-flex items-center gap-1.5 truncate text-xs font-semibold text-blue-600 dark:text-sky-400 hover:underline"
                 >
                   <IconExternalLink size={13} />
-                  <span>{safePostLink}</span>
+                  <span>{p.link}</span>
                 </a>
               )}
             </>
@@ -1982,11 +1849,9 @@ export const PostCard: FC<{ p: any; onPostDeleted?: (id: string) => void; onPost
         <div className="flex flex-col items-center">
           <button
             onClick={handleRepost}
-            disabled={reposting || hasReposted}
-            className={`flex flex-col items-center justify-center p-1.5 rounded-full hover:bg-white/80 dark:hover:bg-slate-800 transition cursor-pointer font-medium disabled:opacity-50 ${
-              hasReposted ? 'text-emerald-600 dark:text-emerald-400 font-bold' : 'text-[#0e1b33] dark:text-slate-100'
-            }`}
-            title={hasReposted ? 'You have already reposted this post' : 'Repost to community'}
+            disabled={reposting}
+            className="flex flex-col items-center justify-center p-1.5 rounded-full hover:bg-white/80 dark:hover:bg-slate-800 transition cursor-pointer font-medium text-[#0e1b33] dark:text-slate-100 disabled:opacity-50"
+            title="Repost to community"
           >
             <div className="flex items-center gap-1">
               <IconRepeat size={16} className={reposting ? 'animate-spin' : ''} />
@@ -2185,30 +2050,24 @@ export const PostCard: FC<{ p: any; onPostDeleted?: (id: string) => void; onPost
 
           <div className="relative">
             {/* @mention autocomplete popup for comments */}
-            {commentMentionQuery !== null && (
+            {commentMentionQuery !== null && commentMentionSuggestions.length > 0 && (
               <div className="absolute left-0 bottom-full mb-1 w-64 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-200 dark:border-slate-700 p-1.5 z-50">
                 <p className="text-[10px] font-bold text-slate-400 px-2 py-1 uppercase tracking-wider">Mention People</p>
                 <div className="space-y-0.5 max-h-40 overflow-y-auto">
-                  {commentMentionLoading ? (
-                    <p className="text-xs text-slate-400 p-2 italic">Searching builders...</p>
-                  ) : commentMentionSuggestions.length > 0 ? (
-                    commentMentionSuggestions.map((person) => (
-                      <button
-                        key={person.id}
-                        type="button"
-                        onClick={() => selectCommentMention(person)}
-                        className="w-full text-left px-2 py-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center gap-2 transition cursor-pointer"
-                      >
-                        <Avatar name={person.displayName || person.name} photoURL={person.avatar} size={22} />
-                        <div className="truncate">
-                          <p className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">{person.displayName || person.name}</p>
-                          <p className="text-[10px] text-slate-500 truncate">@{person.username || (person.displayName || person.name).replace(/\s+/g, '_').toLowerCase()}</p>
-                        </div>
-                      </button>
-                    ))
-                  ) : (
-                    <p className="text-xs text-slate-400 p-2">No matching builders found</p>
-                  )}
+                  {commentMentionSuggestions.map((person) => (
+                    <button
+                      key={person.id}
+                      type="button"
+                      onClick={() => selectCommentMention(person)}
+                      className="w-full text-left px-2 py-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center gap-2 transition cursor-pointer"
+                    >
+                      <Avatar name={person.displayName || person.name} photoURL={person.avatar} size={22} />
+                      <div className="truncate">
+                        <p className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">{person.displayName || person.name}</p>
+                        <p className="text-[10px] text-slate-500 truncate">@{person.username || (person.displayName || person.name).replace(/\s+/g, '_').toLowerCase()}</p>
+                      </div>
+                    </button>
+                  ))}
                 </div>
               </div>
             )}

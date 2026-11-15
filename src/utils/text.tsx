@@ -44,38 +44,6 @@ export function validateMessageSafety(text: string): { safe: boolean; error?: st
 }
 
 /**
- * Validates and sanitizes an external URL, allowing only safe protocols (http: and https:).
- * Rejects javascript:, data:, vbscript:, and other unsafe vectors.
- * Returns the sanitized URL or null if invalid/unsafe.
- */
-export function sanitizeSafeUrl(rawUrl: string | null | undefined): string | null {
-  if (!rawUrl) return null;
-  const trimmed = rawUrl.trim();
-  if (!trimmed) return null;
-
-  // Prevent inline javascript:, data:, vbscript: immediately
-  if (/^(javascript|data|vbscript|file):/i.test(trimmed)) {
-    return null;
-  }
-
-  try {
-    let parsed: URL;
-    if (/^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}(\/.*)?$/.test(trimmed)) {
-      parsed = new URL(`https://${trimmed}`);
-    } else {
-      parsed = new URL(trimmed);
-    }
-
-    if (parsed.protocol === 'http:' || parsed.protocol === 'https:') {
-      return parsed.href;
-    }
-    return null;
-  } catch {
-    return null;
-  }
-}
-
-/**
  * Parses a string and wraps hashtags (#example) and mentions (@username) in clickable/styled badges.
  * Avoids matching inside regular email addresses.
  */
