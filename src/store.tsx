@@ -88,30 +88,11 @@ export const AppProvider: FC<{ children: ReactNode }> = ({ children }) => {
 
   const code = userProfile?.referralId || localCode;
 
-  const [saved, setSaved] = useState<string[]>(() => {
-    try {
-      const userKey = user?.uid ? `pm_saved_${user.uid}` : 'pm_saved';
-      const stored = localStorage.getItem(userKey);
-      return stored ? JSON.parse(stored) : [];
-    } catch {
-      return [];
-    }
-  });
+  const [saved, setSaved] = useState<string[]>(() => ld('pm_saved', []));
 
-  // Sync saved bookmarks with user account / Supabase when user changes
+  // Sync saved bookmarks with user account / Supabase if available
   useEffect(() => {
-    if (!user?.uid) {
-      // If user logs out, reset saved bookmarks to guest list or empty to prevent state bleeding
-      setSaved(() => {
-        try {
-          const guestItem = localStorage.getItem('pm_saved');
-          return guestItem ? JSON.parse(guestItem) : [];
-        } catch {
-          return [];
-        }
-      });
-      return;
-    }
+    if (!user?.uid) return;
 
     let isSubscribed = true;
     const loadUserSaved = async () => {
@@ -119,11 +100,12 @@ export const AppProvider: FC<{ children: ReactNode }> = ({ children }) => {
         const remoteBookmarks = await getUserBookmarks(user.uid);
         if (!isSubscribed) return;
 
-        // Authoritative update from Supabase without bleeding previous user's bookmarks
-        if (Array.isArray(remoteBookmarks)) {
-          setSaved(remoteBookmarks);
-          sv(`pm_saved_${user.uid}`, remoteBookmarks);
-          sv('pm_saved', remoteBookmarks);
+        if (remoteBookmarks && remoteBookmarks.length > 0) {
+          setSaved((prev) => {
+            const merged = Array.from(new Set([...prev, ...remoteBookmarks]));
+            sv('pm_saved', merged);
+            return merged;
+          });
         }
       } catch (err) {
         console.warn('Bookmarks profile sync note:', err);
@@ -153,9 +135,6 @@ export const AppProvider: FC<{ children: ReactNode }> = ({ children }) => {
     const updated = isCurrentlySaved ? saved.filter((x) => x !== k) : [...saved, k];
 
     setSaved(updated);
-    if (user?.uid) {
-      sv(`pm_saved_${user.uid}`, updated);
-    }
     sv('pm_saved', updated);
     say(isCurrentlySaved ? 'Removed from saved' : 'Saved to bookmarks');
 
