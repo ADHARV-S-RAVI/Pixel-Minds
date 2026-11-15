@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   Compass,
   ChevronLeft,
@@ -18,11 +18,9 @@ import {
   X,
   ShieldCheck,
   Tag,
-  MoveRight,
-  MoveLeft,
-  MousePointerClick,
 } from 'lucide-react';
 import { ClickStack } from '../components/ClickStack';
+import { GestureHandOverlay } from '../components/GestureHandOverlay';
 import { useApp } from '../store';
 import { getPublishedOpportunities, getOpportunityById } from '../services/opportunities';
 import { VERIFIED_OPPORTUNITIES } from '../data/verifiedOpportunities';
@@ -56,6 +54,35 @@ export function Explore() {
 
   // Full Details Modal Overlay State
   const [activeDetailOpp, setActiveDetailOpp] = useState<Opportunity | null>(null);
+
+  // Onboarding Gesture Tutorial State
+  // Plays once per page load/refresh; can be replayed via "Replay Gesture Guide" button or window.replayExploreTutorial()
+  const [tutorialActive, setTutorialActive] = useState<boolean>(true);
+  const [gestureStep, setGestureStep] = useState<0 | 1 | 2 | null>(null);
+  const [isTutorialExiting, setIsTutorialExiting] = useState(false);
+
+  const completeTutorial = useCallback(() => {
+    setIsTutorialExiting(true);
+    setTimeout(() => {
+      setTutorialActive(false);
+      setGestureStep(null);
+      setIsTutorialExiting(false);
+    }, 400);
+  }, []);
+
+  const replayTutorial = useCallback(() => {
+    setIsTutorialExiting(false);
+    setTutorialActive(true);
+    setGestureStep(0);
+  }, []);
+
+  // Expose global replay method for development & testing
+  useEffect(() => {
+    (window as unknown as { replayExploreTutorial?: () => void }).replayExploreTutorial = replayTutorial;
+    return () => {
+      delete (window as unknown as { replayExploreTutorial?: () => void }).replayExploreTutorial;
+    };
+  }, [replayTutorial]);
 
   // Close details modal on Escape key
   useEffect(() => {
@@ -191,12 +218,36 @@ export function Explore() {
     });
   }, [opportunities, selectedCategory, selectedMode, searchQuery]);
 
+  // ONLY begin the tutorial sequence once cards are loaded and mounted!
+  useEffect(() => {
+    if (!tutorialActive || loading || filteredOpportunities.length === 0) return;
+
+    setGestureStep(0);
+    const STEP_DURATION = 3200;
+
+    const t1 = setTimeout(() => {
+      setGestureStep(1);
+    }, STEP_DURATION);
+
+    const t2 = setTimeout(() => {
+      setGestureStep(2);
+    }, STEP_DURATION * 2);
+
+    const t3 = setTimeout(() => {
+      completeTutorial();
+    }, STEP_DURATION * 3);
+
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+      clearTimeout(t3);
+    };
+  }, [tutorialActive, loading, filteredOpportunities.length, completeTutorial]);
+
   // Reset index when filters change so user starts at the first card of the new filter
   useEffect(() => {
     setCurrentIndex(0);
   }, [selectedCategory, selectedMode, searchQuery]);
-
-  const activeOpp = filteredOpportunities[currentIndex] || null;
 
   // Handle register / apply click
   const handleApplyClick = (opp: Opportunity) => {
@@ -205,6 +256,7 @@ export function Explore() {
 
   // Open full details view using selected card's ID
   const handleOpenDetails = async (opp: Opportunity) => {
+    if (tutorialActive) completeTutorial();
     setActiveDetailOpp(opp);
     try {
       const fullDetails = await getOpportunityById(opp.id);
@@ -386,8 +438,32 @@ export function Explore() {
               </span>
             </div>
 
-            {/* Click Stack Container */}
-            <div className="relative">
+            {/* Click Stack Container with Floating Side Navigation Arrows */}
+            <div
+              className="relative"
+              style={{
+                width: 'min(92vw, 400px)',
+                height: 'min(75vh, 580px)',
+              }}
+            >
+              {/* Left Navigation Arrow */}
+              <button
+                type="button"
+                onClick={() => {
+                  if (tutorialActive) completeTutorial();
+                  setCurrentIndex((prev) => Math.max(0, prev - 1));
+                }}
+                disabled={currentIndex === 0}
+                className={`absolute right-full mr-3 sm:mr-5 md:mr-7 top-1/2 -translate-y-1/2 z-20 p-3 rounded-full pm-glass border border-white/80 dark:border-white/10 shadow-sm transition cursor-pointer flex items-center justify-center ${
+                  currentIndex === 0
+                    ? 'opacity-40 cursor-not-allowed text-slate-400'
+                    : 'text-[#0e1b33] dark:text-white hover:bg-white dark:hover:bg-slate-800 hover:scale-105 active:scale-95'
+                }`}
+                title="Previous Card (Left Arrow)"
+              >
+                <ChevronLeft size={20} />
+              </button>
+
               <ClickStack
                 items={filteredOpportunities.map((opp) => {
                   const meta = getCategoryMeta(opp.category);
@@ -593,91 +669,26 @@ export function Explore() {
                 depthScale={0.05}
                 depthOpacity={0.82}
                 currentIndex={currentIndex}
-                onIndexChange={setCurrentIndex}
+                onIndexChange={(newIdx) => {
+                  if (tutorialActive) completeTutorial();
+                  setCurrentIndex(newIdx);
+                }}
                 onSwipeRight={(index) => {
+                  if (tutorialActive) completeTutorial();
                   const opp = filteredOpportunities[index];
                   if (opp) handleOpenDetails(opp);
                 }}
               />
-            </div>
 
-            {/* ============================================================ */}
-            {/* Interactive Gestures & Instructions Section */}
-            {/* ============================================================ */}
-            <div
-              className="pointer-events-none select-none w-full max-w-[400px] rounded-2xl bg-white/80 dark:bg-slate-900/80 border border-slate-200/80 dark:border-white/10 backdrop-blur-md p-2.5 sm:p-3 shadow-xs space-y-2 mx-auto"
-              aria-label="Gesture instructions"
-            >
-              {/* Instruction 1: Tap */}
-              <div className="flex items-center gap-2.5 px-3 py-1.5 rounded-xl bg-slate-100/70 dark:bg-slate-800/50 border border-slate-200/50 dark:border-slate-700/50 text-xs text-slate-700 dark:text-slate-200">
-                <div className="w-6 h-6 rounded-lg bg-blue-500/10 dark:bg-blue-400/10 text-blue-600 dark:text-sky-400 flex items-center justify-center shrink-0">
-                  <MousePointerClick size={14} />
-                </div>
-                <div className="flex items-center gap-1.5 min-w-0">
-                  <strong className="font-bold text-[#0e1b33] dark:text-white">Tap</strong>
-                  <span className="text-slate-500 dark:text-slate-400">– Move to next card</span>
-                </div>
-              </div>
-
-              {/* Instruction 2: Swipe Left */}
-              <div className="flex items-center gap-2.5 px-3 py-1.5 rounded-xl bg-slate-100/70 dark:bg-slate-800/50 border border-slate-200/50 dark:border-slate-700/50 text-xs text-slate-700 dark:text-slate-200">
-                <div className="w-6 h-6 rounded-lg bg-blue-500/10 dark:bg-blue-400/10 text-blue-600 dark:text-sky-400 flex items-center justify-center shrink-0">
-                  <MoveLeft size={14} />
-                </div>
-                <div className="flex items-center gap-1.5 min-w-0">
-                  <strong className="font-bold text-[#0e1b33] dark:text-white">Swipe left</strong>
-                  <span className="text-slate-500 dark:text-slate-400">– Move to next card</span>
-                </div>
-              </div>
-
-              {/* Instruction 3: Swipe Right */}
-              <div className="flex items-center gap-2.5 px-3 py-1.5 rounded-xl bg-blue-50/80 dark:bg-blue-950/40 border border-blue-200/60 dark:border-blue-900/50 text-xs text-blue-700 dark:text-sky-300">
-                <div className="w-6 h-6 rounded-lg bg-blue-600 text-white flex items-center justify-center shrink-0 shadow-2xs">
-                  <MoveRight size={14} className="animate-nudge-right" />
-                </div>
-                <div className="flex items-center gap-1.5 min-w-0">
-                  <strong className="font-bold text-blue-700 dark:text-sky-300">Swipe right</strong>
-                  <span className="text-blue-600/80 dark:text-sky-400/80">– View full event details</span>
-                </div>
-              </div>
-            </div>
-
-            {/* ============================================================ */}
-            {/* 4. STORIES CONTROLS: Prev, Counter, Next, Details Buttons */}
-            {/* ============================================================ */}
-            <div className="flex items-center gap-3 pt-1">
-              <button
-                type="button"
-                onClick={() => setCurrentIndex((prev) => Math.max(0, prev - 1))}
-                disabled={currentIndex === 0}
-                className={`p-3 rounded-full pm-glass border border-white/80 dark:border-white/10 shadow-sm transition cursor-pointer flex items-center justify-center ${
-                  currentIndex === 0
-                    ? 'opacity-40 cursor-not-allowed text-slate-400'
-                    : 'text-[#0e1b33] dark:text-white hover:bg-white dark:hover:bg-slate-800 hover:scale-105 active:scale-95'
-                }`}
-                title="Previous Card (Left Arrow)"
-              >
-                <ChevronLeft size={20} />
-              </button>
-
+              {/* Right Navigation Arrow */}
               <button
                 type="button"
                 onClick={() => {
-                  if (activeOpp) handleOpenDetails(activeOpp);
+                  if (tutorialActive) completeTutorial();
+                  setCurrentIndex((prev) => Math.min(filteredOpportunities.length - 1, prev + 1));
                 }}
-                className="px-5 py-2.5 rounded-full bg-[#112240] hover:bg-[#1a335e] text-white text-xs font-extrabold shadow-md shadow-slate-900/10 flex items-center gap-2 active:scale-98 transition cursor-pointer"
-              >
-                <span>View Full Details</span>
-                <ExternalLink size={14} />
-              </button>
-
-              <button
-                type="button"
-                onClick={() =>
-                  setCurrentIndex((prev) => Math.min(filteredOpportunities.length - 1, prev + 1))
-                }
                 disabled={currentIndex === filteredOpportunities.length - 1}
-                className={`p-3 rounded-full pm-glass border border-white/80 dark:border-white/10 shadow-sm transition cursor-pointer flex items-center justify-center ${
+                className={`absolute left-full ml-3 sm:ml-5 md:ml-7 top-1/2 -translate-y-1/2 z-20 p-3 rounded-full pm-glass border border-white/80 dark:border-white/10 shadow-sm transition cursor-pointer flex items-center justify-center ${
                   currentIndex === filteredOpportunities.length - 1
                     ? 'opacity-40 cursor-not-allowed text-slate-400'
                     : 'text-[#0e1b33] dark:text-white hover:bg-white dark:hover:bg-slate-800 hover:scale-105 active:scale-95'
@@ -686,6 +697,9 @@ export function Explore() {
               >
                 <ChevronRight size={20} />
               </button>
+
+              {/* Gesture hand overlay — appears ON the card, pointer-events:none */}
+              <GestureHandOverlay step={gestureStep} isExiting={isTutorialExiting} />
             </div>
           </div>
         )}
