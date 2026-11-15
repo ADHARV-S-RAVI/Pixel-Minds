@@ -10,12 +10,11 @@ import {
   Bookmark,
   Share2,
   ExternalLink,
-  Sparkles,
-  Search,
+  Award,
+  X,
   RotateCcw,
   Users,
   ArrowRight,
-  X,
   ShieldCheck,
   Tag,
   MoveRight,
@@ -222,29 +221,16 @@ export function Explore() {
   return (
     <div className="space-y-6 max-w-7xl mx-auto px-2 sm:px-4 pb-16">
       {/* ============================================================ */}
-      {/* 1. HEADER SECTION: Title, Subtitle, Story-mode pill */}
+      {/* 1. FILTER CONTROLS (Single Line): Modes & Category Chips */}
       {/* ============================================================ */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pt-1">
-        <div>
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-500/10 dark:bg-blue-400/10 border border-blue-500/20 text-xs font-bold text-blue-600 dark:text-sky-400 mb-2">
-            <Compass size={14} className="animate-spin-slow" />
-            <span>Interactive Story Stack</span>
-          </div>
-          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black text-[#0e1b33] dark:text-white tracking-tight">
-            Discover Opportunities
-          </h1>
-          <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 mt-1 max-w-xl">
-            Find your next hackathon, event or opportunity. Browse cards like stories, tap to cycle, and swipe right for full details.
-          </p>
-        </div>
-
+      <div className="flex items-center gap-2.5 overflow-x-auto pb-1 scrollbar-hide max-w-full pt-1">
         {/* Quick Mode Filters */}
-        <div className="flex items-center gap-1.5 bg-white/60 dark:bg-slate-900/60 p-1.5 rounded-2xl border border-white/80 dark:border-white/10 backdrop-blur-md shadow-2xs self-start md:self-auto">
+        <div className="flex items-center gap-1 bg-white/60 dark:bg-slate-900/60 p-1 rounded-2xl border border-white/80 dark:border-white/10 backdrop-blur-md shadow-2xs shrink-0">
           {(['all', 'online', 'offline', 'hybrid'] as const).map((mode) => (
             <button
               key={mode}
               onClick={() => setSelectedMode(mode)}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition capitalize cursor-pointer ${
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition capitalize cursor-pointer whitespace-nowrap ${
                 selectedMode === mode
                   ? 'bg-[#112240] text-white shadow-xs'
                   : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 hover:bg-white/70 dark:hover:bg-slate-800'
@@ -254,21 +240,18 @@ export function Explore() {
             </button>
           ))}
         </div>
-      </div>
 
-      {/* ============================================================ */}
-      {/* 2. CATEGORY CHIPS & SEARCH BAR */}
-      {/* ============================================================ */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-1">
+        <div className="h-6 w-px bg-slate-300/60 dark:bg-slate-700/60 shrink-0" aria-hidden="true" />
+
         {/* Horizontal Category Filter Pills */}
-        <div className="flex items-center gap-2 overflow-x-auto pb-1 pm-scrollbar max-w-full">
+        <div className="flex items-center gap-2 shrink-0">
           {CATEGORIES.map((cat) => {
             const isSelected = selectedCategory === cat;
             return (
               <button
                 key={cat}
                 onClick={() => setSelectedCategory(cat)}
-                className={`px-4 py-2 rounded-full text-xs font-bold whitespace-nowrap transition-all cursor-pointer shadow-2xs ${
+                className={`px-3.5 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all cursor-pointer shadow-2xs ${
                   isSelected
                     ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/20 scale-102'
                     : 'bg-white/80 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300 hover:bg-white dark:hover:bg-slate-800 border border-slate-200/80 dark:border-slate-700/80'
@@ -278,26 +261,6 @@ export function Explore() {
               </button>
             );
           })}
-        </div>
-
-        {/* Search input */}
-        <div className="relative min-w-[220px] sm:w-64 shrink-0">
-          <Search size={15} className="absolute left-3.5 top-3 text-slate-400" />
-          <input
-            type="text"
-            placeholder="Search events, skills..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full rounded-full bg-white/80 dark:bg-slate-900/80 border border-white/90 dark:border-white/10 py-2 pl-9 pr-8 text-xs text-[#0e1b33] dark:text-white placeholder-slate-400 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 shadow-2xs transition"
-          />
-          {searchQuery && (
-            <button
-              onClick={() => setSearchQuery('')}
-              className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600"
-            >
-              <X size={14} />
-            </button>
-          )}
         </div>
       </div>
 
@@ -314,7 +277,6 @@ export function Explore() {
           /* Empty State */
           <div className="w-full max-w-md p-8 rounded-[32px] pm-glass border border-white/90 text-center flex flex-col items-center justify-center gap-4 shadow-lg my-8">
             <div className="w-16 h-16 rounded-2xl bg-blue-500/10 text-blue-600 flex items-center justify-center">
-              <Sparkles size={28} />
             </div>
             <div>
               <h3 className="text-base font-extrabold text-[#0e1b33] dark:text-white">
@@ -398,6 +360,7 @@ export function Explore() {
                           className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105 pointer-events-none select-none no-drag-img"
                           draggable={false}
                           loading="lazy"
+                          decoding="async"
                         />
                       ) : (
                         /* Polished Artistic Fallback Graphic */
@@ -540,7 +503,6 @@ export function Explore() {
                             className="w-full py-2.5 px-4 rounded-2xl bg-white/15 hover:bg-white/25 active:scale-[0.98] border border-white/25 backdrop-blur-md flex items-center justify-between transition cursor-pointer text-xs font-extrabold text-white group select-none pointer-events-auto"
                           >
                             <span className="flex items-center gap-1.5 pointer-events-none">
-                              <Sparkles size={13} className="text-sky-400 group-hover:rotate-12 transition-transform" />
                               <span>Swipe right to learn more</span>
                             </span>
                             <span className="inline-flex items-center gap-1 text-sky-300 pointer-events-none">

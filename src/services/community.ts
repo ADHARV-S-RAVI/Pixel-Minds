@@ -852,15 +852,20 @@ export const toggleBookmarkRecord = async (
   }
 
   // 2. Direct table fallback
+  if (!bookmarksTableAvailable) {
+    return { bookmarked: true };
+  }
+
   try {
-    const { data: existing, error: checkErr } = await supabase
+    const { data: existing, error: checkErr, status } = await supabase
       .from('user_bookmarks')
       .select('id')
       .eq('user_id', userId)
       .eq('target_id', targetId)
       .maybeSingle();
 
-    if (checkErr) {
+    if (status === 404 || checkErr) {
+      bookmarksTableAvailable = false;
       // user_bookmarks table not configured in remote schema, gracefully return
       return { bookmarked: true };
     }
@@ -889,20 +894,28 @@ export const toggleBookmarkRecord = async (
   }
 };
 
+let bookmarksTableAvailable = false;
+
 /**
  * Fetch all bookmarks for a user from database
  */
 export const getUserBookmarks = async (userId: string): Promise<string[]> => {
-  if (!userId) return [];
+  if (!userId || !bookmarksTableAvailable) return [];
   try {
-    const { data, error } = await supabase
+    const { data, error, status } = await supabase
       .from('user_bookmarks')
       .select('target_id')
       .eq('user_id', userId);
 
+    if (status === 404 || error?.code === 'PGRST204' || error?.code === '42P01') {
+      bookmarksTableAvailable = false;
+      return [];
+    }
+
     if (error || !data) return [];
     return data.map((b: any) => b.target_id);
   } catch {
+    bookmarksTableAvailable = false;
     return [];
   }
 };

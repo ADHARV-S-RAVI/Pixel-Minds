@@ -10,6 +10,7 @@ import {
   BarChart2,
   Bookmark,
   FileText,
+  Bell,
   CircleHelp,
 } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
@@ -238,7 +239,7 @@ const PRIMARY_ITEMS: NavItemDef[] = [
 
 const SECONDARY_ITEMS: NavItemDef[] = [
   { to: '/opportunities?saved=true', label: 'Bookmarks', icon: Bookmark, exact: false, isSemibold: true },
-  { to: '/profile?tab=applications', label: 'My Applications', icon: FileText, exact: false, isSemibold: true },
+  { to: '/applications', label: 'My Applications', icon: FileText, exact: false, isSemibold: true },
 ];
 
 const SUPPORT_ITEMS: NavItemDef[] = [
