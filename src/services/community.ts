@@ -40,6 +40,13 @@ export const mapPostRow = (row: any): CommunityPost => {
     ? row.community_likes.map((l: any) => String(l.user_id)).filter(Boolean)
     : [];
 
+  const reposterIds = Array.isArray(row.community_interactions)
+    ? row.community_interactions
+        .filter((i: any) => i.interaction_type === 'repost')
+        .map((i: any) => String(i.user_id))
+        .filter(Boolean)
+    : [];
+
   return {
     id: row.id,
     user: row.author_name,
@@ -64,7 +71,8 @@ export const mapPostRow = (row: any): CommunityPost => {
     isEdited,
     updatedAt: row.updated_at ? new Date(row.updated_at).getTime() : undefined,
     createdAt: new Date(row.created_at).getTime(),
-    likerIds
+    likerIds,
+    reposterIds
   };
 };
 
@@ -80,7 +88,7 @@ export const getCommunityPosts = async (
   try {
     let query = supabase
       .from('community_posts')
-      .select('*, community_likes(user_id), community_comments(id)')
+      .select('*, community_likes(user_id), community_comments(id), community_interactions(user_id, interaction_type)')
       .order('created_at', { ascending: false })
       .limit(limitCount);
 
@@ -118,7 +126,7 @@ export const getUserCommunityPosts = async (userId: string): Promise<CommunityPo
   try {
     const { data, error } = await supabase
       .from('community_posts')
-      .select('*, community_likes(user_id), community_comments(id)')
+      .select('*, community_likes(user_id), community_comments(id), community_interactions(user_id, interaction_type)')
       .eq('user_id', userId)
       .order('created_at', { ascending: false });
 
@@ -829,15 +837,25 @@ export const recordPostInteraction = async (
     console.warn('[recordPostInteraction] RPC not available or failed:', rpcErr);
   }
 
-  // 2. Direct table fallback
+  // 2. Direct table fallback with duplicate prevention
   try {
-    await supabase
+    const { data: existing } = await supabase
       .from('community_interactions')
-      .insert({
-        post_id: postId,
-        user_id: userId,
-        interaction_type: type
-      });
+      .select('id')
+      .eq('post_id', postId)
+      .eq('user_id', userId)
+      .eq('interaction_type', type)
+      .maybeSingle();
+
+    if (!existing) {
+      await supabase
+        .from('community_interactions')
+        .insert({
+          post_id: postId,
+          user_id: userId,
+          interaction_type: type
+        });
+    }
 
     const { count } = await supabase
       .from('community_interactions')
@@ -845,7 +863,7 @@ export const recordPostInteraction = async (
       .eq('post_id', postId)
       .eq('interaction_type', type);
 
-    const safeCount = count ?? 1;
+    const safeCount = count ?? (existing ? 1 : 1);
     if (UUID_REGEX.test(postId)) {
       if (type === 'repost') {
         await supabase.from('community_posts').update({ reposts: safeCount }).eq('id', postId);
@@ -873,7 +891,8 @@ export const toggleBookmarkRecord = async (
   }
 
   const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-  const targetType = UUID_REGEX.test(targetId) ? 'post' : 'opportunity';
+  const isPostId = targetId.startsWith('p') || UUID_REGEX.test(targetId);
+  const targetType = isPostId ? 'post' : 'opportunity';
 
   // 1. Try atomic RPC toggle_user_bookmark
   try {
@@ -883,14 +902,16 @@ export const toggleBookmarkRecord = async (
     });
     if (!error && data?.success) {
       const isBookmarked = Boolean(data.bookmarked);
-      // Synchronize local cache
+      // Synchronize local cache with user-scoped storage
       if (typeof window !== 'undefined') {
         try {
-          const local = localStorage.getItem('pm_saved');
+          const userKey = `pm_saved_${userId}`;
+          const local = localStorage.getItem(userKey) || localStorage.getItem('pm_saved');
           const list: string[] = local ? JSON.parse(local) : [];
           const updated = isBookmarked
             ? Array.from(new Set([...list, targetId]))
             : list.filter((id) => id !== targetId);
+          localStorage.setItem(userKey, JSON.stringify(updated));
           localStorage.setItem('pm_saved', JSON.stringify(updated));
         } catch {}
       }
@@ -929,14 +950,16 @@ export const toggleBookmarkRecord = async (
         bookmarked = true;
       }
 
-      // Synchronize local cache
+      // Synchronize local cache with user-scoped storage
       if (typeof window !== 'undefined') {
         try {
-          const local = localStorage.getItem('pm_saved');
+          const userKey = `pm_saved_${userId}`;
+          const local = localStorage.getItem(userKey) || localStorage.getItem('pm_saved');
           const list: string[] = local ? JSON.parse(local) : [];
           const updated = bookmarked
             ? Array.from(new Set([...list, targetId]))
             : list.filter((id) => id !== targetId);
+          localStorage.setItem(userKey, JSON.stringify(updated));
           localStorage.setItem('pm_saved', JSON.stringify(updated));
         } catch {}
       }
@@ -949,11 +972,15 @@ export const toggleBookmarkRecord = async (
 
   // 3. Fallback to client localStorage only if offline or DB unavailable
   try {
-    const local = typeof window !== 'undefined' ? localStorage.getItem('pm_saved') : null;
+    const userKey = `pm_saved_${userId}`;
+    const local = typeof window !== 'undefined'
+      ? (localStorage.getItem(userKey) || localStorage.getItem('pm_saved'))
+      : null;
     const list: string[] = local ? JSON.parse(local) : [];
     const isSaved = list.includes(targetId);
     const updated = isSaved ? list.filter((id) => id !== targetId) : [...list, targetId];
     if (typeof window !== 'undefined') {
+      localStorage.setItem(userKey, JSON.stringify(updated));
       localStorage.setItem('pm_saved', JSON.stringify(updated));
     }
     return { bookmarked: !isSaved };
@@ -974,10 +1001,13 @@ export const getUserBookmarks = async (userId: string): Promise<string[]> => {
       .select('target_id')
       .eq('user_id', userId);
 
-    if (!error && data) {
+    if (!error && Array.isArray(data)) {
       const ids = data.map((row: any) => String(row.target_id));
       if (typeof window !== 'undefined') {
-        localStorage.setItem('pm_saved', JSON.stringify(ids));
+        try {
+          localStorage.setItem(`pm_saved_${userId}`, JSON.stringify(ids));
+          localStorage.setItem('pm_saved', JSON.stringify(ids));
+        } catch {}
       }
       return ids;
     }
@@ -989,7 +1019,9 @@ export const getUserBookmarks = async (userId: string): Promise<string[]> => {
   }
 
   try {
-    const local = typeof window !== 'undefined' ? localStorage.getItem('pm_saved') : null;
+    const local = typeof window !== 'undefined'
+      ? (localStorage.getItem(`pm_saved_${userId}`) || localStorage.getItem('pm_saved'))
+      : null;
     return local ? JSON.parse(local) : [];
   } catch {
     return [];

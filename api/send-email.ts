@@ -404,7 +404,7 @@ export default async function handler(req: any, res: any) {
     const supabaseUrl =
       process.env.SUPABASE_URL ||
       process.env.VITE_SUPABASE_URL ||
-      'https://gdvycwwonnfpvldgbatb.supabase.co';
+      '';
 
     const supabaseAnonKey =
       process.env.SUPABASE_ANON_KEY ||
@@ -412,11 +412,11 @@ export default async function handler(req: any, res: any) {
       process.env.VITE_SUPABASE_PUBLISHABLE_KEY ||
       '';
 
-    if (!supabaseAnonKey) {
-      console.error('[send-email] Server authentication config missing (SUPABASE_ANON_KEY or VITE_SUPABASE_PUBLISHABLE_KEY).');
+    if (!supabaseUrl || !supabaseAnonKey) {
+      console.error('[send-email] Server authentication config missing (SUPABASE_URL/VITE_SUPABASE_URL and SUPABASE_ANON_KEY/VITE_SUPABASE_PUBLISHABLE_KEY).');
       return res.status(500).json({
         success: false,
-        error: 'Server security configuration missing.'
+        error: 'Server security configuration missing. Please configure SUPABASE_URL and SUPABASE_ANON_KEY environment variables.'
       });
     }
 
@@ -460,17 +460,17 @@ export default async function handler(req: any, res: any) {
     const host = process.env.SMTP_HOST || 'smtp.gmail.com';
     const port = Number(process.env.SMTP_PORT) || 587;
     const secure = process.env.SMTP_SECURE === 'true' || port === 465;
-    const user = process.env.SMTP_USER || 'info.pixellminds@gmail.com';
+    const user = process.env.SMTP_USER || '';
     const pass = process.env.SMTP_PASS || process.env.GMAIL_APP_PASSWORD || '';
-    const fromAddress = process.env.SMTP_FROM || `"Pixel Minds" <${user}>`;
+    const fromAddress = process.env.SMTP_FROM || (user ? `"Pixel Minds" <${user}>` : '"Pixel Minds" <notifications@pixelminds.org>');
 
     // Graceful fallback if credentials are not configured in environment variables
-    if (!pass) {
-      console.warn('[send-email] SMTP password is not configured (SMTP_PASS or GMAIL_APP_PASSWORD). Notification logged without sending.');
+    if (!pass || !user) {
+      console.warn('[send-email] SMTP credentials not configured (SMTP_USER and/or SMTP_PASS). Notification logged without sending.');
       return res.status(503).json({
         success: false,
         code: 'SMTP_NOT_CONFIGURED',
-        message: 'SMTP credentials not configured yet. Configure SMTP_PASS in Vercel environment variables to send live emails.'
+        message: 'SMTP credentials not configured yet. Configure SMTP_USER and SMTP_PASS in environment variables to send live emails.'
       });
     }
 
