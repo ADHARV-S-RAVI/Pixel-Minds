@@ -45,6 +45,7 @@ export function validateMessageSafety(text: string): { safe: boolean; error?: st
 
 /**
  * Parses a string and wraps hashtags (#example) and mentions (@username) in clickable/styled badges.
+ * Avoids matching inside regular email addresses.
  */
 export function renderWithHashtags(text: string | null | undefined): React.ReactNode {
   if (!text) return text ?? '';
@@ -52,11 +53,19 @@ export function renderWithHashtags(text: string | null | undefined): React.React
   // Sanitize to prevent HTML injection while preserving hashtags and mentions
   const safeText = sanitizeInput(text);
 
-  // Regex matches hashtags (#tag) and mentions (@username)
-  const tokenRegex = /(#[a-zA-Z0-9_\-]+|@[a-zA-Z0-9_.\-]+)/g;
+  // Regex matches:
+  // 1. Email addresses (so they are preserved intact and not parsed as mentions)
+  // 2. Hashtags (#tag)
+  // 3. Mentions (@username) with strict username format: 3-20 letters/numbers/underscore
+  const tokenRegex = /([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}|#[a-zA-Z0-9_\-]{2,30}|@[a-zA-Z0-9_]{3,20}\b)/g;
   const parts = safeText.split(tokenRegex);
 
   return parts.map((part, i) => {
+    // If it's an ordinary email address, render as plain text
+    if (part.includes('@') && part.includes('.') && !part.startsWith('@')) {
+      return part;
+    }
+
     if (part.startsWith('#') && part.length > 1) {
       return (
         <span
@@ -67,15 +76,17 @@ export function renderWithHashtags(text: string | null | undefined): React.React
         </span>
       );
     }
-    if (part.startsWith('@') && part.length > 1) {
-      const mentionName = part.slice(1);
+
+    if (part.startsWith('@') && /^[a-zA-Z0-9_]{3,20}$/.test(part.slice(1))) {
+      const mentionName = part.slice(1).toLowerCase();
       return (
         <a
           key={i}
-          href={`/profile?name=${encodeURIComponent(mentionName)}`}
-          className="font-bold text-sky-600 dark:text-sky-400 bg-sky-50 dark:bg-sky-950/50 px-1 py-0.5 rounded hover:bg-sky-100 dark:hover:bg-sky-900/60 transition cursor-pointer inline-block"
+          href={`/profile?u=${encodeURIComponent(mentionName)}`}
+          className="font-bold text-sky-600 dark:text-sky-400 bg-sky-50 dark:bg-sky-950/50 px-1.5 py-0.5 rounded-md hover:bg-sky-100 dark:hover:bg-sky-900/60 transition cursor-pointer inline-flex items-center gap-0.5 text-xs sm:text-sm"
+          title={`View @${mentionName}'s profile`}
         >
-          {part}
+          @{mentionName}
         </a>
       );
     }

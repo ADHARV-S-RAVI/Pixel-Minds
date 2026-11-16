@@ -46,11 +46,16 @@ export function ForgotPassword() {
       await resetPasswordForEmail(email.trim());
       setStep('otp');
       setResendCooldown(60);
-      setMessage(`A 6-digit recovery code has been sent to ${email.trim()}.`);
+      setMessage(`If an account is associated with ${email.trim()}, a 6-digit verification code has been sent.`);
     } catch (err: any) {
       const msg = err?.message || '';
       if (msg.includes('504') || msg.toLowerCase().includes('gateway timeout')) {
         setError('Server timeout dispatching recovery email. Please ensure custom SMTP in Supabase is using port 587 with STARTTLS, or try again.');
+      } else if (msg.toLowerCase().includes('user not found') || msg.toLowerCase().includes('no user')) {
+        // Generic response to prevent user enumeration
+        setStep('otp');
+        setResendCooldown(60);
+        setMessage(`If an account is associated with ${email.trim()}, a 6-digit verification code has been sent.`);
       } else {
         setError(msg || 'Failed to send password recovery code. Please check your email and try again.');
       }

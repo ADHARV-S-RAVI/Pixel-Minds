@@ -1,5 +1,6 @@
 import { supabase } from '../lib/supabase';
 import type { CommunityPost } from '../types';
+import { sanitizeInput } from '../utils/text';
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -35,6 +36,10 @@ export const mapPostRow = (row: any): CommunityPost => {
     (row.updated_at && row.created_at && Math.abs(new Date(row.updated_at).getTime() - new Date(row.created_at).getTime()) > 3000)
   );
 
+  const likerIds = Array.isArray(row.community_likes)
+    ? row.community_likes.map((l: any) => String(l.user_id)).filter(Boolean)
+    : [];
+
   return {
     id: row.id,
     user: row.author_name,
@@ -58,7 +63,8 @@ export const mapPostRow = (row: any): CommunityPost => {
     featured: row.featured || false,
     isEdited,
     updatedAt: row.updated_at ? new Date(row.updated_at).getTime() : undefined,
-    createdAt: new Date(row.created_at).getTime()
+    createdAt: new Date(row.created_at).getTime(),
+    likerIds
   };
 };
 
@@ -209,40 +215,34 @@ export const createCommunityPost = async (
     comments: 0
   };
 
-  // Try insert with title & description, fallback to text-only if schema cache lacks them
-  let data: any = null;
-  const insertWithTitle = await supabase
+  // Direct insert using actual database schema columns (text stores title and description)
+  const { data: insertedData, error: insertError } = await supabase
     .from('community_posts')
-    .insert({
-      ...payload,
-      title: postTitle,
-      description: postDesc || postTitle
-    })
+    .insert(payload)
     .select()
     .single();
 
-  if (!insertWithTitle.error) {
-    data = insertWithTitle.data;
-  } else {
-    // If column title/description error or schema cache mismatch, fallback to base payload
-    const insertFallback = await supabase
-      .from('community_posts')
-      .insert(payload)
-      .select()
-      .single();
-
-    if (insertFallback.error) {
-      console.error('Failed to create community post in Supabase:', insertFallback.error.message);
-      if (insertFallback.error.code === '42501') {
-        throw new Error('Post rejected by server security policy. Please verify you are signed in.');
-      }
-      throw new Error(insertFallback.error.message || 'Failed to create community post.');
+  if (insertError) {
+    console.error('Failed to create community post in Supabase:', insertError.message);
+    if (insertError.code === '42501') {
+      throw new Error('Post rejected by server security policy. Please verify you are signed in.');
     }
-    data = insertFallback.data;
+    throw new Error(insertError.message || 'Failed to create community post.');
+  }
+
+  const data = insertedData;
+
+  // Server-side atomic reward for post creation
+  try {
+    await (supabase.rpc as any)('reward_community_post_creation', {
+      p_post_id: data.id
+    });
+  } catch (rewardErr) {
+    console.warn('[createCommunityPost] Post creation reward notice:', rewardErr);
   }
 
   // Dispatch mention notifications asynchronously for @mentions in post
-  handleContentMentions(fullText, data.id, payload.author_name, 'post').catch((err) => {
+  handleContentMentions(fullText, data.id, payload.author_name, 'post', payload.author_id).catch((err) => {
     console.warn('[createCommunityPost] Mention dispatch notice:', err);
   });
 
@@ -286,11 +286,15 @@ export const updateCommunityPost = async (
   updates: Partial<CommunityPost> & { title?: string; description?: string }
 ): Promise<void> => {
   const payload: any = {};
-  if (updates.title !== undefined) payload.title = updates.title;
-  if (updates.description !== undefined) payload.description = updates.description;
-  if (updates.text !== undefined) payload.text = updates.text;
+  if (updates.text !== undefined) {
+    payload.text = sanitizeInput(updates.text);
+  } else if (updates.title !== undefined || updates.description !== undefined) {
+    const title = sanitizeInput(updates.title || '');
+    const desc = sanitizeInput(updates.description || '');
+    payload.text = title + (desc ? '\n\n' + desc : '');
+  }
   if (updates.category !== undefined) payload.category = updates.category;
-  if (updates.link !== undefined) payload.link = updates.link || null;
+  if (updates.link !== undefined) payload.link = updates.link ? sanitizeInput(updates.link) : null;
   if (updates.imageUrl !== undefined) payload.image_url = updates.imageUrl || null;
   if (updates.status !== undefined) payload.status = updates.status;
   if (updates.featured !== undefined) payload.featured = updates.featured;
@@ -306,21 +310,8 @@ export const updateCommunityPost = async (
       .eq('id', id);
 
     if (error) {
-      // Fallback: update text only if title/description column does not exist
-      const fallbackPayload: any = { updated_at: payload.updated_at };
-      if (payload.text) fallbackPayload.text = payload.text;
-      if (payload.likes !== undefined) fallbackPayload.likes = payload.likes;
-      if (payload.comments !== undefined) fallbackPayload.comments = payload.comments;
-
-      const { error: fbErr } = await supabase
-        .from('community_posts')
-        .update(fallbackPayload)
-        .eq('id', id);
-
-      if (fbErr) {
-        console.error('Failed to update community post:', fbErr.message);
-        throw new Error('Failed to update community post: ' + fbErr.message);
-      }
+      console.error('Failed to update community post:', error.message);
+      throw new Error('Failed to update community post: ' + error.message);
     }
   }
 };
@@ -389,9 +380,12 @@ export const updatePostComment = async (
   if (!userId) {
     throw new Error('Authentication required to edit comment.');
   }
-  const clean = newText.trim();
+  const clean = sanitizeInput(newText.trim());
   if (!clean) {
     throw new Error('Comment cannot be empty.');
+  }
+  if (clean.length > 2000) {
+    throw new Error('Comment text exceeds maximum allowed length of 2000 characters.');
   }
 
   // Update in Supabase only if commentId is a valid UUID
@@ -402,7 +396,8 @@ export const updatePostComment = async (
       .eq('id', commentId);
 
     if (error) {
-      console.warn('[updatePostComment] Supabase update notice:', error.message);
+      console.error('Failed to update comment:', error.message);
+      throw new Error('Failed to update comment: ' + error.message);
     }
   }
 };
@@ -478,11 +473,12 @@ export const togglePostLike = async (
       .update({ likes: nextCount })
       .eq('id', postId);
     if (updateErr) console.warn('[togglePostLike] Counter update notice:', updateErr.message);
+
+    return { liked: nextLiked, likesCount: nextCount };
   } catch (err) {
     console.error('[togglePostLike] Failed direct sync:', err);
+    throw err;
   }
-
-  return { liked: nextLiked, likesCount: nextCount };
 };
 
 /**
@@ -497,12 +493,12 @@ export const getPostComments = async (postId: string, currentUserId?: string): P
         .eq('post_id', postId)
         .order('created_at', { ascending: true });
 
-      if (!error && data && data.length > 0) {
-        return data.map((c: any) => {
+      // If query was successful (even if empty array, data is []), use Supabase response
+      if (!error && Array.isArray(data)) {
+        const mappedComments = data.map((c: any) => {
           let isLiked = false;
           if (typeof window !== 'undefined' && currentUserId) {
-            isLiked = localStorage.getItem(`pm_comment_liked_${c.id}_${currentUserId}`) === 'true' ||
-              localStorage.getItem(`pm_comment_liked_${c.id}`) === 'true';
+            isLiked = localStorage.getItem(`pm_comment_liked_${c.id}_${currentUserId}`) === 'true';
           }
 
           const isCommentEdited = Boolean(
@@ -524,11 +520,22 @@ export const getPostComments = async (postId: string, currentUserId?: string): P
             createdAt: new Date(c.created_at).getTime()
           };
         });
+
+        // Sync local cache with authoritative Supabase response (clearing stale comments when empty)
+        if (typeof window !== 'undefined') {
+          try {
+            localStorage.setItem(`pm_post_comments_${postId}`, JSON.stringify(mappedComments));
+          } catch {}
+        }
+
+        return mappedComments;
       }
     }
-  } catch {}
+  } catch (err) {
+    console.warn('[getPostComments] Supabase fetch exception:', err);
+  }
 
-  // Fallback to localStorage if table is pending or empty
+  // Fallback to localStorage ONLY on network/offline failure
   try {
     const stored = localStorage.getItem(`pm_post_comments_${postId}`);
     if (stored) return JSON.parse(stored);
@@ -577,7 +584,7 @@ export const addPostComment = async (
       };
 
       // Dispatch mention notifications asynchronously for @mentions in comment
-      handleContentMentions(cleanText, postId, author.name, 'comment').catch(() => {});
+      handleContentMentions(cleanText, postId, author.name, 'comment', author.id).catch(() => {});
 
       return commentRes;
     }
@@ -615,7 +622,7 @@ export const addPostComment = async (
         .eq('id', postId);
 
       // Dispatch mention notifications
-      handleContentMentions(cleanText, postId, author.name, 'comment').catch(() => {});
+      handleContentMentions(cleanText, postId, author.name, 'comment', author.id).catch(() => {});
 
       return {
         id: inserted.id,
@@ -751,18 +758,47 @@ export const toggleCommentLike = async (
   const nextLiked = !currentLiked;
   const nextCount = Math.max(0, currentLikesCount + (nextLiked ? 1 : -1));
 
-  try {
-    if (UUID_REGEX.test(commentId)) {
-      await supabase
-        .from('community_comments')
-        .update({ likes: nextCount })
-        .eq('id', commentId);
-    }
-  } catch (err) {
-    console.warn('[toggleCommentLike] Direct sync notice:', err);
+  if (!UUID_REGEX.test(commentId)) {
+    return { liked: nextLiked, likesCount: nextCount };
   }
 
-  return { liked: nextLiked, likesCount: nextCount };
+  try {
+    if (currentLiked) {
+      const { error: delErr } = await supabase
+        .from('community_comment_likes')
+        .delete()
+        .eq('comment_id', commentId)
+        .eq('user_id', userId);
+      if (delErr) console.warn('[toggleCommentLike] Delete notice:', delErr.message);
+    } else {
+      const { error: insErr } = await supabase
+        .from('community_comment_likes')
+        .insert({ comment_id: commentId, user_id: userId });
+      if (insErr) console.warn('[toggleCommentLike] Insert notice:', insErr.message);
+    }
+
+    const { count, error: countErr } = await supabase
+      .from('community_comment_likes')
+      .select('id', { count: 'exact', head: true })
+      .eq('comment_id', commentId);
+
+    const resolvedCount = countErr ? nextCount : (count ?? nextCount);
+
+    const { error: updateErr } = await supabase
+      .from('community_comments')
+      .update({ likes: resolvedCount })
+      .eq('id', commentId);
+
+    if (updateErr) {
+      console.error('[toggleCommentLike] Comment update error:', updateErr.message);
+      throw updateErr;
+    }
+
+    return { liked: nextLiked, likesCount: resolvedCount };
+  } catch (err) {
+    console.error('[toggleCommentLike] Failed sync:', err);
+    throw err;
+  }
 };
 
 /**
@@ -826,7 +862,7 @@ export const recordPostInteraction = async (
 };
 
 /**
- * Toggle bookmark for a post or opportunity (integrated with user_bookmarks table)
+ * Toggle bookmark for a post or opportunity with database persistence and localStorage sync
  */
 export const toggleBookmarkRecord = async (
   targetId: string,
@@ -836,118 +872,176 @@ export const toggleBookmarkRecord = async (
     throw new Error('Authentication required to save bookmarks.');
   }
 
-  // 1. Try secure RPC toggle_post_bookmark
+  const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  const targetType = UUID_REGEX.test(targetId) ? 'post' : 'opportunity';
+
+  // 1. Try atomic RPC toggle_user_bookmark
   try {
-    const { data, error } = await (supabase.rpc as any)('toggle_post_bookmark', {
-      p_post_id: targetId
+    const { data, error } = await (supabase.rpc as any)('toggle_user_bookmark', {
+      p_target_id: targetId,
+      p_target_type: targetType
     });
     if (!error && data?.success) {
-      return {
-        bookmarked: Boolean(data.bookmarked),
-        bookmarksCount: typeof data.bookmarks_count === 'number' ? data.bookmarks_count : undefined
-      };
+      const isBookmarked = Boolean(data.bookmarked);
+      // Synchronize local cache
+      if (typeof window !== 'undefined') {
+        try {
+          const local = localStorage.getItem('pm_saved');
+          const list: string[] = local ? JSON.parse(local) : [];
+          const updated = isBookmarked
+            ? Array.from(new Set([...list, targetId]))
+            : list.filter((id) => id !== targetId);
+          localStorage.setItem('pm_saved', JSON.stringify(updated));
+        } catch {}
+      }
+      return { bookmarked: isBookmarked };
     }
   } catch (rpcErr) {
-    console.warn('[toggleBookmarkRecord] RPC not available or failed:', rpcErr);
+    console.warn('[toggleBookmarkRecord] RPC error, falling back to direct table:', rpcErr);
   }
 
-  // 2. Direct table fallback
-  if (!bookmarksTableAvailable) {
-    return { bookmarked: true };
-  }
-
+  // 2. Direct table operations fallback with RLS
   try {
-    const { data: existing, error: checkErr, status } = await supabase
+    const { data: existing, error: fetchErr } = await supabase
       .from('user_bookmarks')
       .select('id')
       .eq('user_id', userId)
       .eq('target_id', targetId)
       .maybeSingle();
 
-    if (status === 404 || checkErr) {
-      bookmarksTableAvailable = false;
-      // user_bookmarks table not configured in remote schema, gracefully return
-      return { bookmarked: true };
-    }
+    if (!fetchErr) {
+      let bookmarked = false;
+      if (existing) {
+        await supabase
+          .from('user_bookmarks')
+          .delete()
+          .eq('user_id', userId)
+          .eq('target_id', targetId);
+        bookmarked = false;
+      } else {
+        await supabase
+          .from('user_bookmarks')
+          .insert({
+            user_id: userId,
+            target_id: targetId,
+            target_type: targetType
+          });
+        bookmarked = true;
+      }
 
-    if (existing) {
-      await supabase
-        .from('user_bookmarks')
-        .delete()
-        .eq('user_id', userId)
-        .eq('target_id', targetId);
-      return { bookmarked: false };
-    } else {
-      const isPost = targetId.startsWith('p') || UUID_REGEX.test(targetId);
-      await supabase
-        .from('user_bookmarks')
-        .insert({
-          user_id: userId,
-          target_id: targetId,
-          target_type: isPost ? 'post' : 'opportunity'
-        });
-      return { bookmarked: true };
+      // Synchronize local cache
+      if (typeof window !== 'undefined') {
+        try {
+          const local = localStorage.getItem('pm_saved');
+          const list: string[] = local ? JSON.parse(local) : [];
+          const updated = bookmarked
+            ? Array.from(new Set([...list, targetId]))
+            : list.filter((id) => id !== targetId);
+          localStorage.setItem('pm_saved', JSON.stringify(updated));
+        } catch {}
+      }
+
+      return { bookmarked };
     }
-  } catch (err) {
-    console.warn('[toggleBookmarkRecord] Direct fallback notice:', err);
-    return { bookmarked: false };
+  } catch (dbErr) {
+    console.warn('[toggleBookmarkRecord] DB operation failed, falling back to localStorage:', dbErr);
+  }
+
+  // 3. Fallback to client localStorage only if offline or DB unavailable
+  try {
+    const local = typeof window !== 'undefined' ? localStorage.getItem('pm_saved') : null;
+    const list: string[] = local ? JSON.parse(local) : [];
+    const isSaved = list.includes(targetId);
+    const updated = isSaved ? list.filter((id) => id !== targetId) : [...list, targetId];
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('pm_saved', JSON.stringify(updated));
+    }
+    return { bookmarked: !isSaved };
+  } catch {
+    return { bookmarked: true };
   }
 };
 
-let bookmarksTableAvailable = false;
-
 /**
- * Fetch all bookmarks for a user from database
+ * Fetch all bookmarks for a user from Supabase user_bookmarks table (persisting across devices)
  */
 export const getUserBookmarks = async (userId: string): Promise<string[]> => {
-  if (!userId || !bookmarksTableAvailable) return [];
+  if (!userId) return [];
+
   try {
-    const { data, error, status } = await supabase
+    const { data, error } = await supabase
       .from('user_bookmarks')
       .select('target_id')
       .eq('user_id', userId);
 
-    if (status === 404 || error?.code === 'PGRST204' || error?.code === '42P01') {
-      bookmarksTableAvailable = false;
-      return [];
+    if (!error && data) {
+      const ids = data.map((row: any) => String(row.target_id));
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('pm_saved', JSON.stringify(ids));
+      }
+      return ids;
     }
+    if (error) {
+      console.warn('[getUserBookmarks] DB query failed, using localStorage fallback:', error.message);
+    }
+  } catch (err) {
+    console.warn('[getUserBookmarks] Exception occurred, using localStorage fallback:', err);
+  }
 
-    if (error || !data) return [];
-    return data.map((b: any) => b.target_id);
+  try {
+    const local = typeof window !== 'undefined' ? localStorage.getItem('pm_saved') : null;
+    return local ? JSON.parse(local) : [];
   } catch {
-    bookmarksTableAvailable = false;
     return [];
   }
 };
 
 /**
- * Detect mentions in content and dispatch notifications to mentioned users
+ * Detect mentions in content and dispatch notifications to mentioned users.
+ * Strictly uses unique usernames, ignores email addresses, and prevents self-notifications.
  */
 export const handleContentMentions = async (
   content: string,
   postId: string,
   actorName: string,
-  contextType: 'post' | 'comment' = 'post'
+  contextType: 'post' | 'comment' = 'post',
+  actorId?: string
 ): Promise<void> => {
   if (!content || !postId) return;
 
-  // Extract unique @usernames (letters, numbers, underscores)
-  const matches = content.match(/@([a-zA-Z0-9_-]{2,30})/g);
+  // Protect against parsing email addresses as mentions
+  // Extract tokens that look like emails or mentions
+  const tokenRegex = /([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}|@[a-zA-Z0-9_]{3,20}\b)/g;
+  const matches = content.match(tokenRegex);
   if (!matches || matches.length === 0) return;
 
-  const usernames = Array.from(new Set(matches.map((m) => m.slice(1).trim().toLowerCase())));
+  // Filter for valid mentions only (excluding emails)
+  const validUsernames: string[] = [];
+  for (const token of matches) {
+    if (token.startsWith('@') && !token.includes('.')) {
+      const u = token.slice(1).trim().toLowerCase();
+      if (/^[a-zA-Z0-9_]{3,20}$/.test(u)) {
+        validUsernames.push(u);
+      }
+    }
+  }
 
-  for (const username of usernames) {
+  const uniqueUsernames = Array.from(new Set(validUsernames));
+  if (uniqueUsernames.length === 0) return;
+
+  for (const username of uniqueUsernames) {
     try {
-      // Find matching user profile by username / full_name / email prefix
+      // Find matching active user profile by unique username
       const { data: matchedProfiles } = await supabase
         .from('profiles')
-        .select('id, full_name, email')
-        .or(`full_name.ilike.%${username}%,email.ilike.${username}@%`)
+        .select('id, username, full_name')
+        .ilike('username', username)
+        .eq('is_suspended', false)
         .limit(1);
 
       const targetUser = matchedProfiles?.[0];
-      if (targetUser && targetUser.id) {
+      // Do not notify self or missing accounts
+      if (targetUser && targetUser.id && targetUser.id !== actorId) {
         // Try RPC first
         try {
           await (supabase.rpc as any)('dispatch_mention_notification', {
@@ -962,7 +1056,7 @@ export const handleContentMentions = async (
           const { data: notif } = await supabase
             .from('notifications')
             .insert({
-              title: `${actorName} mentioned you`,
+              title: `${actorName} mentioned you in a ${contextType}`,
               message: `"${content.substring(0, 100)}"`,
               type: 'community',
               link: `/feed#${postId}`

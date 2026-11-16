@@ -5,6 +5,7 @@ export interface User {
   id: string;
   email: string;
   displayName: string;
+  username?: string;
   photoURL?: string;
   role: Role;
   pixels: number;
@@ -75,7 +76,9 @@ export interface PixelTransaction {
   userId: string;
   amount: number;
   reason: string;
+  action?: string;
   type: 'earn' | 'spend' | 'adjustment';
+  idempotencyKey?: string;
   createdAt: number;
 }
 
@@ -185,5 +188,7 @@ export interface CommunityPost {
   isEdited?: boolean;
   updatedAt?: number;
   createdAt: number;
+  liked?: boolean;
+  likerIds?: string[];
 }
 

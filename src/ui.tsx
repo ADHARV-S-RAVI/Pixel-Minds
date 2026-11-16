@@ -487,19 +487,19 @@ export const Composer: FC<{ onPostCreated?: (p: any) => void; isModal?: boolean 
     { id: 'General', label: 'General', icon: IconMessage }
   ] as const;
 
-  // Search people for @mentions as the user types
+  // Search people for @mentions as the user types using unique usernames
   const handleTextChange = async (val: string, cursorPos: number) => {
     setT(val);
     setMentionCursorPos(cursorPos);
     const textBeforeCursor = val.slice(0, cursorPos);
-    const mentionMatch = textBeforeCursor.match(/@([a-zA-Z0-9_\-\.]*)$/);
+    const mentionMatch = textBeforeCursor.match(/@([a-zA-Z0-9_]*)$/);
     if (mentionMatch) {
       const q = mentionMatch[1];
       setMentionQuery(q);
       try {
-        const { globalSearch } = await import('./services/search');
-        const res = await globalSearch(q || 'a', 5);
-        setMentionSuggestions(res.people || []);
+        const { searchUsernamesForMention } = await import('./services/users');
+        const res = await searchUsernamesForMention(q, 5);
+        setMentionSuggestions(res || []);
       } catch {
         setMentionSuggestions([]);
       }
@@ -510,11 +510,10 @@ export const Composer: FC<{ onPostCreated?: (p: any) => void; isModal?: boolean 
   };
 
   const selectMention = (person: any) => {
-    const rawName = person.name || person.displayName || 'user';
-    const cleanUsername = rawName.replace(/\s+/g, '_').toLowerCase();
+    const cleanUsername = person.username || (person.displayName ? person.displayName.replace(/\s+/g, '_').toLowerCase() : 'user');
     const textBeforeCursor = t.slice(0, mentionCursorPos);
     const textAfterCursor = t.slice(mentionCursorPos);
-    const replacedBefore = textBeforeCursor.replace(/@([a-zA-Z0-9_\-\.]*)$/, `@${cleanUsername} `);
+    const replacedBefore = textBeforeCursor.replace(/@([a-zA-Z0-9_]*)$/, `@${cleanUsername} `);
     setT(replacedBefore + textAfterCursor);
     setMentionQuery(null);
     setMentionSuggestions([]);
@@ -575,7 +574,12 @@ export const Composer: FC<{ onPostCreated?: (p: any) => void; isModal?: boolean 
       setOid(0);
       setLnk('');
       setShowL(false);
-      incrementPixels?.(10);
+      incrementPixels?.(
+        10,
+        'Created Post (+10 Pixels)',
+        `Created community post: "${cleanTitle.substring(0, 50)}"`,
+        `feed_post_${newPost.id}`
+      );
       say(`Shared ${selectedCategory.toLowerCase()} with community (+10 Pixels)`);
     } catch (err: any) {
       console.error('Failed to create post:', err);
@@ -641,7 +645,12 @@ export const Composer: FC<{ onPostCreated?: (p: any) => void; isModal?: boolean 
       setHLink('');
       setHDesc('');
       setComposerMode('update');
-      incrementPixels?.(15);
+      incrementPixels?.(
+        15,
+        'Shared Hackathon (+15 Pixels)',
+        `Shared upcoming hackathon: "${cleanName.substring(0, 50)}"`,
+        `feed_hackathon_${newPost.id}`
+      );
       say('Upcoming hackathon shared with community! (+15 Pixels)');
     } catch (err: any) {
       console.error('Failed to share hackathon:', err);
@@ -839,10 +848,10 @@ export const Composer: FC<{ onPostCreated?: (p: any) => void; isModal?: boolean 
                         onClick={() => selectMention(person)}
                         className="w-full text-left px-2 py-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center gap-2 transition cursor-pointer"
                       >
-                        <Avatar name={person.name} photoURL={person.avatar} size={22} />
+                        <Avatar name={person.displayName || person.name} photoURL={person.avatar} size={22} />
                         <div className="truncate">
-                          <p className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">{person.name}</p>
-                          <p className="text-[10px] text-slate-500 truncate">@{person.name.replace(/\s+/g, '_').toLowerCase()}</p>
+                          <p className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">{person.displayName || person.name}</p>
+                          <p className="text-[10px] text-slate-500 truncate">@{person.username || (person.displayName || person.name).replace(/\s+/g, '_').toLowerCase()}</p>
                         </div>
                       </button>
                     ))}
@@ -928,7 +937,7 @@ export interface PostCommentItem {
 
 export const PostCard: FC<{ p: any; onPostDeleted?: (id: string) => void; onPostCreated?: (p: any) => void }> = ({ p, onPostDeleted, onPostCreated }) => {
   const { saved, toggle, say, addPost } = useApp();
-  const { userProfile, user, incrementPixels } = useAuth();
+  const { userProfile, user } = useAuth();
   const [showReport, setShowReport] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [authActionText, setAuthActionText] = useState('interact with community posts');
@@ -943,15 +952,62 @@ export const PostCard: FC<{ p: any; onPostDeleted?: (id: string) => void; onPost
     if (typeof p.shares === 'number') setSharesCount(p.shares);
   }, [p.reposts, p.shares]);
 
-  // Likes state with localStorage persistence
+  // Local state for post content to avoid mutating props directly
+  const [postTitle, setPostTitle] = useState(p.title || '');
+  const [postDesc, setPostDesc] = useState(p.description || '');
+  const [postText, setPostText] = useState(p.text || '');
+  const [isEdited, setIsEdited] = useState(Boolean(p.isEdited));
+
+  // Sync post content if parent prop p updates
+  useEffect(() => {
+    setPostTitle(p.title || '');
+    setPostDesc(p.description || '');
+    setPostText(p.text || '');
+    setIsEdited(Boolean(p.isEdited));
+  }, [p.title, p.description, p.text, p.isEdited]);
+
+  // Likes state with user-scoped persistence
   const [liked, setLiked] = useState(() => {
+    if (!user?.uid) return false;
     try {
-      return localStorage.getItem(`pm_post_liked_${p.id}`) === 'true';
-    } catch {
-      return false;
+      const userKey = `pm_post_liked_${p.id}_${user.uid}`;
+      const val = localStorage.getItem(userKey);
+      if (val !== null) return val === 'true';
+    } catch {}
+    if (Array.isArray(p.likerIds)) {
+      return p.likerIds.includes(user.uid);
     }
+    return Boolean(p.liked);
   });
   const [likesCount, setLikesCount] = useState<number>(p.likes || 0);
+
+  // Synchronize liked state when user or post like data changes
+  useEffect(() => {
+    if (!user?.uid) {
+      setLiked(false);
+      return;
+    }
+    const isUserLiker = Array.isArray(p.likerIds) && p.likerIds.includes(user.uid);
+    const userStorageKey = `pm_post_liked_${p.id}_${user.uid}`;
+    let storedUserLiked: boolean | null = null;
+    try {
+      const val = localStorage.getItem(userStorageKey);
+      if (val !== null) storedUserLiked = val === 'true';
+    } catch {}
+
+    if (isUserLiker) {
+      setLiked(true);
+      try {
+        localStorage.setItem(userStorageKey, 'true');
+      } catch {}
+    } else if (storedUserLiked !== null) {
+      setLiked(storedUserLiked);
+    } else if (p.liked !== undefined) {
+      setLiked(Boolean(p.liked));
+    } else {
+      setLiked(false);
+    }
+  }, [p.id, user?.uid, p.liked, p.likerIds]);
 
   // Synchronize likesCount if p.likes updates from server/parent
   useEffect(() => {
@@ -988,12 +1044,51 @@ export const PostCard: FC<{ p: any; onPostDeleted?: (id: string) => void; onPost
   });
   const [commentText, setCommentText] = useState('');
   const [submittingComment, setSubmittingComment] = useState(false);
+  const [commentMentionSuggestions, setCommentMentionSuggestions] = useState<any[]>([]);
+  const [commentMentionQuery, setCommentMentionQuery] = useState<string | null>(null);
+  const [commentMentionCursorPos, setCommentMentionCursorPos] = useState<number>(0);
+
+  const handleCommentTextChange = async (val: string, cursorPos: number) => {
+    setCommentText(val);
+    setCommentMentionCursorPos(cursorPos);
+    const textBeforeCursor = val.slice(0, cursorPos);
+    const mentionMatch = textBeforeCursor.match(/@([a-zA-Z0-9_]*)$/);
+    if (mentionMatch) {
+      const q = mentionMatch[1];
+      setCommentMentionQuery(q);
+      try {
+        const { searchUsernamesForMention } = await import('./services/users');
+        const res = await searchUsernamesForMention(q, 5);
+        setCommentMentionSuggestions(res || []);
+      } catch {
+        setCommentMentionSuggestions([]);
+      }
+    } else {
+      setCommentMentionQuery(null);
+      setCommentMentionSuggestions([]);
+    }
+  };
+
+  const selectCommentMention = (person: any) => {
+    const cleanUsername = person.username || (person.displayName ? person.displayName.replace(/\s+/g, '_').toLowerCase() : 'user');
+    const textBeforeCursor = commentText.slice(0, commentMentionCursorPos);
+    const textAfterCursor = commentText.slice(commentMentionCursorPos);
+    const replacedBefore = textBeforeCursor.replace(/@([a-zA-Z0-9_]*)$/, `@${cleanUsername} `);
+    setCommentText(replacedBefore + textAfterCursor);
+    setCommentMentionQuery(null);
+    setCommentMentionSuggestions([]);
+  };
 
   useEffect(() => {
     if (open) {
       getPostComments(String(p.id), user?.uid)
         .then((items) => {
-          if (items && items.length > 0) setComments(items);
+          if (Array.isArray(items)) {
+            setComments(items);
+            try {
+              localStorage.setItem(`pm_post_comments_${p.id}`, JSON.stringify(items));
+            } catch {}
+          }
         })
         .catch(() => {});
     }
@@ -1005,8 +1100,8 @@ export const PostCard: FC<{ p: any; onPostDeleted?: (id: string) => void; onPost
 
   // Edit Post state
   const [isEditingPost, setIsEditingPost] = useState(false);
-  const [editPostTitle, setEditPostTitle] = useState(p.title || '');
-  const [editPostDesc, setEditPostDesc] = useState(p.description || p.text || '');
+  const [editPostTitle, setEditPostTitle] = useState(postTitle);
+  const [editPostDesc, setEditPostDesc] = useState(postDesc || postText);
   const [savingPostEdit, setSavingPostEdit] = useState(false);
 
   // Edit Comment state
@@ -1031,26 +1126,30 @@ export const PostCard: FC<{ p: any; onPostDeleted?: (id: string) => void; onPost
     const wasLiked = liked;
     const nextLiked = !wasLiked;
     const nextCount = Math.max(0, likesCount + (nextLiked ? 1 : -1));
+    const userStorageKey = `pm_post_liked_${p.id}_${user.uid}`;
 
     // Optimistic UI updates
     setLiked(nextLiked);
     setLikesCount(nextCount);
     try {
-      localStorage.setItem(`pm_post_liked_${p.id}`, String(nextLiked));
-      localStorage.setItem(`pm_post_liked_${p.id}_${user.uid}`, String(nextLiked));
+      localStorage.setItem(userStorageKey, String(nextLiked));
     } catch {}
 
     try {
       const res = await togglePostLike(String(p.id), user.uid, wasLiked, likesCount);
       setLiked(res.liked);
       setLikesCount(res.likesCount);
-      localStorage.setItem(`pm_post_liked_${p.id}`, String(res.liked));
-      localStorage.setItem(`pm_post_liked_${p.id}_${user.uid}`, String(res.liked));
+      try {
+        localStorage.setItem(userStorageKey, String(res.liked));
+      } catch {}
     } catch (err) {
-      console.warn('Could not sync like to server:', err);
+      console.warn('Could not sync like to server, rolling back:', err);
       // Rollback on failure
       setLiked(wasLiked);
       setLikesCount(likesCount);
+      try {
+        localStorage.setItem(userStorageKey, String(wasLiked));
+      } catch {}
     }
   };
 
@@ -1086,9 +1185,10 @@ export const PostCard: FC<{ p: any; onPostDeleted?: (id: string) => void; onPost
       const updated = [...comments, created];
       setComments(updated);
       setCommentText('');
+      setCommentMentionQuery(null);
+      setCommentMentionSuggestions([]);
       localStorage.setItem(`pm_post_comments_${p.id}`, JSON.stringify(updated));
-      incrementPixels?.(2);
-      say('Comment posted (+2 Pixels)');
+      say('Comment posted');
     } catch (err) {
       console.warn('Could not sync comment to server:', err);
     } finally {
@@ -1108,8 +1208,7 @@ export const PostCard: FC<{ p: any; onPostDeleted?: (id: string) => void; onPost
     const storageKey = `pm_comment_liked_${commentId}_${user.uid}`;
     const wasLiked = Boolean(
       targetComment?.liked ||
-      (typeof window !== 'undefined' && localStorage.getItem(storageKey) === 'true') ||
-      (typeof window !== 'undefined' && localStorage.getItem(`pm_comment_liked_${commentId}`) === 'true')
+      (typeof window !== 'undefined' && localStorage.getItem(storageKey) === 'true')
     );
     const currentLikes = targetComment?.likes || 0;
     const newLiked = !wasLiked;
@@ -1126,7 +1225,6 @@ export const PostCard: FC<{ p: any; onPostDeleted?: (id: string) => void; onPost
 
     try {
       localStorage.setItem(storageKey, String(newLiked));
-      localStorage.setItem(`pm_comment_liked_${commentId}`, String(newLiked));
     } catch {}
 
     try {
@@ -1141,10 +1239,20 @@ export const PostCard: FC<{ p: any; onPostDeleted?: (id: string) => void; onPost
       });
       try {
         localStorage.setItem(storageKey, String(res.liked));
-        localStorage.setItem(`pm_comment_liked_${commentId}`, String(res.liked));
       } catch {}
     } catch (err) {
-      console.warn('Could not sync comment like to server:', err);
+      console.warn('Could not sync comment like to server, rolling back:', err);
+      // Rollback on failure
+      setComments((prev) => {
+        const rolledBack = prev.map((c) => (c.id === commentId ? { ...c, liked: wasLiked, likes: currentLikes } : c));
+        try {
+          localStorage.setItem(`pm_post_comments_${p.id}`, JSON.stringify(rolledBack));
+        } catch {}
+        return rolledBack;
+      });
+      try {
+        localStorage.setItem(storageKey, String(wasLiked));
+      } catch {}
     }
   };
 
@@ -1170,23 +1278,36 @@ export const PostCard: FC<{ p: any; onPostDeleted?: (id: string) => void; onPost
 
   // Handle Edit Post
   const handleSavePostEdit = async () => {
-    if (!editPostTitle.trim() || !editPostDesc.trim()) {
+    const rawTitle = editPostTitle.trim();
+    const rawDesc = editPostDesc.trim();
+    if (!rawTitle || !rawDesc) {
       say('Title and description cannot be empty');
       return;
     }
+
+    // Safety validation
+    const safety = validateMessageSafety(`${rawTitle} ${rawDesc}`);
+    if (!safety.safe) {
+      say(safety.error || 'Post contains unsafe script or HTML injection.');
+      return;
+    }
+
+    const cleanTitle = sanitizeInput(rawTitle);
+    const cleanDesc = sanitizeInput(rawDesc);
+    const updatedText = `${cleanTitle}\n\n${cleanDesc}`;
+
     setSavingPostEdit(true);
     try {
       const { updateCommunityPost } = await import('./services/community');
-      const updatedText = `${editPostTitle.trim()}\n\n${editPostDesc.trim()}`;
       await updateCommunityPost(String(p.id), {
-        title: editPostTitle.trim(),
-        description: editPostDesc.trim(),
+        title: cleanTitle,
+        description: cleanDesc,
         text: updatedText
       });
-      p.title = editPostTitle.trim();
-      p.description = editPostDesc.trim();
-      p.text = updatedText;
-      p.isEdited = true;
+      setPostTitle(cleanTitle);
+      setPostDesc(cleanDesc);
+      setPostText(updatedText);
+      setIsEdited(true);
       setIsEditingPost(false);
       say('Post updated successfully');
     } catch (err: any) {
@@ -1198,17 +1319,37 @@ export const PostCard: FC<{ p: any; onPostDeleted?: (id: string) => void; onPost
 
   // Handle Edit Comment
   const handleSaveCommentEdit = async (commentId: string) => {
-    if (!editCommentText.trim() || !user) {
+    const rawText = editCommentText.trim();
+    if (!rawText || !user) {
       say('Comment cannot be empty');
       return;
     }
+
+    if (rawText.length > 2000) {
+      say('Comment text exceeds maximum allowed length of 2000 characters.');
+      return;
+    }
+
+    // Safety validation
+    const safety = validateMessageSafety(rawText);
+    if (!safety.safe) {
+      say(safety.error || 'Comment contains unsafe script or HTML injection.');
+      return;
+    }
+
+    const cleanComment = sanitizeInput(rawText);
+
     setSavingCommentEdit(true);
     try {
       const { updatePostComment } = await import('./services/community');
-      await updatePostComment(commentId, editCommentText.trim(), user.uid);
-      setComments((prev) =>
-        prev.map((c) => (c.id === commentId ? { ...c, text: editCommentText.trim(), isEdited: true } : c))
-      );
+      await updatePostComment(commentId, cleanComment, user.uid);
+      setComments((prev) => {
+        const updated = prev.map((c) => (c.id === commentId ? { ...c, text: cleanComment, isEdited: true } : c));
+        try {
+          localStorage.setItem(`pm_post_comments_${p.id}`, JSON.stringify(updated));
+        } catch {}
+        return updated;
+      });
       setEditingCommentId(null);
       say('Comment updated');
     } catch (err: any) {
@@ -1266,8 +1407,7 @@ export const PostCard: FC<{ p: any; onPostDeleted?: (id: string) => void; onPost
       } else {
         addPost(newPost);
       }
-      incrementPixels?.(2, 'Reposted community post', 'Community repost reward');
-      say('Post reposted to community! (+2 Pixels)');
+      say('Post reposted to community!');
     } catch (err: any) {
       console.error('Failed to repost:', err);
       say(err?.message || 'Failed to repost');
@@ -1388,7 +1528,7 @@ export const PostCard: FC<{ p: any; onPostDeleted?: (id: string) => void; onPost
   const parsedDetails = isHackathon
     ? (() => {
         if (p.hackathonDetails) return p.hackathonDetails;
-        const text = p.text || '';
+        const text = postText || p.text || '';
         const nameMatch = text.match(/Upcoming Hackathon:\s*([^\n]+)/i);
         const dateMatch = text.match(/Dates?:\s*([^\n]+)/i);
         const locMatch = text.match(/Location:\s*([^\n]+)/i);
@@ -1422,7 +1562,7 @@ export const PostCard: FC<{ p: any; onPostDeleted?: (id: string) => void; onPost
             </p>
             <p className="text-xs text-[#0e1b33] dark:text-slate-300 font-medium flex items-center gap-1.5">
               <span>{p.role} · {p.time}</span>
-              {p.isEdited && (
+              {isEdited && (
                 <span className="inline-flex items-center gap-0.5 text-[10px] text-slate-400 font-medium bg-slate-100 dark:bg-slate-800 px-1.5 py-0.2 rounded">
                   (edited)
                 </span>
@@ -1435,8 +1575,8 @@ export const PostCard: FC<{ p: any; onPostDeleted?: (id: string) => void; onPost
             <button
               type="button"
               onClick={() => {
-                setEditPostTitle(p.title || '');
-                setEditPostDesc(p.description || p.text || '');
+                setEditPostTitle(postTitle);
+                setEditPostDesc(postDesc || postText);
                 setIsEditingPost(true);
               }}
               title="Edit Post"
@@ -1602,15 +1742,15 @@ export const PostCard: FC<{ p: any; onPostDeleted?: (id: string) => void; onPost
               )}
 
               {/* Post Title */}
-              {p.title && (
+              {postTitle && (
                 <h4 className="font-['Outfit',sans-serif] text-sm sm:text-base font-bold text-[#0e1b33] dark:text-white">
-                  {p.title}
+                  {postTitle}
                 </h4>
               )}
 
               {/* Post message/description moved down cleanly */}
               <p className="text-xs sm:text-sm leading-relaxed text-[#0e1b33] dark:text-slate-100 font-normal whitespace-pre-wrap">
-                {renderWithHashtags(p.description || p.text)}
+                {renderWithHashtags(postDesc || postText)}
               </p>
 
               {p.link && (
@@ -1901,29 +2041,54 @@ export const PostCard: FC<{ p: any; onPostDeleted?: (id: string) => void; onPost
             )}
           </div>
 
-          <div className="flex gap-2 items-center">
-            <Avatar name={currentUserName} photoURL={userProfile?.photoURL || user?.photoURL || undefined} size={30} />
-            <input
-              value={commentText}
-              onChange={(e) => setCommentText(e.target.value)}
-              onFocus={() => {
-                if (!user) {
-                  setAuthActionText('join this discussion and post comments');
-                  setShowAuthModal(true);
-                }
-              }}
-              onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleSendComment()}
-              placeholder={user ? "Add a comment to this discussion…" : "Sign in to add a comment…"}
-              className="min-w-0 flex-1 rounded-full bg-white/70 dark:bg-slate-800/70 border border-white/80 dark:border-slate-700 px-4 py-2 text-xs outline-none focus:border-blue-500 text-[#0e1b33] dark:text-white placeholder-slate-400"
-            />
-            <button
-              onClick={handleSendComment}
-              disabled={!commentText.trim() || submittingComment}
-              className="grid h-8 w-8 place-items-center rounded-full bg-[#112240] text-white font-bold disabled:opacity-40 transition cursor-pointer shrink-0 hover:bg-[#1a335e]"
-              title="Post comment"
-            >
-              <IconSend size={13} />
-            </button>
+          <div className="relative">
+            {/* @mention autocomplete popup for comments */}
+            {commentMentionQuery !== null && commentMentionSuggestions.length > 0 && (
+              <div className="absolute left-0 bottom-full mb-1 w-64 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-200 dark:border-slate-700 p-1.5 z-50">
+                <p className="text-[10px] font-bold text-slate-400 px-2 py-1 uppercase tracking-wider">Mention People</p>
+                <div className="space-y-0.5 max-h-40 overflow-y-auto">
+                  {commentMentionSuggestions.map((person) => (
+                    <button
+                      key={person.id}
+                      type="button"
+                      onClick={() => selectCommentMention(person)}
+                      className="w-full text-left px-2 py-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center gap-2 transition cursor-pointer"
+                    >
+                      <Avatar name={person.displayName || person.name} photoURL={person.avatar} size={22} />
+                      <div className="truncate">
+                        <p className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">{person.displayName || person.name}</p>
+                        <p className="text-[10px] text-slate-500 truncate">@{person.username || (person.displayName || person.name).replace(/\s+/g, '_').toLowerCase()}</p>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div className="flex gap-2 items-center">
+              <Avatar name={currentUserName} photoURL={userProfile?.photoURL || user?.photoURL || undefined} size={30} />
+              <input
+                value={commentText}
+                onChange={(e) => handleCommentTextChange(e.target.value, e.target.selectionStart || e.target.value.length)}
+                onFocus={() => {
+                  if (!user) {
+                    setAuthActionText('join this discussion and post comments');
+                    setShowAuthModal(true);
+                  }
+                }}
+                onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleSendComment()}
+                placeholder={user ? "Add a comment to this discussion… (type @ to mention)" : "Sign in to add a comment…"}
+                className="min-w-0 flex-1 rounded-full bg-white/70 dark:bg-slate-800/70 border border-white/80 dark:border-slate-700 px-4 py-2 text-xs outline-none focus:border-blue-500 text-[#0e1b33] dark:text-white placeholder-slate-400"
+              />
+              <button
+                onClick={handleSendComment}
+                disabled={!commentText.trim() || submittingComment}
+                className="grid h-8 w-8 place-items-center rounded-full bg-[#112240] text-white font-bold disabled:opacity-40 transition cursor-pointer shrink-0 hover:bg-[#1a335e]"
+                title="Post comment"
+              >
+                <IconSend size={13} />
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -1934,7 +2099,7 @@ export const PostCard: FC<{ p: any; onPostDeleted?: (id: string) => void; onPost
         targetType="post"
         targetId={String(p.id)}
         targetTitle={`Post by ${p.user}`}
-        targetContent={p.text}
+        targetContent={postText || p.text}
       />
 
       <AuthPromptModal
