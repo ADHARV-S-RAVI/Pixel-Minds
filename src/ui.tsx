@@ -1,10 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import type { ReactNode, FC } from 'react';
-import { Link, NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
+import { Link, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import {
   ArrowLeft,
-  Home,
-  PlusSquare,
   User,
   Share2,
   Bookmark,
@@ -12,11 +10,8 @@ import {
   MapPin,
   Trophy,
   Briefcase,
-  LogOut,
   ArrowRight,
-  Sparkles,
   PenSquare,
-  MessageSquare,
   Sun,
   Moon,
   ChevronRight,
@@ -24,10 +19,6 @@ import {
   GraduationCap,
   Flag,
   ShieldCheck,
-  Compass,
-  HelpCircle,
-  Layers,
-  Settings,
   X
 } from 'lucide-react';
 import { opps } from './data';
@@ -37,6 +28,8 @@ import { ReportModal } from './components/ReportModal';
 import { AuthPromptModal } from './components/AuthPromptModal';
 import { ConfirmModal } from './components/ConfirmModal';
 import { SidebarGooeyNav } from './components/GooeyNav';
+import { MobileGooeyNav } from './components/MobileGooeyNav';
+import { AccountMenuContent } from './components/AccountMenu';
 import { grad, getCategoryMeta } from './utils/meta';
 import { useApp } from './store';
 import { NotificationBell } from './components/NotificationBell';
@@ -217,10 +210,10 @@ export const OppCard: FC<{ o: Opp; variant?: 'light' | 'dark' }> = ({ o, variant
   const [showReport, setShowReport] = useState(false);
   const on = saved.includes(String(o.id));
 
-  // Dark variant matching reference "Featured Opportunity"
+  // Featured Opportunity Card matching original design
   if (variant === 'dark') {
     return (
-      <div className="group relative flex flex-col justify-between rounded-[28px] pm-glass-card border-2 border-blue-400/40 bg-white/85 backdrop-blur-2xl p-5 sm:p-6 text-[#0e1b33] shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden min-h-[310px] h-full max-w-full">
+      <div className="group relative flex flex-col justify-between rounded-[28px] pm-glass-card border border-white/90 bg-white/80 backdrop-blur-2xl p-5 sm:p-6 text-[#0e1b33] shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden min-h-[310px] h-full max-w-full">
         {/* Soft Ambient Sky-Blue Glow in Corner */}
         <div className="pointer-events-none absolute right-0 top-0 h-40 w-40 rounded-full bg-blue-500/10 blur-2xl max-w-full" />
 
@@ -345,7 +338,7 @@ export const OppCard: FC<{ o: Opp; variant?: 'light' | 'dark' }> = ({ o, variant
   const isScholarship = o.cat.toLowerCase().includes('scholarship');
 
   return (
-    <div className="group relative flex flex-col justify-between rounded-[22px] pm-glass-card p-4 sm:p-5 transition-all duration-300 hover:-translate-y-1 hover:shadow-lg border border-white/85 text-[#0e1b33] overflow-hidden min-h-[220px] h-full max-w-full">
+    <div className="group relative flex flex-col justify-between rounded-[22px] pm-glass-card p-4 sm:p-5 text-[#0e1b33] overflow-hidden min-h-[220px] h-full max-w-full">
       <div>
         {/* Top Header: Category Tag & Save Bookmark */}
         <div className="flex items-center justify-between gap-2 mb-2.5">
@@ -2143,16 +2136,8 @@ export const PostCard: FC<{ p: any; onPostDeleted?: (id: string) => void; onPost
   );
 };
 
-const navItems = [
-  ['/', 'Home', Home],
-  ['/opportunities', 'Explore', Compass],
-  ['/submit', 'Create', PlusSquare],
-  ['/feed', 'Feed', MessageSquare],
-  ['/profile', 'Profile', User]
-] as const;
-
 export const Layout: FC = () => {
-  const { user, userProfile, logout } = useAuth();
+  const { user, userProfile } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const [showUserMenu, setShowUserMenu] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
@@ -2181,25 +2166,7 @@ export const Layout: FC = () => {
     });
   };
 
-  // Floating Interactive Story Stack button state (persisted in sessionStorage per session)
-  const [showStoryStackBtn, setShowStoryStackBtn] = useState(() => {
-    try {
-      return typeof window !== 'undefined' && sessionStorage.getItem('pm_story_stack_dismissed') !== 'true';
-    } catch {
-      return true;
-    }
-  });
 
-  const handleDismissStoryStack = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setShowStoryStackBtn(false);
-    try {
-      sessionStorage.setItem('pm_story_stack_dismissed', 'true');
-    } catch {
-      // ignore storage write errors
-    }
-  };
 
   // Close profile dropdown on navigation
   useEffect(() => {
@@ -2269,7 +2236,13 @@ export const Layout: FC = () => {
   const isAdmin = userProfile?.role === 'admin' || user?.email === 'admin@pixelminds.org';
 
   return (
-    <div className="min-h-screen pm-bg-canvas flex flex-col lg:flex-row p-2.5 sm:p-4 lg:p-6 gap-3 sm:gap-5 selection:bg-blue-500/20 selection:text-[#0e1b33] overflow-x-hidden max-w-full">
+    <div className="min-h-screen pm-bg-canvas flex flex-col lg:flex-row p-2.5 sm:p-4 lg:p-6 gap-3 sm:gap-5 selection:bg-blue-500/20 selection:text-[#0e1b33] overflow-x-hidden max-w-full relative">
+      {/* Ambient background lighting: balanced soft blue top-right and bottom-left */}
+      <div className="fixed -top-16 -right-16 w-80 h-80 rounded-full bg-blue-500/20 blur-3xl pointer-events-none -z-10 dark:opacity-5" />
+      <div className="fixed -bottom-16 -left-16 w-80 h-80 rounded-full bg-blue-500/20 blur-3xl pointer-events-none -z-10 dark:opacity-5" />
+      <div className="fixed top-1/4 left-1/3 w-80 h-80 rounded-full bg-white/45 blur-3xl pointer-events-none -z-10 dark:hidden" />
+      <div className="fixed bottom-1/3 right-1/4 w-80 h-80 rounded-full bg-white/35 blur-3xl pointer-events-none -z-10 dark:hidden" />
+
       {/* Active Announcement Popup Modal */}
       <AnnouncementModal />
 
@@ -2343,7 +2316,7 @@ export const Layout: FC = () => {
           <Link
             to={user ? '/profile' : '/login'}
             title={displayName}
-            className={`flex items-center ${sidebarOpen ? 'gap-3 p-2 xl:p-2.5' : 'justify-center p-1.5'} rounded-2xl bg-white/40 hover:bg-white/90 dark:bg-slate-800/40 dark:hover:bg-slate-800/90 border border-white/60 dark:border-white/10 hover:border-white/90 transition shadow-xs group`}
+            className={`flex items-center ${sidebarOpen ? 'gap-3 p-2 xl:p-2.5' : 'justify-center p-1.5'} rounded-2xl pm-glass-control hover:bg-white/80 transition shadow-xs group`}
           >
             <Avatar
               name={displayName}
@@ -2399,11 +2372,7 @@ export const Layout: FC = () => {
             <button
               aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
               onClick={toggleTheme}
-              className={`grid h-8 w-8 sm:h-10 sm:w-10 place-items-center rounded-full transition cursor-pointer shadow-xs shrink-0 ${
-                theme === 'dark'
-                  ? 'bg-[#162B45] text-amber-400 border border-white/10 hover:text-amber-300 hover:bg-[#1c3656]'
-                  : 'bg-white text-slate-800 border-2 border-slate-200/90 hover:text-blue-600 hover:bg-slate-50 shadow-sm'
-              }`}
+              className="grid h-8 w-8 sm:h-10 sm:w-10 place-items-center rounded-full transition cursor-pointer shadow-xs shrink-0 pm-glass-control text-slate-700 hover:text-blue-600 dark:text-amber-400"
             >
               {theme === 'dark' ? (
                 <Sun size={16} className="text-amber-400 transition-transform duration-200 hover:rotate-45" />
@@ -2427,7 +2396,7 @@ export const Layout: FC = () => {
 
             {/* + Share Opportunity - Hidden on mobile screens to keep header compact; accessible via bottom bar */}
             <Link to="/submit" className="hidden md:inline-flex shrink-0">
-              <button className="inline-flex items-center gap-1.5 rounded-full bg-[#112240] hover:bg-[#1a335e] text-white px-4 sm:px-5 py-2.5 text-xs font-bold shadow-md shadow-slate-900/10 transition active:scale-[0.98] cursor-pointer">
+              <button className="inline-flex items-center gap-1.5 rounded-full bg-[#0e1b33] hover:bg-[#162B45] text-white px-4 sm:px-5 py-2.5 text-xs font-bold shadow-md shadow-slate-900/10 transition active:scale-[0.98] cursor-pointer">
                 <span className="text-sm font-black leading-none">+</span>
                 <span>Share Opportunity</span>
               </button>
@@ -2454,85 +2423,8 @@ export const Layout: FC = () => {
                 {showUserMenu && (
                   <div
                     className="hidden lg:block absolute right-0 top-full mt-2.5 w-64 rounded-3xl border border-white/90 bg-white/95 dark:bg-slate-900/95 backdrop-blur-2xl p-2.5 shadow-2xl z-[100] text-[#0e1b33] dark:text-white pm-in"
-                    onClick={() => setShowUserMenu(false)}
                   >
-                    <div className="px-3.5 py-2.5 border-b border-slate-200/60 dark:border-slate-800/60">
-                      <p className="text-xs font-bold text-[#0e1b33] dark:text-white truncate">
-                        {displayName}
-                      </p>
-                      <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate">{user.email}</p>
-                      <div className="mt-1.5 flex items-center gap-1.5 text-xs font-bold text-sky-600 dark:text-sky-400">
-                        <Sparkles size={13} className="text-sky-500" />
-                        <span>{userProfile?.pixels ?? 0} Pixels</span>
-                      </div>
-                    </div>
-
-                    <div className="py-1.5 space-y-0.5">
-                      {isAdmin && (
-                        <Link
-                          to="/admin"
-                          className="flex items-center justify-between gap-2.5 rounded-xl px-3.5 py-2.5 text-xs font-bold text-[#DFB76C] bg-[#16171D] hover:bg-[#20222a] border border-[#C5A059]/40 hover:border-[#DFB76C] transition mb-1.5 shadow-xs min-h-[40px]"
-                        >
-                          <span className="flex items-center gap-2.5">
-                            <ShieldCheck size={15} className="text-[#C5A059] shrink-0" />
-                            <span>Admin Console</span>
-                          </span>
-                          <span className="text-[10px] uppercase tracking-wider bg-[#DFB76C]/20 text-[#DFB76C] px-1.5 py-0.5 rounded font-black">Admin</span>
-                        </Link>
-                      )}
-                      <Link
-                        to="/profile"
-                        className="flex items-center gap-2.5 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100/70 dark:hover:bg-slate-800/70 hover:text-sky-600 transition min-h-[40px] active:bg-slate-100 dark:active:bg-slate-800"
-                      >
-                        <User size={15} className="text-slate-400 shrink-0" />
-                        <span>My Profile</span>
-                      </Link>
-                      <Link
-                        to="/settings"
-                        className="flex items-center gap-2.5 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100/70 dark:hover:bg-slate-800/70 hover:text-sky-600 transition min-h-[40px] active:bg-slate-100 dark:active:bg-slate-800"
-                      >
-                        <Settings size={15} className="text-slate-400 shrink-0" />
-                        <span>Settings</span>
-                      </Link>
-                      <Link
-                        to="/bookmarks"
-                        className="flex items-center gap-2.5 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100/70 dark:hover:bg-slate-800/70 hover:text-sky-600 transition min-h-[40px] active:bg-slate-100 dark:active:bg-slate-800"
-                      >
-                        <Bookmark size={15} className="text-slate-400 shrink-0" />
-                        <span>Bookmarks</span>
-                      </Link>
-                      <Link
-                        to="/explore"
-                        className="flex items-center gap-2.5 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100/70 dark:hover:bg-slate-800/70 hover:text-sky-600 transition min-h-[40px] active:bg-slate-100 dark:active:bg-slate-800"
-                      >
-                        <Compass size={15} className="text-sky-500 shrink-0" />
-                        <span>Explore</span>
-                      </Link>
-                      <Link
-                        to="/leaderboard"
-                        className="flex items-center gap-2.5 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100/70 dark:hover:bg-slate-800/70 hover:text-sky-600 transition min-h-[40px] active:bg-slate-100 dark:active:bg-slate-800"
-                      >
-                        <Trophy size={15} className="text-amber-500 shrink-0" />
-                        <span>Leaderboard</span>
-                      </Link>
-                      <Link
-                        to="/support"
-                        className="flex items-center gap-2.5 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100/70 dark:hover:bg-slate-800/70 hover:text-sky-600 transition min-h-[40px] active:bg-slate-100 dark:active:bg-slate-800"
-                      >
-                        <HelpCircle size={15} className="text-slate-400 shrink-0" />
-                        <span>Help & Support</span>
-                      </Link>
-                    </div>
-
-                    <div className="border-t border-slate-200/60 dark:border-slate-800/60 pt-1.5 mt-1">
-                      <button
-                        onClick={() => logout()}
-                        className="flex w-full items-center gap-2.5 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition cursor-pointer min-h-[40px] active:bg-rose-100/60"
-                      >
-                        <LogOut size={15} className="shrink-0" />
-                        <span>Sign Out</span>
-                      </button>
-                    </div>
+                    <AccountMenuContent onClose={() => setShowUserMenu(false)} />
                   </div>
                 )}
               </div>
@@ -2606,191 +2498,14 @@ export const Layout: FC = () => {
               className="pointer-events-auto relative w-full max-w-[280px] rounded-3xl border border-white/90 bg-white/95 dark:bg-[#0f1d33]/95 backdrop-blur-2xl p-3 shadow-2xl text-[#0e1b33] dark:text-white animate-in fade-in slide-in-from-top-3 duration-200 max-h-[calc(100vh-5.5rem)] overflow-y-auto"
               onClick={(e) => e.stopPropagation()}
             >
-              {/* Header info */}
-              <div className="px-3.5 py-2.5 border-b border-slate-200/60 dark:border-slate-800/60 flex items-center justify-between">
-                <div className="min-w-0 flex-1">
-                  <p className="text-xs font-bold text-[#0e1b33] dark:text-white truncate">
-                    {displayName}
-                  </p>
-                  <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
-                    {user?.email || 'Guest Builder'}
-                  </p>
-                  {user && (
-                    <div className="mt-1 flex items-center gap-1.5 text-xs font-bold text-sky-600 dark:text-sky-400">
-                      <Sparkles size={13} className="text-sky-500" />
-                      <span>{userProfile?.pixels ?? 0} Pixels</span>
-                    </div>
-                  )}
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setShowUserMenu(false)}
-                  className="grid h-7 w-7 place-items-center rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 transition cursor-pointer"
-                  aria-label="Close profile menu"
-                >
-                  <X size={14} />
-                </button>
-              </div>
-
-              {/* Menu Options: Exact 6 options in order */}
-              <div className="py-1.5 space-y-0.5">
-                {isAdmin && (
-                  <Link
-                    to="/admin"
-                    onClick={() => setShowUserMenu(false)}
-                    className="flex items-center justify-between gap-2.5 rounded-xl px-3.5 py-2.5 text-xs font-bold text-[#DFB76C] bg-[#16171D] hover:bg-[#20222a] border border-[#C5A059]/40 hover:border-[#DFB76C] transition mb-1.5 shadow-xs min-h-[40px] cursor-pointer"
-                  >
-                    <span className="flex items-center gap-2.5">
-                      <ShieldCheck size={15} className="text-[#C5A059] shrink-0" />
-                      <span>Admin Console</span>
-                    </span>
-                    <span className="text-[10px] uppercase tracking-wider bg-[#DFB76C]/20 text-[#DFB76C] px-1.5 py-0.5 rounded font-black">Admin</span>
-                  </Link>
-                )}
-                {/* 1. My Profile */}
-                <Link
-                  to="/profile"
-                  onClick={() => setShowUserMenu(false)}
-                  className="flex items-center gap-2.5 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100/70 dark:hover:bg-slate-800/70 hover:text-sky-600 transition min-h-[40px] active:bg-slate-100 dark:active:bg-slate-800 cursor-pointer"
-                >
-                  <User size={15} className="text-slate-400 shrink-0" />
-                  <span>My Profile</span>
-                </Link>
-                {/* 1b. Settings */}
-                <Link
-                  to="/settings"
-                  onClick={() => setShowUserMenu(false)}
-                  className="flex items-center gap-2.5 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100/70 dark:hover:bg-slate-800/70 hover:text-sky-600 transition min-h-[40px] active:bg-slate-100 dark:active:bg-slate-800 cursor-pointer"
-                >
-                  <Settings size={15} className="text-slate-400 shrink-0" />
-                  <span>Settings</span>
-                </Link>
-                {/* 2. Bookmarks */}
-                <Link
-                  to="/bookmarks"
-                  onClick={() => setShowUserMenu(false)}
-                  className="flex items-center gap-2.5 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100/70 dark:hover:bg-slate-800/70 hover:text-sky-600 transition min-h-[40px] active:bg-slate-100 dark:active:bg-slate-800 cursor-pointer"
-                >
-                  <Bookmark size={15} className="text-slate-400 shrink-0" />
-                  <span>Bookmarks</span>
-                </Link>
-                {/* 3. Explore (Interactive Story Stack) */}
-                <Link
-                  to="/explore"
-                  onClick={() => setShowUserMenu(false)}
-                  className="flex items-center gap-2.5 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100/70 dark:hover:bg-slate-800/70 hover:text-sky-600 transition min-h-[40px] active:bg-slate-100 dark:active:bg-slate-800 cursor-pointer"
-                >
-                  <Compass size={15} className="text-sky-500 shrink-0" />
-                  <span>Explore</span>
-                </Link>
-                {/* 4. Leaderboard */}
-                <Link
-                  to="/leaderboard"
-                  onClick={() => setShowUserMenu(false)}
-                  className="flex items-center gap-2.5 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100/70 dark:hover:bg-slate-800/70 hover:text-sky-600 transition min-h-[40px] active:bg-slate-100 dark:active:bg-slate-800 cursor-pointer"
-                >
-                  <Trophy size={15} className="text-amber-500 shrink-0" />
-                  <span>Leaderboard</span>
-                </Link>
-                {/* 5. Help & Support */}
-                <Link
-                  to="/support"
-                  onClick={() => setShowUserMenu(false)}
-                  className="flex items-center gap-2.5 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100/70 dark:hover:bg-slate-800/70 hover:text-sky-600 transition min-h-[40px] active:bg-slate-100 dark:active:bg-slate-800 cursor-pointer"
-                >
-                  <HelpCircle size={15} className="text-slate-400 shrink-0" />
-                  <span>Help & Support</span>
-                </Link>
-              </div>
-
-              {/* 6. Sign Out / Sign In */}
-              <div className="border-t border-slate-200/60 dark:border-slate-800/60 pt-1.5 mt-1">
-                {user ? (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShowUserMenu(false);
-                      logout();
-                    }}
-                    className="flex w-full items-center gap-2.5 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition cursor-pointer min-h-[40px] active:bg-rose-100/60"
-                  >
-                    <LogOut size={15} className="shrink-0" />
-                    <span>Sign Out</span>
-                  </button>
-                ) : (
-                  <Link
-                    to="/login"
-                    onClick={() => setShowUserMenu(false)}
-                    className="flex w-full items-center gap-2.5 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-sky-600 hover:bg-sky-50 dark:hover:bg-sky-950/40 transition cursor-pointer min-h-[40px]"
-                  >
-                    <LogOut size={15} className="shrink-0 rotate-180" />
-                    <span>Sign In / Sign Up</span>
-                  </Link>
-                )}
-              </div>
+              <AccountMenuContent onClose={() => setShowUserMenu(false)} showCloseButton />
             </div>
           </div>
         </div>
       )}
 
-      {/* Floating Interactive Story Stack Button (Mobile Only) */}
-      {showStoryStackBtn && location.pathname !== '/explore' && (
-        <div className="fixed bottom-[calc(4.5rem+env(safe-area-inset-bottom,0px))] right-3.5 sm:right-5 z-30 lg:hidden flex items-center shadow-lg shadow-sky-500/20 rounded-full animate-in fade-in slide-in-from-bottom-2 duration-300">
-          <Link
-            to="/explore"
-            className="flex items-center gap-2 pl-3.5 pr-2.5 py-2 rounded-l-full bg-gradient-to-r from-[#112240] to-[#1e3a8a] text-white border-y border-l border-sky-400/40 text-xs font-bold active:scale-95 transition shadow-sm select-none"
-            aria-label="Interactive Story Stack"
-          >
-            <span className="grid h-6 w-6 place-items-center rounded-full bg-sky-500/25 text-sky-300 border border-sky-400/30 shrink-0">
-              <Layers size={13} />
-            </span>
-            <span className="tracking-tight whitespace-nowrap font-extrabold text-[11px] sm:text-xs">Story Stack</span>
-          </Link>
-          <button
-            type="button"
-            onClick={handleDismissStoryStack}
-            aria-label="Dismiss Story Stack button"
-            className="grid h-[38px] w-7 place-items-center rounded-r-full bg-[#112240] hover:bg-[#1a335e] text-slate-400 hover:text-white border-y border-r border-sky-400/40 transition cursor-pointer select-none active:bg-slate-800"
-            title="Dismiss"
-          >
-            <X size={13} />
-          </button>
-        </div>
-      )}
-
-      {/* Mobile Bottom Navigation Bar in Frosted Glass */}
-      <nav
-        style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
-        className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-5 border-t border-white/90 dark:border-slate-800/80 bg-white/85 dark:bg-[#0f1d33]/90 backdrop-blur-2xl lg:hidden text-slate-500 shadow-xl"
-      >
-        {navItems.map(([to, l, I]) => (
-          <NavLink
-            key={to}
-            to={to}
-            end={to === '/'}
-            className={({ isActive }) =>
-              `flex flex-col items-center justify-center min-h-[58px] py-1.5 px-0.5 w-full text-[10px] font-semibold transition active:scale-95 ${
-                isActive
-                  ? 'text-[#2563eb] dark:text-sky-400 font-bold'
-                  : 'text-slate-500 dark:text-slate-400 hover:text-[#0e1b33] dark:hover:text-white'
-              }`
-            }
-          >
-            <div className="h-7 w-full flex items-center justify-center shrink-0">
-              {l === 'Create' ? (
-                <span className="grid h-7 w-7 place-items-center rounded-full bg-[#112240] dark:bg-sky-500 text-white shadow-sm">
-                  <I size={14} />
-                </span>
-              ) : (
-                <I size={18} className="shrink-0" />
-              )}
-            </div>
-            <span className="truncate max-w-full tracking-tight leading-none mt-1 select-none text-center">
-              {l}
-            </span>
-          </NavLink>
-        ))}
-      </nav>
+      {/* Mobile Bottom Navigation with Concave Create Cutout & Liquid Gooey Animation */}
+      <MobileGooeyNav />
     </div>
   );
 };

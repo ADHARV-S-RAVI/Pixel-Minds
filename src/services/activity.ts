@@ -62,7 +62,7 @@ export const getRecentPlatformActivities = async (limit = 4): Promise<RecentActi
           type: 'opportunity',
           title: 'New opportunity added',
           subtitle: `${o.title} · ${o.category}`,
-          badge: '🏆',
+          badge: 'trophy',
           timeAgo: formatRelativeTime(ts),
           timestamp: ts
         });
@@ -89,7 +89,7 @@ export const getRecentPlatformActivities = async (limit = 4): Promise<RecentActi
           type: 'post',
           title: `${sanitizeDisplayName(p.author_name)} posted`,
           subtitle: p.category ? `In ${p.category}` : 'In Community',
-          badge: '💬',
+          badge: 'post',
           timeAgo: formatRelativeTime(ts),
           timestamp: ts
         });
@@ -116,7 +116,7 @@ export const getRecentPlatformActivities = async (limit = 4): Promise<RecentActi
           type: 'member',
           title: `${sanitizeDisplayName(m.full_name)} joined`,
           subtitle: 'Joined Pixel Minds network',
-          badge: '🚀',
+          badge: 'member',
           timeAgo: formatRelativeTime(ts),
           timestamp: ts
         });

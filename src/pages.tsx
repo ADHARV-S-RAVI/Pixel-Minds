@@ -15,7 +15,9 @@ import {
   Check,
   Copy,
   ExternalLink,
-  Sparkles,
+  UserPlus,
+  Activity,
+  Layers,
   Upload,
   CheckCircle2,
   Clock,
@@ -49,7 +51,6 @@ import { ConfirmModal } from './components/ConfirmModal';
 import { FAQSection } from './components/FAQSection';
 import { getCategoryMeta } from './utils/meta';
 import { renderWithHashtags } from './utils/text';
-import { SearchAutocomplete } from './components/SearchAutocomplete';
 import { IconBadge, IconClock } from './components/FeedIcons';
 import { useApp } from './store';
 import {
@@ -125,7 +126,7 @@ import {
   deleteAdminNotification
 } from './services/admin';
 import { uploadAnnouncementImage } from './services/announcements';
-import { getUserApplications, confirmOpportunityRegistration, type UserApplication } from './services/applications';
+import { getUserApplications, type UserApplication } from './services/applications';
 import { getAllReports, resolveReport, dismissReport, deleteReportedItem, type ReportItem } from './services/reports';
 
 const W: FC<{ children: any; className?: string; id?: string }> = ({ children, className = '', id }) => (
@@ -295,7 +296,7 @@ export function Landing() {
         {/* CENTER COLUMN (Hero Section + Trending Opportunities) */}
         <div className="xl:col-span-8 space-y-6 min-w-0">
           {/* Hero Section Card matching reference */}
-          <div className="pm-glass rounded-[28px] p-5 sm:p-8 relative overflow-hidden border border-white/90 shadow-sm flex flex-col justify-between max-w-full">
+          <div className="pm-glass rounded-[28px] p-5 sm:p-8 relative overflow-hidden flex flex-col justify-between max-w-full">
             {/* Ambient subtle light-blue glow */}
             <div className="pointer-events-none absolute -top-16 -right-16 w-72 sm:w-80 h-72 sm:h-80 rounded-full bg-blue-400/15 blur-3xl max-w-full" />
 
@@ -316,13 +317,13 @@ export function Landing() {
                 {/* CTA Buttons */}
                 <div className="mt-6 flex flex-wrap items-center gap-2.5 sm:gap-3">
                   <Link to="/opportunities" className="w-full sm:w-auto">
-                    <button className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-full bg-[#112240] hover:bg-[#1a335e] text-white px-5 sm:px-6 py-3 text-xs font-bold shadow-md shadow-slate-900/10 transition active:scale-[0.98] cursor-pointer">
+                    <button className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-full bg-[#0e1b33] hover:bg-[#162B45] text-white px-5 sm:px-6 py-3 text-xs font-bold shadow-md shadow-slate-900/10 transition active:scale-[0.98] cursor-pointer">
                       <span>Explore Opportunities</span>
                       <ArrowRight size={14} />
                     </button>
                   </Link>
                   <Link to="/submit" className="w-full sm:w-auto">
-                    <button className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-full bg-white/80 hover:bg-white text-[#0e1b33] border border-white/90 px-5 sm:px-6 py-3 text-xs font-bold shadow-xs transition active:scale-[0.98] cursor-pointer">
+                    <button className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-full pm-glass-control hover:bg-white text-[#0e1b33] px-5 sm:px-6 py-3 text-xs font-bold shadow-xs transition active:scale-[0.98] cursor-pointer">
                       <Upload size={14} className="text-[#2563eb]" />
                       <span>Share an Opportunity</span>
                     </button>
@@ -356,13 +357,13 @@ export function Landing() {
                   className="w-full h-full object-contain drop-shadow-xl select-none pointer-events-none rounded-full"
                 />
                 {/* Floating Node Badges */}
-                <div className="absolute top-10 left-2 rounded-full bg-white/95 border border-white shadow-lg p-2.5 text-[#2563eb] flex items-center justify-center animate-bounce duration-1000">
+                <div className="absolute top-10 left-2 rounded-full pm-glass-control shadow-md p-2.5 text-[#2563eb] flex items-center justify-center">
                   <Code2 size={18} />
                 </div>
-                <div className="absolute top-4 right-8 rounded-full bg-[#2563eb] text-white shadow-lg p-2.5 flex items-center justify-center">
+                <div className="absolute top-4 right-8 rounded-full bg-[#2563eb] text-white shadow-md p-2.5 flex items-center justify-center">
                   <GraduationCap size={18} />
                 </div>
-                <div className="absolute bottom-8 right-3 rounded-full bg-white/95 border border-white shadow-lg p-2.5 text-[#2563eb] flex items-center justify-center">
+                <div className="absolute bottom-8 right-3 rounded-full pm-glass-control shadow-md p-2.5 text-[#2563eb] flex items-center justify-center">
                   <Calendar size={18} />
                 </div>
               </div>
@@ -376,7 +377,7 @@ export function Landing() {
                 <h2 className="text-lg sm:text-xl font-black text-[#0e1b33] tracking-tight">Trending Opportunities</h2>
                 <span className="text-[#2563eb] font-bold">↗</span>
               </div>
-              <Link to="/opportunities" className="inline-flex items-center gap-1 text-xs font-bold text-slate-600 hover:text-blue-600 transition bg-white/60 hover:bg-white px-3 py-1.5 rounded-full border border-white/80 shadow-2xs">
+              <Link to="/opportunities" className="inline-flex items-center gap-1 text-xs font-bold text-slate-600 hover:text-blue-600 transition pm-glass-control px-3 py-1.5 rounded-full shadow-2xs">
                 <span>View all</span>
                 <ArrowRight size={13} />
               </Link>
@@ -400,14 +401,14 @@ export function Landing() {
                 <button
                   onClick={prevFeatured}
                   aria-label="Previous featured"
-                  className="grid h-8 w-8 place-items-center rounded-full bg-white/70 hover:bg-white text-slate-700 border border-white/80 shadow-xs transition hover:text-blue-600 cursor-pointer"
+                  className="grid h-8 w-8 place-items-center rounded-full pm-glass-control text-slate-700 shadow-xs transition hover:text-blue-600 cursor-pointer"
                 >
                   <ChevronLeft size={16} />
                 </button>
                 <button
                   onClick={nextFeatured}
                   aria-label="Next featured"
-                  className="grid h-8 w-8 place-items-center rounded-full bg-white/70 hover:bg-white text-slate-700 border border-white/80 shadow-xs transition hover:text-blue-600 cursor-pointer"
+                  className="grid h-8 w-8 place-items-center rounded-full pm-glass-control text-slate-700 shadow-xs transition hover:text-blue-600 cursor-pointer"
                 >
                   <ChevronRight size={16} />
                 </button>
@@ -421,19 +422,19 @@ export function Landing() {
           <div className="space-y-3.5">
             <div className="flex items-center justify-between">
               <h2 className="text-base sm:text-lg font-black text-[#0e1b33] tracking-tight">Recent Activity</h2>
-              <Link to="/feed" className="inline-flex items-center gap-1 text-xs font-bold text-slate-600 hover:text-blue-600 transition bg-white/60 hover:bg-white px-3 py-1.5 rounded-full border border-white/80 shadow-2xs">
+              <Link to="/feed" className="inline-flex items-center gap-1 text-xs font-bold text-slate-600 hover:text-blue-600 transition pm-glass-control px-3 py-1.5 rounded-full shadow-2xs">
                 <span>View all</span>
                 <ArrowRight size={13} />
               </Link>
             </div>
 
-            <div className="pm-glass-card rounded-[24px] p-4 sm:p-5 space-y-3.5 border border-white/90 shadow-sm">
+            <div className="pm-glass-card rounded-[24px] p-4 sm:p-5 space-y-3.5">
               {activitiesLoading ? (
                 <div className="py-6 text-center text-xs text-slate-400">Loading recent activities...</div>
               ) : recentActivities.length === 0 ? (
                 <div className="py-6 px-4 text-center">
                   <div className="mx-auto w-10 h-10 rounded-full bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600 mb-2">
-                    <Sparkles size={16} />
+                    <Layers size={16} />
                   </div>
                   <p className="text-xs font-semibold text-slate-700">No recent activity yet</p>
                   <p className="text-[11px] text-slate-500 mt-0.5 max-w-[200px] mx-auto">
@@ -441,27 +442,51 @@ export function Landing() {
                   </p>
                 </div>
               ) : (
-                recentActivities.map((act) => (
-                  <div key={act.id} className="flex items-center gap-3">
-                    <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-blue-50 border border-blue-100 text-sm shadow-2xs">
-                      {act.badge}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs text-[#0e1b33] font-bold truncate">
-                        {act.title}
-                      </p>
-                      {act.subtitle && (
-                        <p className="text-[11px] text-slate-600 font-medium truncate mt-0.5">
-                          {act.subtitle}
+                recentActivities.map((act) => {
+                  const isOpp = act.type === 'opportunity';
+                  const isPost = act.type === 'post';
+                  const isMember = act.type === 'member';
+
+                  return (
+                    <div key={act.id} className="flex items-center gap-3">
+                      <div
+                        className={`grid h-9 w-9 shrink-0 place-items-center rounded-full text-xs font-bold shadow-2xs ${
+                          isOpp
+                            ? 'bg-amber-100/90 text-amber-700 border border-amber-200'
+                            : isPost
+                            ? 'bg-indigo-100/90 text-indigo-700 border border-indigo-200'
+                            : isMember
+                            ? 'bg-blue-100/90 text-blue-700 border border-blue-200'
+                            : 'bg-slate-100 text-slate-700 border border-slate-200'
+                        }`}
+                      >
+                        {isOpp ? (
+                          <Trophy size={15} className="text-amber-600" />
+                        ) : isPost ? (
+                          <MessageSquare size={15} className="text-indigo-600" />
+                        ) : isMember ? (
+                          <UserPlus size={15} className="text-blue-600" />
+                        ) : (
+                          <Activity size={15} className="text-sky-600" />
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs text-[#0e1b33] font-bold truncate">
+                          {act.title}
                         </p>
-                      )}
-                      <p className="text-[10px] text-slate-400 flex items-center gap-1 mt-0.5">
-                        <Clock size={10} className="text-slate-400 shrink-0" />
-                        <span>{act.timeAgo}</span>
-                      </p>
+                        {act.subtitle && (
+                          <p className="text-[11px] text-slate-600 font-medium truncate mt-0.5">
+                            {act.subtitle}
+                          </p>
+                        )}
+                        <p className="text-[10px] text-slate-400 flex items-center gap-1 mt-0.5">
+                          <Clock size={10} className="text-slate-400 shrink-0" />
+                          <span>{act.timeAgo}</span>
+                        </p>
+                      </div>
                     </div>
-                  </div>
-                ))
+                  );
+                })
               )}
             </div>
           </div>
@@ -633,7 +658,7 @@ export function Landing() {
           </p>
           <Link to="/submit">
             <button className="mt-6 inline-flex items-center gap-2 rounded-full bg-[#112240] hover:bg-[#1a335e] px-8 py-3 text-sm font-bold text-white shadow-md shadow-slate-900/10 active:scale-[0.98] transition cursor-pointer">
-              <Sparkles size={16} />
+              <Upload size={16} />
               <span>Share an Opportunity</span>
             </button>
           </Link>
@@ -763,6 +788,12 @@ export function Opportunities() {
     );
   }, [firestoreOpps]);
 
+  // Count how many verified opportunities or community posts in current scope match saved IDs
+  const savedCount = useMemo(() => {
+    const oppCount = allOpps.filter((o) => saved.includes(String(o.id))).length;
+    const postCount = savedPosts.length;
+    return Math.max(oppCount + postCount, allOpps.filter((o) => saved.includes(String(o.id))).length);
+  }, [allOpps, saved, savedPosts]);
   const cleanSearch = debouncedQ.trim().toLowerCase();
   const list = allOpps
     .filter((o) => {
@@ -790,17 +821,13 @@ export function Opportunities() {
     'rounded-full border-2 border-slate-300 dark:border-slate-600 bg-white dark:bg-[#162B45] px-4 py-2 text-xs font-bold text-slate-900 dark:text-white outline-none focus:border-blue-500 shadow-xs cursor-pointer hover:border-blue-400 transition';
 
   return (
-    <W id="discover-opportunities" className="py-8 space-y-7 scroll-mt-6">
-      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+    <W id="discover-opportunities" className="py-4 sm:py-8 space-y-4 sm:space-y-7 scroll-mt-6">
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 sm:gap-4">
         <div>
-          <div className="inline-flex items-center gap-2 rounded-full border border-black/8 bg-white/70 px-3 py-1 text-[11px] font-semibold text-[#6E655C] backdrop-blur-md mb-2 shadow-xs">
-            <Sparkles size={12} className="text-[#C5A059]" />
-            Curated Tech Programs & Competitions
-          </div>
-          <h1 className="font-['Outfit',sans-serif] text-3xl font-extrabold tracking-tight text-[#16171D] sm:text-4xl flex items-center gap-2.5">
+          <h1 className="font-['Outfit',sans-serif] text-2xl font-extrabold tracking-tight text-[#16171D] sm:text-4xl flex items-center gap-2.5">
             {isSavedFilter ? (
               <>
-                <Bookmark className="text-sky-500 fill-sky-500" size={28} />
+                <Bookmark className="text-sky-500 fill-sky-500" size={26} />
                 <span>Saved Bookmarks</span>
               </>
             ) : (
@@ -815,37 +842,36 @@ export function Opportunities() {
         </div>
 
         <Link to="/submit" className="shrink-0">
-          <Btn className="!text-xs !py-2.5 !px-4">
+          <Btn className="!text-xs !py-2 !px-3.5 sm:!py-2.5 sm:!px-4">
             + Share Opportunity
           </Btn>
         </Link>
       </div>
 
-      {/* Search Bar with Autocomplete Predictions */}
-      <SearchAutocomplete
-        value={q}
-        onChange={(val) => {
-          setQ(val);
-          setSp((prev) => {
-            if (val) prev.set('q', val);
-            else prev.delete('q');
-            return prev;
-          });
-        }}
-        onSubmit={(val) => {
-          setQ(val);
-          setSp((prev) => {
-            if (val) prev.set('q', val);
-            else prev.delete('q');
-            return prev;
-          });
-        }}
-        placeholder="Search by title, organizer, or skills (e.g. AI, React, Cloud, Web3)..."
-        showShortcut={false}
-        inputClassName="w-full rounded-2xl border-2 border-slate-300 dark:border-slate-600 bg-white dark:bg-[#162B45] py-3 pl-11 pr-10 text-xs sm:text-sm text-[#0e1b33] dark:text-white placeholder-slate-400 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 shadow-xs transition"
-      />
+      {/* Active Search Query Indicator (Main Search Bar in Header drives this) */}
+      {q && (
+        <div className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-300">
+          <span>Filtering by search:</span>
+          <span className="font-bold text-blue-600 dark:text-sky-400 bg-blue-50 dark:bg-white/10 px-3 py-1 rounded-full border border-blue-200 dark:border-white/10 flex items-center gap-2 shadow-xs">
+            "{q}"
+            <button
+              onClick={() => {
+                setQ('');
+                setSp((prev) => {
+                  prev.delete('q');
+                  return prev;
+                });
+              }}
+              className="hover:text-rose-500 cursor-pointer font-bold ml-0.5"
+              title="Clear search"
+            >
+              ✕
+            </button>
+          </span>
+        </div>
+      )}
 
-      {/* Category Filter Chips */}
+      {/* Category Filter Chips with no horizontal scrollbar on mobile */}
       <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 scrollbar-hide">
         <button
           onClick={() => {
@@ -855,14 +881,14 @@ export function Opportunities() {
               return prev;
             });
           }}
-          className={`shrink-0 rounded-full border-2 px-4 py-2 text-xs font-bold transition duration-200 cursor-pointer flex items-center gap-1.5 ${
+          className={`shrink-0 rounded-full border-2 px-3.5 py-1.5 sm:px-4 sm:py-2 text-xs font-bold transition duration-200 cursor-pointer flex items-center gap-1.5 ${
             isSavedFilter
               ? 'border-sky-500 bg-sky-500 text-white shadow-md shadow-sky-500/25'
               : 'border-slate-300 dark:border-slate-600 bg-white dark:bg-[#162B45] text-slate-700 dark:text-slate-100 hover:text-sky-500'
           }`}
         >
           <Bookmark size={13} fill={isSavedFilter ? 'currentColor' : 'none'} />
-          <span>Bookmarks ({saved.length})</span>
+          <span>Bookmarks ({savedCount})</span>
         </button>
         {['All', ...cats].map((x) => {
           const isActive = c === x;
@@ -877,7 +903,7 @@ export function Opportunities() {
                   return prev;
                 });
               }}
-              className={`shrink-0 rounded-full border-2 px-4 py-2 text-xs font-bold transition duration-200 cursor-pointer ${
+              className={`shrink-0 rounded-full border-2 px-3.5 py-1.5 sm:px-4 sm:py-2 text-xs font-bold transition duration-200 cursor-pointer ${
                 isActive
                   ? 'border-blue-600 bg-blue-600 text-white shadow-md shadow-blue-500/25'
                   : 'border-slate-300 dark:border-slate-600 bg-white dark:bg-[#162B45] text-slate-700 dark:text-slate-100 hover:bg-slate-50 dark:hover:bg-[#1c3656] hover:text-blue-600 dark:hover:text-sky-300'
@@ -1123,6 +1149,17 @@ export function OppDetail() {
 
   return (
     <W className="py-6 space-y-7">
+      {/* Back Button */}
+      <div>
+        <button
+          onClick={() => navigate(-1)}
+          className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full pm-glass-control text-xs font-semibold text-slate-700 dark:text-slate-200 hover:text-blue-600 transition cursor-pointer"
+        >
+          <ArrowLeft size={14} />
+          <span>Back</span>
+        </button>
+      </div>
+
       {/* Banner Header - Celestial Dark Glass */}
       <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#112240] via-[#1d3557] to-[#1e40af] p-7 text-white sm:p-10 shadow-xl border border-blue-400/30">
         {/* Subtle warm celestial glow and orbital arc */}
@@ -1165,7 +1202,7 @@ export function OppDetail() {
               [Calendar, 'Deadline', o.isExpired || o.days <= 0 ? `${o.deadline} · Closed` : `${o.deadline} · ${o.days === 1 ? '1d left' : `${o.days}d left`}`],
               [MapPin, 'Mode / Location', o.location ? `${o.mode} (${o.location})` : o.mode],
               [Trophy, 'Reward / Prize', o.prize || (o.stipend ? `Stipend: ${o.stipend}` : 'Recognition')],
-              [Sparkles, 'Category', o.cat]
+              [Layers, 'Category', o.cat]
             ].map(([I, l, v]: any) => (
               <Card key={l} className="p-4 pm-glass-card bg-white/85 backdrop-blur-xl border border-white/90 shadow-sm text-[#0e1b33]">
                 <div className="flex items-center justify-between">
@@ -1681,11 +1718,10 @@ import { ReferralPanel as RP } from './pixels';
 export function Profile() {
   const { userProfile, user, refreshProfile } = useAuth();
   const [searchParams] = useSearchParams();
-  const location = useLocation();
-  const [tab, setTab] = useState(location.pathname === '/applications' ? 'My Applications' : 'Posts');
+  const navigate = useNavigate();
+  const [tab, setTab] = useState('Posts');
   const [userSubs, setUserSubs] = useState<Opp[]>([]);
   const [rawSubmissions, setRawSubmissions] = useState<Opportunity[]>([]);
-  const [selectedSubForModal, setSelectedSubForModal] = useState<Opportunity | null>(null);
   const [editing, setEditing] = useState(false);
   const [bioInput, setBioInput] = useState(userProfile?.bio || 'Tech builder & hackathon enthusiast on Pixel Minds.');
   const [savingBio, setSavingBio] = useState(false);
@@ -1699,7 +1735,6 @@ export function Profile() {
   }, [user?.uid]);
 
   const [userApplications, setUserApplications] = useState<UserApplication[]>([]);
-  const [confirmingAppId, setConfirmingAppId] = useState<string | null>(null);
 
   const loadApplications = () => {
     if (user?.uid) {
@@ -1713,51 +1748,18 @@ export function Profile() {
     }
   }, [user]);
 
-  // Live seconds tick so countdown timers update continuously
-  const [, setClockTick] = useState(0);
-  useEffect(() => {
-    if (tab === 'My Applications') {
-      const interval = setInterval(() => setClockTick((c) => c + 1), 1000);
-      return () => clearInterval(interval);
-    }
-  }, [tab]);
-
-  const handleConfirmRegistration = async (appId: string) => {
-    if (!user?.uid) return;
-    setConfirmingAppId(appId);
-    try {
-      const res = await confirmOpportunityRegistration(
-        user.uid,
-        appId,
-        user.email || undefined,
-        userProfile?.displayName || user.displayName || undefined
-      );
-      say(res.message);
-      if (res.success) {
-        loadApplications();
-        if (refreshProfile) await refreshProfile();
-      }
-    } catch (err: any) {
-      say(err?.message || 'Failed to confirm registration');
-    } finally {
-      setConfirmingAppId(null);
-    }
-  };
-
   // URL query parameter tab syncing (e.g. from notification links or sidebar)
   useEffect(() => {
     const tabParam = searchParams.get('tab');
     if (tabParam) {
       const lower = tabParam.toLowerCase();
-      if (lower === 'submissions' || lower === 'mysubmissions' || lower === 'my submissions') {
-        setTab('My Submissions');
-      } else if (lower === 'applications' || lower === 'myapplications' || lower === 'my applications') {
-        setTab('My Applications');
+      if (lower === 'submissions' || lower === 'mysubmissions' || lower === 'my submissions' || lower === 'applications' || lower === 'myapplications' || lower === 'my applications') {
+        navigate('/applications' + (lower.includes('submission') ? '?tab=submissions' : ''));
       } else {
         setTab(tabParam);
       }
     }
-  }, [searchParams]);
+  }, [searchParams, navigate]);
 
   // Target User check for viewing other user's public profile
   const targetUid = searchParams.get('uid');
@@ -1838,11 +1840,6 @@ export function Profile() {
 
       getUserSubmissions(user.uid).then((subs) => {
         setRawSubmissions(subs);
-        const subIdParam = searchParams.get('id') || searchParams.get('sub');
-        if (subIdParam) {
-          const matched = subs.find(s => s.id === subIdParam);
-          if (matched) setSelectedSubForModal(matched);
-        }
         const mapped: Opp[] = subs.map((s) => {
           const dInfo = getOpportunityDeadlineInfo(s.deadline);
           return {
@@ -2030,7 +2027,7 @@ export function Profile() {
 
               <div className="flex items-center gap-2">
                 <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-black/[0.04] text-[#16171D] text-xs font-bold border border-black/6">
-                  <Sparkles size={12} className="text-[#C5A059]" />
+                  <Award size={12} className="text-[#C5A059]" />
                   {rankOf(profilePixels)}
                 </span>
               </div>
@@ -2092,7 +2089,7 @@ export function Profile() {
       <W className="max-w-md py-16 text-center space-y-4">
         <Card className="p-8 pm-glass-card bg-white/85 backdrop-blur-xl border border-white/90 shadow-sm text-[#0e1b33]">
           <div className="w-16 h-16 rounded-full bg-[#16171D] text-[#DFB76C] grid place-items-center mx-auto mb-4 shadow-md">
-            <Sparkles size={28} />
+            <Award size={28} />
           </div>
           <h2 className="font-['Outfit',sans-serif] text-xl font-bold text-[#16171D]">Sign in to View Your Profile</h2>
           <p className="text-xs text-[#7D756C] mt-1 mb-6 leading-relaxed">
@@ -2216,12 +2213,18 @@ export function Profile() {
 
       {/* Tabs */}
       <div className="-mx-4 flex gap-1.5 overflow-x-auto px-4 pb-1 scrollbar-hide">
-        {['Posts', 'My Applications', 'My Submissions', 'Shared Opportunities', 'Pixel History', 'Referrals', 'Achievements'].map((t) => {
+        {['Posts', 'My Applications', 'Shared Opportunities', 'Pixel History', 'Referrals', 'Achievements'].map((t) => {
           const isActive = tab === t;
           return (
             <button
               key={t}
-              onClick={() => setTab(t)}
+              onClick={() => {
+                if (t === 'My Applications') {
+                  navigate('/applications');
+                  return;
+                }
+                setTab(t);
+              }}
               className={`rounded-full px-4 py-2 text-xs font-bold whitespace-nowrap transition cursor-pointer flex items-center gap-1.5 ${
                 isActive
                   ? 'bg-[#16171D] text-[#DFB76C] shadow-md shadow-black/15 ring-1 ring-[#C5A059]/30'
@@ -2234,13 +2237,6 @@ export function Profile() {
                   isActive ? 'bg-white/20 text-white' : 'bg-blue-50 text-blue-700'
                 }`}>
                   {userApplications.length}
-                </span>
-              )}
-              {t === 'My Submissions' && rawSubmissions.length > 0 && (
-                <span className={`rounded-full px-1.5 py-0.2 text-[10px] font-bold ${
-                  isActive ? 'bg-white/20 text-white' : 'bg-blue-50 text-blue-700'
-                }`}>
-                  {rawSubmissions.length}
                 </span>
               )}
             </button>
@@ -2263,268 +2259,6 @@ export function Profile() {
               <Card className="text-center py-12 text-[#8C827A] text-xs pm-glass-card bg-white/85 backdrop-blur-xl border border-white/90 shadow-sm text-[#0e1b33]">
                 No posts shared yet. Share an update on the Community Feed!
               </Card>
-            )}
-          </div>
-        )}
-
-        {tab === 'My Applications' && (
-          <div className="space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-black/8">
-              <div>
-                <h3 className="font-['Outfit',sans-serif] text-base font-bold text-[#16171D]">My Registered Applications</h3>
-                <p className="text-xs text-[#7D756C]">
-                  Track programs you've applied for. Confirm your completed registration to claim your Pixel rewards!
-                </p>
-              </div>
-              <BtnLink to="/opportunities" className="!py-2 !px-4 !text-xs !min-h-9 !rounded-full shadow-xs">
-                + Explore More
-              </BtnLink>
-            </div>
-
-            {/* Quick Metrics */}
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-              <div className="rounded-2xl bg-white/70 p-3.5 border border-black/6 shadow-xs">
-                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Total Applied</p>
-                <p className="font-['Outfit',sans-serif] font-extrabold text-[#0e1b33] text-lg mt-0.5">{userApplications.length}</p>
-              </div>
-              <div className="rounded-2xl bg-white/70 p-3.5 border border-black/6 shadow-xs">
-                <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-wider">Confirmed</p>
-                <p className="font-['Outfit',sans-serif] font-extrabold text-emerald-600 text-lg mt-0.5">
-                  {userApplications.filter(a => a.status === 'confirmed').length}
-                </p>
-              </div>
-              <div className="rounded-2xl bg-white/70 p-3.5 border border-black/6 shadow-xs">
-                <p className="text-[10px] font-bold text-amber-600 uppercase tracking-wider">Pending Cooldown</p>
-                <p className="font-['Outfit',sans-serif] font-extrabold text-amber-600 text-lg mt-0.5">
-                  {userApplications.filter(a => a.status === 'pending_confirmation').length}
-                </p>
-              </div>
-              <div className="rounded-2xl bg-white/70 p-3.5 border border-black/6 shadow-xs">
-                <p className="text-[10px] font-bold text-blue-600 uppercase tracking-wider">Pixels Claimed</p>
-                <p className="font-['Outfit',sans-serif] font-extrabold text-blue-600 text-lg mt-0.5">
-                  +{userApplications.filter(a => a.rewardClaimed).reduce((sum, a) => sum + (a.pixelsRewarded || 10), 0)}
-                </p>
-              </div>
-            </div>
-
-            {userApplications.length === 0 ? (
-              <Card className="text-center py-16 pm-glass-card bg-white/85 backdrop-blur-xl border border-white/90 shadow-sm text-[#0e1b33] p-8">
-                <div className="w-14 h-14 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-3">
-                  <FileText size={24} />
-                </div>
-                <h4 className="font-['Outfit',sans-serif] text-base font-bold text-[#16171D] mb-1">
-                  You haven't applied for any opportunities yet.
-                </h4>
-                <p className="text-xs text-[#7D756C] mb-5 max-w-sm mx-auto">
-                  Browse hackathons, internships, and fellowships. Click "Apply on Official Site" to track your applications and unlock +10 Pixels per registration!
-                </p>
-                <BtnLink to="/opportunities" className="!py-2.5 !px-5 !text-xs !rounded-full">
-                  Browse Opportunities
-                </BtnLink>
-              </Card>
-            ) : (
-              <div className="space-y-3">
-                {userApplications.map((app) => {
-                  const elapsedMs = Date.now() - app.appliedAt;
-                  const THREE_MINS_MS = 3 * 60 * 1000;
-                  const remainingSecs = Math.max(0, Math.ceil((THREE_MINS_MS - elapsedMs) / 1000));
-                  const isReadyToConfirm = app.status === 'pending_confirmation' && remainingSecs === 0;
-                  const isConfirmed = app.status === 'confirmed';
-
-                  return (
-                    <Card key={app.id} className="p-4 sm:p-5 pm-glass-card bg-white/90 backdrop-blur-xl border border-white/90 shadow-xs hover:border-blue-200 transition">
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                        <div className="space-y-1 min-w-0 flex-1">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <span className="px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 text-[10px] font-bold border border-blue-200/60 uppercase">
-                              {app.category}
-                            </span>
-                            <span className="text-[11px] text-slate-500 font-medium">
-                              {app.mode} · Deadline: {app.deadline}
-                            </span>
-                          </div>
-                          <Link to={`/opportunities/${app.opportunityId}`} className="block">
-                            <h4 className="font-bold text-sm sm:text-base text-[#0e1b33] hover:text-blue-600 transition truncate">
-                              {app.opportunityTitle}
-                            </h4>
-                          </Link>
-                          <p className="text-xs text-slate-500">{app.organizer}</p>
-                        </div>
-
-                        {/* Status / Confirm Action */}
-                        <div className="sm:text-right shrink-0 flex flex-col items-start sm:items-end gap-1.5">
-                          {isConfirmed ? (
-                            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs font-bold border border-emerald-200">
-                              <CheckCircle2 size={13} className="text-emerald-600" />
-                              <span>✓ Registered (+10 Pixels)</span>
-                            </span>
-                          ) : isReadyToConfirm ? (
-                            <button
-                              onClick={() => handleConfirmRegistration(app.id)}
-                              disabled={confirmingAppId === app.id}
-                              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-md shadow-emerald-600/20 active:scale-95 transition cursor-pointer"
-                            >
-                              <Sparkles size={13} />
-                              <span>{confirmingAppId === app.id ? 'Confirming...' : 'Confirm Registration & Claim +10'}</span>
-                            </button>
-                          ) : (
-                            <div className="space-y-1">
-                              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 text-amber-800 text-xs font-semibold border border-amber-200">
-                                <Clock size={13} className="text-amber-600 animate-spin" />
-                                <span>Verifying ({Math.floor(remainingSecs / 60)}m {remainingSecs % 60}s left)</span>
-                              </span>
-                              <p className="text-[10px] text-slate-400 max-w-[200px] text-left sm:text-right">
-                                Complete your registration on their portal. Confirmation unlocks in 3 mins.
-                              </p>
-                            </div>
-                          )}
-
-                          {app.officialUrl && (
-                            <a
-                              href={app.officialUrl}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="inline-flex items-center gap-1 text-[11px] text-blue-600 hover:underline"
-                            >
-                              <span>Official Site</span>
-                              <ExternalLink size={10} />
-                            </a>
-                          )}
-                        </div>
-                      </div>
-                    </Card>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        )}
-
-        {tab === 'My Submissions' && (
-          <div className="space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-black/8">
-              <div>
-                <h3 className="font-['Outfit',sans-serif] text-base font-bold text-[#16171D]">My Opportunity Submissions</h3>
-                <p className="text-xs text-[#7D756C]">
-                  Track verification status and reviewer feedback for your submitted opportunities.
-                </p>
-              </div>
-              <BtnLink to="/submit" className="!py-2 !px-4 !text-xs !min-h-9 !rounded-full shadow-xs">
-                + Submit New
-              </BtnLink>
-            </div>
-
-            {rawSubmissions.length === 0 ? (
-              <Card className="text-center py-16 pm-glass-card bg-white/85 backdrop-blur-xl border border-white/90 shadow-sm text-[#0e1b33] p-8">
-                <div className="w-14 h-14 bg-black/5 rounded-2xl flex items-center justify-center mx-auto mb-3 text-[#C5A059]">
-                  <FileText size={24} />
-                </div>
-                <h4 className="font-['Outfit',sans-serif] text-base font-bold text-[#16171D] mb-1">
-                  You haven't submitted any opportunities yet.
-                </h4>
-                <p className="text-xs text-[#7D756C] mb-5 max-w-sm mx-auto">
-                  Know about a hackathon, internship, workshop, or tech event? Submit it for review to earn +50 Pixels!
-                </p>
-                <BtnLink to="/submit" className="!py-2.5 !px-5 !text-xs !rounded-full">
-                  Submit an Opportunity
-                </BtnLink>
-              </Card>
-            ) : (
-              <div className="space-y-3">
-                {rawSubmissions.map((sub) => {
-                  const isPending = sub.status === 'pending';
-                  const isApproved = sub.status === 'approved' || sub.status === 'published';
-                  const isRejected = sub.status === 'rejected';
-
-                  return (
-                    <Card
-                      key={sub.id}
-                      onClick={() => setSelectedSubForModal(sub)}
-                      className="p-5 transition hover:border-[#C5A059]/40 hover:shadow-md cursor-pointer space-y-3 pm-glass-card bg-white/85 backdrop-blur-xl border border-white/90 shadow-sm text-[#0e1b33]"
-                    >
-                      <div className="flex flex-wrap items-start justify-between gap-3">
-                        <div className="space-y-1 min-w-0 flex-1">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <span className="inline-flex items-center rounded-full bg-black/5 px-2.5 py-0.5 text-xs font-bold text-[#2D2A26] border border-black/8">
-                              {sub.category}
-                            </span>
-                            {isPending && (
-                              <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 px-2.5 py-0.5 text-xs font-bold text-amber-700 border border-amber-500/20">
-                                <Clock size={11} /> Pending Review
-                              </span>
-                            )}
-                            {isApproved && (
-                              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-xs font-bold text-emerald-700 border border-emerald-500/20">
-                                <CheckCircle2 size={11} /> Approved
-                              </span>
-                            )}
-                            {isRejected && (
-                              <span className="inline-flex items-center gap-1 rounded-full bg-rose-500/10 px-2.5 py-0.5 text-xs font-bold text-rose-700 border border-rose-500/20">
-                                <XCircle size={11} /> Rejected
-                              </span>
-                            )}
-                          </div>
-                          <h4 className="font-['Outfit',sans-serif] text-base font-bold text-[#16171D] truncate hover:text-[#C5A059] transition">
-                            {sub.title}
-                          </h4>
-                          <p className="text-xs text-[#7D756C]">
-                            Organizer:{' '}
-                            <span className="font-semibold text-[#2D2A26]">
-                              {sub.organizer || 'Not specified'}
-                            </span>
-                          </p>
-                        </div>
-
-                        <div className="text-right shrink-0">
-                          <p className="text-xs text-[#7D756C] font-medium">
-                            Submitted:{' '}
-                            {new Date(sub.createdAt).toLocaleDateString('en-US', {
-                              month: 'short',
-                              day: 'numeric',
-                              year: 'numeric'
-                            })}
-                          </p>
-                          {sub.updatedAt && sub.updatedAt !== sub.createdAt && (
-                            <p className="text-[11px] text-[#A69E95] mt-0.5">
-                              Updated:{' '}
-                              {new Date(sub.updatedAt).toLocaleDateString('en-US', {
-                                month: 'short',
-                                day: 'numeric'
-                              })}
-                            </p>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Reviewer Feedback / Rejection Reason Callout */}
-                      {sub.adminNotes && (
-                        <div className="p-3 rounded-2xl bg-rose-50 border border-rose-200/80 text-rose-900 text-xs space-y-0.5">
-                          <div className="flex items-center gap-1 font-bold text-[11px] text-rose-800">
-                            <AlertCircle size={12} />
-                            <span>Reviewer Feedback / Rejection Reason:</span>
-                          </div>
-                          <p className="leading-relaxed pl-4 font-medium">{sub.adminNotes}</p>
-                        </div>
-                      )}
-
-                      <div className="flex items-center justify-between pt-2 border-t border-black/6 text-xs text-[#7D756C]">
-                        <span className="flex items-center gap-1">
-                          <Calendar size={12} className="text-[#C5A059]" />
-                          Deadline:{' '}
-                          {new Date(sub.deadline).toLocaleDateString('en-US', {
-                            month: 'short',
-                            day: 'numeric',
-                            year: 'numeric'
-                          })}
-                        </span>
-                        <span className="font-semibold text-[#16171D] hover:text-[#C5A059] inline-flex items-center gap-1">
-                          View Details &rarr;
-                        </span>
-                      </div>
-                    </Card>
-                  );
-                })}
-              </div>
             )}
           </div>
         )}
@@ -2628,13 +2362,6 @@ export function Profile() {
           </div>
         )}
       </div>
-
-      {/* Submission Detail Modal */}
-      <SubmissionDetailModal
-        submission={selectedSubForModal}
-        isOpen={!!selectedSubForModal}
-        onClose={() => setSelectedSubForModal(null)}
-      />
     </W>
   );
 }
@@ -2824,9 +2551,20 @@ export function Submit() {
 
   return (
     <W className="max-w-3xl space-y-7 py-8">
+      {/* Back Button */}
+      <div>
+        <button
+          onClick={() => navigate(-1)}
+          className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full pm-glass-control text-xs font-semibold text-slate-700 dark:text-slate-200 hover:text-blue-600 transition cursor-pointer"
+        >
+          <ArrowLeft size={14} />
+          <span>Back</span>
+        </button>
+      </div>
+
       <div>
         <div className="inline-flex items-center gap-2 rounded-full border border-black/8 bg-white/70 px-3 py-1 text-[11px] font-semibold text-[#6E655C] backdrop-blur-md mb-2 shadow-xs">
-          <Sparkles size={12} className="text-[#C5A059]" />
+          <Award size={12} className="text-[#C5A059]" />
           Earn +50 Pixels Upon Approval
         </div>
         <h1 className="font-['Outfit',sans-serif] text-3xl font-extrabold tracking-tight text-[#16171D] sm:text-4xl">
@@ -3612,7 +3350,7 @@ const AdminCMS = ({ allOppsList, loadData }: any) => {
             />
           </div>
           <Btn onClick={() => { setEditingOpp(null); setView('create'); }} className="!text-xs !min-h-9 !rounded-full !px-4 shadow-md">
-            <Sparkles size={14} className="mr-1.5 text-[#DFB76C]" />
+            <Award size={14} className="mr-1.5 text-[#DFB76C]" />
             + Create Opportunity
           </Btn>
         </div>
@@ -4587,7 +4325,7 @@ export function Admin() {
                 <p className="text-xs text-slate-500">Publish announcements, internship alerts, or hackathon tips directly to the public Feed</p>
               </div>
               <Btn onClick={() => setShowCreatePost(!showCreatePost)} className="!text-xs !min-h-9 shadow-xs">
-                <Sparkles size={14} className="mr-1.5" />
+                <Edit3 size={14} className="mr-1.5" />
                 + Create Community Post
               </Btn>
             </div>
@@ -5388,20 +5126,41 @@ export { Leaderboard } from './pixels';
 
 // FAQ & Support Page Exports
 export function FAQ() {
+  const navigate = useNavigate();
   return (
-    <div className="py-2">
+    <div className="py-4 space-y-4 max-w-4xl mx-auto px-4">
+      <div>
+        <button
+          onClick={() => navigate(-1)}
+          className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full pm-glass-control text-xs font-semibold text-slate-700 dark:text-slate-200 hover:text-blue-600 transition cursor-pointer"
+        >
+          <ArrowLeft size={14} />
+          <span>Back</span>
+        </button>
+      </div>
       <FAQSection />
     </div>
   );
 }
 
 export function Support() {
+  const navigate = useNavigate();
   return (
-    <div className="py-2">
+    <div className="py-4 space-y-4 max-w-4xl mx-auto px-4">
+      <div>
+        <button
+          onClick={() => navigate(-1)}
+          className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full pm-glass-control text-xs font-semibold text-slate-700 dark:text-slate-200 hover:text-blue-600 transition cursor-pointer"
+        >
+          <ArrowLeft size={14} />
+          <span>Back</span>
+        </button>
+      </div>
       <FAQSection />
     </div>
   );
 }
 export { FAQSection } from './components/FAQSection';
 export { Explore } from './pages/Explore';
-
+export { Notifications } from './pages/Notifications';
+export { Applications } from './pages/Applications';

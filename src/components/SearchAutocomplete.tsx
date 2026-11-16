@@ -224,7 +224,7 @@ export const SearchAutocomplete: React.FC<SearchAutocompleteProps> = ({
         placeholder={placeholder}
         className={
           inputClassName ||
-          "w-full rounded-full bg-white/70 hover:bg-white/90 focus:bg-white border border-white/90 py-2.5 pl-11 pr-16 text-xs text-[#0e1b33] placeholder-slate-400 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15 transition shadow-xs"
+          "w-full rounded-full pm-glass-input py-2.5 pl-11 pr-16 text-xs text-[#0e1b33] placeholder-slate-400 outline-none transition shadow-2xs"
         }
       />
 
@@ -241,7 +241,7 @@ export const SearchAutocomplete: React.FC<SearchAutocompleteProps> = ({
           <X size={14} />
         </button>
       ) : showShortcut ? (
-        <span className="absolute right-4 top-2.5 rounded-md bg-white/90 px-1.5 py-0.5 text-[10px] font-bold text-slate-400 border border-slate-200 select-none shadow-2xs pointer-events-none">
+        <span className="absolute right-4 top-2.5 rounded-md pm-glass-control px-1.5 py-0.5 text-[10px] font-bold text-slate-500 select-none shadow-2xs pointer-events-none">
           Ctrl K
         </span>
       ) : null}
