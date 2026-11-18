@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { Sparkles, Trophy, Zap, Rocket, Globe, Gem, Crown } from 'lucide-react';
+import { Award, Trophy, Activity, Rocket, Globe, Gem, Crown } from 'lucide-react';
 
 export interface PixelTile {
   x: number;
@@ -174,7 +174,7 @@ const LEVEL_ART_DATA: Record<
   6: {
     name: 'Astral Supernova Artifact',
     objectType: 'Cosmic Star Artifact',
-    icon: Sparkles,
+    icon: Gem,
     grid: [
       "          #          ", // 00: north ray tip
       "          #          ", // 01: north ray shaft
@@ -444,19 +444,19 @@ export const PixelProgressIllustration: React.FC<PixelProgressIllustrationProps>
           </div>
         ) : isLevelCompleted ? (
           <div className="inline-flex items-center justify-center gap-1.5 px-3 py-1 rounded-full bg-blue-100 dark:bg-blue-950/80 border border-blue-300 dark:border-blue-700 text-[11px] font-bold text-blue-700 dark:text-sky-300 shadow-2xs animate-pulse">
-            <Sparkles size={12} className="text-blue-500" />
+            <Award size={12} className="text-blue-500" />
             <span>
               {isMaxLevel ? 'Maximum Level Mastered!' : 'All Blocks Filled · Level Up Unlocked!'}
             </span>
           </div>
         ) : litCount === 0 ? (
           <div className="inline-flex items-center justify-center gap-1.5 px-3 py-1 rounded-full bg-white/80 dark:bg-slate-800/80 border border-slate-200/70 dark:border-slate-700/70 text-[11px] font-semibold text-slate-500 dark:text-slate-400 shadow-2xs">
-            <Zap size={11} className="text-slate-400" />
+            <Activity size={11} className="text-slate-400" />
             <span>0% Progress · Earn Pixels to illuminate blocks</span>
           </div>
         ) : (
           <div className="inline-flex items-center justify-center gap-2 px-3 py-1 rounded-full bg-white/80 dark:bg-slate-800/80 border border-slate-200/70 dark:border-slate-700/70 text-[11px] font-semibold text-slate-600 dark:text-slate-300 shadow-2xs">
-            <Zap size={12} className="text-blue-500 fill-blue-500" />
+            <Activity size={12} className="text-blue-500 fill-blue-500" />
             <span>
               {litCount} of {totalTiles} Blocks Illuminated ({Math.round(animatedPct)}%)
             </span>

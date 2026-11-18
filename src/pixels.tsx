@@ -1,12 +1,13 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import type { FC } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import {
   Share2,
   Eye,
   UserPlus,
   Zap,
   ArrowRight,
+  ArrowLeft,
   ArrowDown,
   Crown,
   RotateCcw,
@@ -308,6 +309,7 @@ export function ReferralPanel() {
 }
 
 export function Leaderboard() {
+  const navigate = useNavigate();
   const { userProfile, user } = useAuth();
   const [on, setOn] = useState(false);
   const [leaderboardUsers, setLeaderboardUsers] = useState<LeaderboardUserEntry[]>([]);
@@ -447,6 +449,17 @@ export function Leaderboard() {
 
   return (
     <main className="mx-auto max-w-4xl space-y-8 px-4 py-8">
+      {/* Back Button */}
+      <div>
+        <button
+          onClick={() => navigate(-1)}
+          className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full pm-glass-control text-xs font-semibold text-slate-700 dark:text-slate-200 hover:text-blue-600 transition cursor-pointer"
+        >
+          <ArrowLeft size={14} />
+          <span>Back</span>
+        </button>
+      </div>
+
       <div>
         <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-[#0e1b33]">
           Community Leaderboard

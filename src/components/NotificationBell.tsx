@@ -45,7 +45,7 @@ export const NotificationBell: React.FC<{ className?: string }> = ({ className =
         const welcomeNotif: AppNotification = {
           id: `welcome_${user.uid}`,
           notificationId: 'welcome',
-          title: 'Welcome to Pixel Minds! 🚀',
+          title: 'Welcome to Pixel Minds!',
           message: 'Explore hackathons, earn Pixels, and climb the global builder leaderboard.',
           type: 'pixel',
           link: '/opportunities',
@@ -286,7 +286,7 @@ export const NotificationBell: React.FC<{ className?: string }> = ({ className =
       <button
         onClick={handleToggle}
         aria-label="Notifications"
-        className="relative grid h-10 w-10 place-items-center rounded-full bg-white/70 hover:bg-white text-slate-700 border border-white/90 shadow-xs transition hover:text-blue-600 focus:outline-none cursor-pointer"
+        className="relative grid h-10 w-10 place-items-center rounded-full pm-glass-control text-slate-700 hover:text-blue-600 focus:outline-none cursor-pointer"
       >
         <Bell size={18} className={unreadCount > 0 ? 'text-blue-600' : 'text-slate-600'} />
         {unreadCount > 0 && (
@@ -467,6 +467,19 @@ export const NotificationBell: React.FC<{ className?: string }> = ({ className =
                   </div>
                 ))
               )}
+              {/* Footer View All Notifications Link */}
+              <div className="p-2.5 bg-white/[0.04] border-t border-white/5 text-center">
+                <button
+                  onClick={() => {
+                    setIsOpen(false);
+                    navigate('/notifications');
+                  }}
+                  className="w-full py-1.5 px-3 rounded-lg text-xs font-bold text-sky-400 hover:text-white hover:bg-white/10 transition flex items-center justify-center gap-1.5 cursor-pointer"
+                >
+                  <span>Open Full Notifications Page</span>
+                  <ChevronRight size={13} />
+                </button>
+              </div>
             </div>
           </div>
         </>

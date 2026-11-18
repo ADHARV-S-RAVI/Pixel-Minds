@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { ArrowRight, Search, Trophy, Users, Zap, Globe } from 'lucide-react';
+import { ArrowRight, Search, Trophy, Users, GraduationCap, Target, Globe } from 'lucide-react';
 
 export function Home() {
   return (
@@ -15,7 +15,7 @@ export function Home() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 sm:py-28 lg:py-36">
           <div className="max-w-3xl mx-auto text-center">
             <div className="inline-flex items-center space-x-2 bg-sky-50 text-sky-700 px-4 py-1.5 rounded-full text-sm font-medium mb-6 border border-sky-100">
-              <Zap size={14} />
+              <Target size={14} />
               <span>800+ community members and growing</span>
             </div>
 
@@ -65,7 +65,7 @@ export function Home() {
               { icon: <Trophy size={22} />, title: 'Hackathons', desc: 'Build, compete, and win at top-tier coding competitions.' },
               { icon: <Users size={22} />, title: 'Internships', desc: 'Land your next role at startups and tech giants.' },
               { icon: <Globe size={22} />, title: 'Conferences', desc: 'Attend events and connect with industry leaders.' },
-              { icon: <Zap size={22} />, title: 'Scholarships', desc: 'Unlock funding for your education and growth.' },
+              { icon: <GraduationCap size={22} />, title: 'Scholarships', desc: 'Unlock funding for your education and growth.' },
             ].map((item, i) => (
               <div key={i} className="bg-white rounded-xl p-6 border border-slate-200 hover:border-sky-200 hover:shadow-md transition-all group">
                 <div className="w-10 h-10 bg-sky-50 text-sky-600 rounded-lg flex items-center justify-center mb-4 group-hover:bg-sky-100 transition-colors">

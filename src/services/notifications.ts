@@ -401,3 +401,23 @@ export const deleteAdminNotification = async (notificationId: string): Promise<v
   window.dispatchEvent(new CustomEvent('pm:notification-update'));
 };
 
+/**
+ * Delete a user notification record by user_notifications id.
+ */
+export const deleteNotification = async (userNotificationId: string): Promise<void> => {
+  if (!userNotificationId) return;
+
+  const { error } = await supabase
+    .from('user_notifications')
+    .delete()
+    .eq('id', userNotificationId);
+
+  if (error) {
+    console.error('[deleteNotification] Failed to delete user notification:', error);
+    throw error;
+  }
+
+  window.dispatchEvent(new CustomEvent('pm:notification-update'));
+};
+
+

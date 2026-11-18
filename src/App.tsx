@@ -1,13 +1,15 @@
 import { useEffect } from 'react';
 import { Routes, Route, useNavigate } from 'react-router-dom';
 import { Layout } from './ui';
-import { Landing, Opportunities, OppDetail, Feed, Profile, Leaderboard, Submit, Admin, FAQ, Support, Explore } from './pages';
+import { Landing, Opportunities, OppDetail, Feed, Profile, Leaderboard, Submit, Admin, FAQ, Support, Explore, Applications } from './pages';
+import { Notifications } from './pages/Notifications';
 import { Settings } from './pages/Settings';
 import { Login } from './pages/Login';
 import { Signup } from './pages/Signup';
 import { ForgotPassword } from './pages/ForgotPassword';
 import { ResetPassword } from './pages/ResetPassword';
 import { AdminLogin } from './pages/AdminLogin';
+import { NotFound } from './pages/NotFound';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { AdminRoute } from './components/AdminRoute';
 import { ErrorBoundary } from './components/ErrorBoundary';
@@ -42,7 +44,8 @@ export default function App() {
           <Route path="/opportunities" element={<Opportunities />} />
           <Route path="/opportunities/:id" element={<OppDetail />} />
           <Route path="/bookmarks" element={<Opportunities />} />
-          <Route path="/applications" element={<Profile />} />
+          <Route path="/applications" element={<Applications />} />
+          <Route path="/notifications" element={<Notifications />} />
           <Route path="/feed" element={<Feed />} />
           <Route path="/leaderboard" element={<Leaderboard />} />
           <Route path="/faq" element={<FAQ />} />
@@ -92,6 +95,9 @@ export default function App() {
               </AdminRoute>
             }
           />
+
+          {/* 404 Fallback Route */}
+          <Route path="*" element={<NotFound />} />
         </Route>
       </Routes>
     </ErrorBoundary>
