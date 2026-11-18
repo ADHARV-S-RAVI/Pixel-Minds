@@ -61,12 +61,13 @@ export const getAuditLogs = async (maxLogs = 50): Promise<AuditLog[]> => {
 // ==========================================
 // REWARD CONFIG SERVICE (Supabase)
 // ==========================================
-export { 
+export {
   DEFAULT_REWARD_CONFIG,
-  getRewardConfig, 
+  getRewardConfig,
   updateRewardConfig,
   adjustUserPixels,
   getPixelTransactions,
+  subscribeToPixelTransactions,
   getAllUsersAdmin,
   toggleUserSuspension
 } from './pixels';
