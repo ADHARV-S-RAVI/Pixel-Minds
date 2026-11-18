@@ -79,7 +79,6 @@ import type {
   AdminSentNotification
 } from './types';
 import { useAuth } from './contexts/AuthContext';
-import { supabase } from './lib/supabase';
 import {
   getPublishedOpportunities,
   getOpportunityById,
@@ -112,7 +111,6 @@ import {
   updateRewardConfig,
   adjustUserPixels,
   getPixelTransactions,
-  subscribeToPixelTransactions,
   getAllUsersAdmin,
   toggleUserSuspension,
   createAdminCommunityPost,
@@ -1867,6 +1865,10 @@ export function Profile() {
         setUserPosts(posts);
       }).catch(() => {});
 
+      getPixelTransactions(user.uid).then((txs) => {
+        setUserTransactions(txs);
+      }).catch(() => {});
+
       getSharedOpportunities(user.uid).then((shared) => {
         const mapped: Opp[] = shared.map((o) => {
           const dInfo = getOpportunityDeadlineInfo(o.deadline);
@@ -1892,33 +1894,15 @@ export function Profile() {
     }
   }, [user, searchParams]);
 
-  // Keep the ledger fresh while it is visible. Realtime events only trigger an
-  // RLS-protected refetch; the event payload is not used to mutate the ledger UI.
+  // Re-fetch transactions whenever the Transactions tab is selected
   useEffect(() => {
-    if (!user?.uid || tab !== 'Transactions') {
-      return;
+    if (user?.uid && tab === 'Transactions') {
+      getPixelTransactions(user.uid)
+        .then((txs) => {
+          setUserTransactions(txs);
+        })
+        .catch(() => {});
     }
-
-    let active = true;
-    let latestRequest = 0;
-
-    const refreshTransactions = async () => {
-      const requestId = ++latestRequest;
-      const transactions = await getPixelTransactions(user.uid);
-      if (active && requestId === latestRequest) {
-        setUserTransactions(transactions);
-      }
-    };
-
-    void refreshTransactions();
-    const channel = subscribeToPixelTransactions(user.uid, () => {
-      void refreshTransactions();
-    });
-
-    return () => {
-      active = false;
-      void supabase.removeChannel(channel);
-    };
   }, [user?.uid, tab]);
 
   const handleSaveBio = async () => {
