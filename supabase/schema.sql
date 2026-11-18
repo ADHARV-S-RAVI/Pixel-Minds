@@ -836,21 +836,6 @@ EXCEPTION WHEN OTHERS THEN
 END;
 $$;
 
--- Enable Realtime publication for the immutable Pixel transaction ledger.
-DO $$
-BEGIN
-  IF EXISTS (SELECT 1 FROM pg_publication WHERE pubname = 'supabase_realtime')
-     AND NOT EXISTS (
-       SELECT 1 FROM pg_publication_tables
-       WHERE pubname = 'supabase_realtime'
-         AND schemaname = 'public'
-         AND tablename = 'pixel_transactions'
-     ) THEN
-    ALTER PUBLICATION supabase_realtime ADD TABLE public.pixel_transactions;
-  END IF;
-END;
-$$;
-
 -- 12. AUDIT LOGS POLICIES
 -- Strictly viewable and writable ONLY by Admins
 CREATE POLICY "Admins have full access to audit logs"

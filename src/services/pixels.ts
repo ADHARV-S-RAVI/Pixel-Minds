@@ -1,5 +1,4 @@
 import { supabase } from '../lib/supabase';
-import type { RealtimeChannel } from '@supabase/supabase-js';
 import type { RewardConfig, PixelTransaction, User } from '../types';
 
 export const DEFAULT_REWARD_CONFIG: RewardConfig = {
@@ -140,34 +139,6 @@ export const getPixelTransactions = async (userId?: string): Promise<PixelTransa
     console.error('Exception fetching pixel transactions:', err);
     return [];
   }
-};
-
-/**
- * Subscribe to newly committed transactions for one user.
- * The callback receives a signal to refetch through the existing RLS-protected query;
- * transaction payloads are deliberately not trusted as the displayed source of truth.
- */
-export const subscribeToPixelTransactions = (
-  userId: string,
-  onTransaction: () => void
-): RealtimeChannel => {
-  return supabase
-    .channel(`pixel-transactions:${userId}`)
-    .on(
-      'postgres_changes',
-      {
-        event: 'INSERT',
-        schema: 'public',
-        table: 'pixel_transactions',
-        filter: `user_id=eq.${userId}`
-      },
-      onTransaction
-    )
-    .subscribe((status, error) => {
-      if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-        console.error('[pixel_transactions] Realtime subscription failed:', status, error);
-      }
-    });
 };
 
 /**
