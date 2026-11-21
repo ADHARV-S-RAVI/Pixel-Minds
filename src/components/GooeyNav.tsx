@@ -1,4 +1,4 @@
-import React, { useEffect, useLayoutEffect, useRef, useMemo } from 'react';
+import React, { useEffect, useLayoutEffect, useRef, useMemo, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import {
   Home,
@@ -284,6 +284,16 @@ function getSidebarActiveIndex(items: NavItemDef[], pathname: string, search: st
 }
 
 export const SidebarGooeyNav: React.FC<{ collapsed?: boolean }> = ({ collapsed = false }) => {
+  const [isDesktop, setIsDesktop] = useState(() => (typeof window !== 'undefined' ? window.innerWidth >= 1024 : true));
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const mql = window.matchMedia('(min-width: 1024px)');
+    const onChange = (e: MediaQueryListEvent) => setIsDesktop(e.matches);
+    mql.addEventListener('change', onChange);
+    return () => mql.removeEventListener('change', onChange);
+  }, []);
+
   const location = useLocation();
 
   const allItems = useMemo<NavItemDef[]>(() => {
@@ -344,6 +354,7 @@ export const SidebarGooeyNav: React.FC<{ collapsed?: boolean }> = ({ collapsed =
     const overlay = overlayRef.current;
     const fallback = fallbackRef.current;
     if (!stage || !canvas || !list || !overlay || !fallback) return;
+    if (!isDesktop) return;
 
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     const gl = canvas.getContext('webgl2', { alpha: true, premultipliedAlpha: true, antialias: false });
@@ -837,11 +848,15 @@ export const SidebarGooeyNav: React.FC<{ collapsed?: boolean }> = ({ collapsed =
       }
       engineRef.current = null;
     };
-  }, [allItems.length]);
+  }, [allItems.length, isDesktop]);
 
   useEffect(() => {
     engineRef.current?.go(activeIndex);
   }, [activeIndex]);
+
+  if (!isDesktop) {
+    return null;
+  }
 
   return (
     <nav className="sidebar-gooey-nav" aria-label="Sidebar Navigation">

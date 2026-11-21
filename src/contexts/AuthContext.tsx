@@ -3,6 +3,7 @@ import type { User as SupabaseAuthUser } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
 import type { User } from '../types';
 import { getUserProfile, createUserProfile, updateUserProfile, generateUniqueUsername } from '../services/users';
+import { recordReferralSignup } from '../services/referrals';
 
 // User interface bridging Supabase Auth User with legacy uid/id properties
 export interface AuthUser extends SupabaseAuthUser {
@@ -104,7 +105,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const pendingRef = sessionStorage.getItem('pm_ref_code') || localStorage.getItem('pm_ref_code');
 
       if (!hasOnboarded && pendingRef && pendingRef.trim()) {
-        const { recordReferralSignup } = await import('../services/referrals');
         const res = await recordReferralSignup(pendingRef.trim(), uid);
         if (res.success || res.message?.toLowerCase().includes('already') || res.message?.toLowerCase().includes('self-referral')) {
           localStorage.setItem(onboardedKey, 'true');
