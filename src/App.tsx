@@ -17,6 +17,9 @@ const Signup = lazy(() => import('./pages/Signup').then(m => ({ default: m.Signu
 const ForgotPassword = lazy(() => import('./pages/ForgotPassword').then(m => ({ default: m.ForgotPassword })));
 const ResetPassword = lazy(() => import('./pages/ResetPassword').then(m => ({ default: m.ResetPassword })));
 const AdminLogin = lazy(() => import('./pages/AdminLogin').then(m => ({ default: m.AdminLogin })));
+const Applications = lazy(() => import('./pages/Applications').then(m => ({ default: m.Applications })));
+const Notifications = lazy(() => import('./pages/Notifications').then(m => ({ default: m.Notifications })));
+const NotFound = lazy(() => import('./pages/NotFound').then(m => ({ default: m.NotFound })));
 
 function RouteFallback() {
   return (
@@ -54,7 +57,8 @@ export default function App() {
             <Route path="/opportunities" element={<Opportunities />} />
             <Route path="/opportunities/:id" element={<OppDetail />} />
             <Route path="/bookmarks" element={<Opportunities />} />
-            <Route path="/applications" element={<Profile />} />
+            <Route path="/applications" element={<Applications />} />
+            <Route path="/notifications" element={<Notifications />} />
             <Route path="/feed" element={<Feed />} />
             <Route path="/leaderboard" element={<Leaderboard />} />
             <Route path="/faq" element={<FAQ />} />
@@ -104,6 +108,9 @@ export default function App() {
                 </AdminRoute>
               }
             />
+
+          {/* 404 Fallback Route */}
+          <Route path="*" element={<NotFound />} />
           </Route>
         </Routes>
       </Suspense>
