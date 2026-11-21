@@ -1,4 +1,9 @@
 import { supabase } from '../lib/supabase';
+import {
+  createAdminCommunityPost as createSupabaseAdminPost,
+  updateCommunityPost as updateSupabasePost,
+  deleteCommunityPost as deleteSupabasePost
+} from './community';
 import type { 
   AuditLog, 
   CommunityPost, 
@@ -90,7 +95,6 @@ export const createAdminCommunityPost = async (
     featured?: boolean;
   }
 ): Promise<CommunityPost> => {
-  const { createAdminCommunityPost: createSupabaseAdminPost } = await import('./community');
   const post = await createSupabaseAdminPost(adminUser, postData);
 
   try {
@@ -114,7 +118,6 @@ export const updateCommunityPost = async (
   id: string,
   updates: Partial<CommunityPost>
 ): Promise<void> => {
-  const { updateCommunityPost: updateSupabasePost } = await import('./community');
   await updateSupabasePost(id, updates);
 
   try {
@@ -135,7 +138,6 @@ export const deleteCommunityPost = async (
   adminUser: { uid: string; email: string },
   id: string
 ): Promise<void> => {
-  const { deleteCommunityPost: deleteSupabasePost } = await import('./community');
   await deleteSupabasePost(id);
 
   try {

@@ -353,6 +353,8 @@ export function Landing() {
                 <img
                   src="/hero-orb.jpg"
                   alt="Pixel Minds Tech Orb"
+                  loading="lazy"
+                  decoding="async"
                   className="w-full h-full object-contain drop-shadow-xl select-none pointer-events-none rounded-full"
                 />
                 {/* Floating Node Badges */}
@@ -1181,7 +1183,7 @@ export function OppDetail() {
           {images.length > 0 && (
             <div className="space-y-3">
               <div className="rounded-3xl overflow-hidden border border-black/10 shadow-sm max-h-96 bg-slate-100">
-                <img src={images[selectedImgIdx] || images[0]} alt={o.title} className="w-full max-h-96 object-cover transition-all duration-300" />
+                <img src={images[selectedImgIdx] || images[0]} alt={o.title} loading="lazy" decoding="async" className="w-full max-h-96 object-cover transition-all duration-300" />
               </div>
               {images.length > 1 && (
                 <div className="flex items-center gap-2.5 overflow-x-auto pb-1">
@@ -1194,7 +1196,7 @@ export function OppDetail() {
                         selectedImgIdx === idx ? 'border-sky-500 shadow-md ring-2 ring-sky-500/30' : 'border-black/10 opacity-70 hover:opacity-100'
                       }`}
                     >
-                      <img src={imgUrl} alt={`Thumbnail ${idx + 1}`} className="w-full h-full object-cover" />
+                      <img src={imgUrl} alt={`Thumbnail ${idx + 1}`} loading="lazy" decoding="async" className="w-full h-full object-cover" />
                     </button>
                   ))}
                 </div>
@@ -5403,5 +5405,4 @@ export function Support() {
   );
 }
 export { FAQSection } from './components/FAQSection';
-export { Explore } from './pages/Explore';
 

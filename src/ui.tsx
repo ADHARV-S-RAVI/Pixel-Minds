@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, Suspense, memo } from 'react';
 import type { ReactNode, FC } from 'react';
 import { Link, NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import {
@@ -42,7 +42,21 @@ import { useApp } from './store';
 import { NotificationBell } from './components/NotificationBell';
 import { useAuth } from './contexts/AuthContext';
 import { useTheme } from './contexts/ThemeContext';
-import { createCommunityPost, deleteCommunityPost, formatTimeAgo, togglePostLike, getPostComments, addPostComment } from './services/community';
+import {
+  createCommunityPost,
+  deleteCommunityPost,
+  formatTimeAgo,
+  togglePostLike,
+  getPostComments,
+  addPostComment,
+  getPostLikes,
+  toggleCommentLike,
+  deletePostComment,
+  updateCommunityPost,
+  updatePostComment,
+  recordPostInteraction
+} from './services/community';
+import { searchUsernamesForMention } from './services/users';
 import { renderWithHashtags, validateMessageSafety, sanitizeInput } from './utils/text';
 import {
   IconHeart,
@@ -126,6 +140,8 @@ export const Avatar: FC<{ name?: string; size?: number; photoURL?: string; class
       <img
         src={photoURL}
         alt={name}
+        loading="lazy"
+        decoding="async"
         style={{ width: size, height: size }}
         className={`rounded-full object-cover shrink-0 ring-2 ring-white/60 shadow-xs ${className}`}
       />
@@ -152,6 +168,8 @@ export const Logo: FC<{ light?: boolean }> = ({ light = false }) => (
     <img
       src="/logo.png"
       alt="Pixel Minds"
+      loading="lazy"
+      decoding="async"
       className="h-7 w-auto sm:h-8 max-h-8 object-contain transition-transform group-hover:scale-105 shrink-0"
     />
     <span className={`text-sm sm:text-base font-extrabold tracking-tight truncate ${light ? 'text-white' : 'text-[#0e1b33]'}`}>
@@ -212,7 +230,7 @@ export const ReferBtn: FC<{ title: string; path: string; className?: string }> =
   );
 };
 
-export const OppCard: FC<{ o: Opp; variant?: 'light' | 'dark' }> = ({ o, variant = 'light' }) => {
+export const OppCard: FC<{ o: Opp; variant?: 'light' | 'dark' }> = memo(({ o, variant = 'light' }) => {
   const { saved, toggle, share } = useApp();
   const [showReport, setShowReport] = useState(false);
   const on = saved.includes(String(o.id));
@@ -453,7 +471,7 @@ export const OppCard: FC<{ o: Opp; variant?: 'light' | 'dark' }> = ({ o, variant
       />
     </div>
   );
-};
+});
 
 export const Composer: FC<{ onPostCreated?: (p: any) => void; isModal?: boolean }> = ({ onPostCreated, isModal = false }) => {
   const { addPost, say } = useApp();
@@ -504,7 +522,6 @@ export const Composer: FC<{ onPostCreated?: (p: any) => void; isModal?: boolean 
       const q = mentionMatch[1];
       setMentionQuery(q);
       try {
-        const { searchUsernamesForMention } = await import('./services/users');
         const res = await searchUsernamesForMention(q, 5);
         setMentionSuggestions(res || []);
       } catch {
@@ -942,7 +959,7 @@ export interface PostCommentItem {
   isEdited?: boolean;
 }
 
-export const PostCard: FC<{ p: any; onPostDeleted?: (id: string) => void; onPostCreated?: (p: any) => void }> = ({ p, onPostDeleted, onPostCreated }) => {
+export const PostCard: FC<{ p: any; onPostDeleted?: (id: string) => void; onPostCreated?: (p: any) => void }> = memo(({ p, onPostDeleted, onPostCreated }) => {
   const { saved, toggle, say, addPost } = useApp();
   const { userProfile, user } = useAuth();
   const [showReport, setShowReport] = useState(false);
@@ -1032,7 +1049,6 @@ export const PostCard: FC<{ p: any; onPostDeleted?: (id: string) => void; onPost
     setShowLikers(true);
     setLoadingLikers(true);
     try {
-      const { getPostLikes } = await import('./services/community');
       const list = await getPostLikes(String(p.id));
       setLikersList(list);
     } catch {
@@ -1064,7 +1080,6 @@ export const PostCard: FC<{ p: any; onPostDeleted?: (id: string) => void; onPost
       const q = mentionMatch[1];
       setCommentMentionQuery(q);
       try {
-        const { searchUsernamesForMention } = await import('./services/users');
         const res = await searchUsernamesForMention(q, 5);
         setCommentMentionSuggestions(res || []);
       } catch {
@@ -1235,7 +1250,6 @@ export const PostCard: FC<{ p: any; onPostDeleted?: (id: string) => void; onPost
     } catch {}
 
     try {
-      const { toggleCommentLike } = await import('./services/community');
       const res = await toggleCommentLike(commentId, user.uid, wasLiked, currentLikes);
       setComments((prev) => {
         const updated = prev.map((c) => (c.id === commentId ? { ...c, liked: res.liked, likes: res.likesCount } : c));
@@ -1267,7 +1281,6 @@ export const PostCard: FC<{ p: any; onPostDeleted?: (id: string) => void; onPost
   const handleDeleteComment = async (commentId: string) => {
     if (!user) return;
     try {
-      const { deletePostComment } = await import('./services/community');
       const res = await deletePostComment(commentId, String(p.id), user.uid);
       if (res.success) {
         const remaining = comments.filter((c) => c.id !== commentId);
@@ -1305,7 +1318,6 @@ export const PostCard: FC<{ p: any; onPostDeleted?: (id: string) => void; onPost
 
     setSavingPostEdit(true);
     try {
-      const { updateCommunityPost } = await import('./services/community');
       await updateCommunityPost(String(p.id), {
         title: cleanTitle,
         description: cleanDesc,
@@ -1348,7 +1360,6 @@ export const PostCard: FC<{ p: any; onPostDeleted?: (id: string) => void; onPost
 
     setSavingCommentEdit(true);
     try {
-      const { updatePostComment } = await import('./services/community');
       await updatePostComment(commentId, cleanComment, user.uid);
       setComments((prev) => {
         const updated = prev.map((c) => (c.id === commentId ? { ...c, text: cleanComment, isEdited: true } : c));
@@ -1398,7 +1409,6 @@ export const PostCard: FC<{ p: any; onPostDeleted?: (id: string) => void; onPost
 
       // Record interaction in database ledger
       try {
-        const { recordPostInteraction } = await import('./services/community');
         const res = await recordPostInteraction(String(p.id), user.uid, 'repost');
         if (res.success && typeof res.count === 'number') {
           setRepostsCount(res.count);
@@ -1432,7 +1442,6 @@ export const PostCard: FC<{ p: any; onPostDeleted?: (id: string) => void; onPost
 
     if (user?.uid) {
       try {
-        const { recordPostInteraction } = await import('./services/community');
         const res = await recordPostInteraction(String(p.id), user.uid, 'share');
         if (res.success && typeof res.count === 'number') {
           setSharesCount(res.count);
@@ -2141,7 +2150,7 @@ export const PostCard: FC<{ p: any; onPostDeleted?: (id: string) => void; onPost
       />
     </div>
   );
-};
+});
 
 const navItems = [
   ['/', 'Home', Home],
@@ -2584,7 +2593,13 @@ export const Layout: FC = () => {
 
         {/* Main Routed Content */}
         <main className="flex-1 min-w-0">
-          <Outlet />
+          <Suspense fallback={
+            <div className="min-h-[50vh] flex items-center justify-center p-6" role="status" aria-label="Loading page">
+              <div className="w-8 h-8 rounded-full border-2 border-blue-600 border-t-transparent animate-spin" />
+            </div>
+          }>
+            <Outlet />
+          </Suspense>
         </main>
       </div>
 

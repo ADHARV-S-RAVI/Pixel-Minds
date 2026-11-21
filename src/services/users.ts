@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabase';
+import { recordReferralSignup } from './referrals';
 import type { User } from '../types';
 
 /**
@@ -148,7 +149,6 @@ export const createUserProfile = async (uid: string, data: Partial<User>): Promi
       ? (sessionStorage.getItem('pm_ref_code') || localStorage.getItem('pm_ref_code'))
       : null;
     if (pendingRef) {
-      const { recordReferralSignup } = await import('./referrals');
       await recordReferralSignup(pendingRef, uid);
       localStorage.setItem(`pm_ref_onboarded_${uid}`, 'true');
       sessionStorage.removeItem('pm_ref_code');

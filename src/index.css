@@ -1,5 +1,4 @@
 @import "tailwindcss";
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800;900&family=Inter:wght@400;500;600;700;800&display=swap');
 
 @custom-variant dark (&:where(.dark, .dark *));
 
@@ -488,6 +487,30 @@ body.dark {
   user-select: none;
   -webkit-user-select: none;
 }
+
+/* ================= MOBILE PERFORMANCE & SMOOTH SCROLLING ================= */
+@media (max-width: 768px) {
+  /* Disable fixed background attachment on mobile to eliminate continuous scroll repaints */
+  .pm-bg-canvas,
+  .dark .pm-bg-canvas {
+    background-attachment: scroll !important;
+  }
+
+  /* Reduce GPU burden by lowering backdrop filter intensity on mobile */
+  .pm-glass,
+  .pm-glass-card,
+  .dark .pm-glass,
+  .dark .pm-glass-card,
+  .pm-cream-card,
+  .pm-dark-glass-card,
+  .pm-dark-glass,
+  .pm-dark-featured,
+  .dark .pm-dark-featured {
+    backdrop-filter: blur(10px) !important;
+    -webkit-backdrop-filter: blur(10px) !important;
+  }
+}
+
 
 
 

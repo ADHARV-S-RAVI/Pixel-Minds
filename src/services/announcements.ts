@@ -2,6 +2,7 @@ import { supabase } from '../lib/supabase';
 import type { Announcement } from '../types';
 import type { Database } from '../types/database';
 import { recordAuditLog } from './admin';
+import { uploadImage } from './storage';
 
 type AnnouncementUpdate = Database['public']['Tables']['announcements']['Update'];
 
@@ -83,7 +84,6 @@ export const getAnnouncements = async (onlyPublished = true): Promise<Announceme
  * Tries 'announcement-images' bucket first, then fallbacks to 'opportunity-banners' / 'opportunities'.
  */
 export const uploadAnnouncementImage = async (file: File): Promise<string> => {
-  const { uploadImage } = await import('./storage');
   try {
     return await uploadImage(file, 'announcement-images', 'banners');
   } catch (err: any) {
