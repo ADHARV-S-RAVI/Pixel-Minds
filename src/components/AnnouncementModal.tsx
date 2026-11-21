@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import type { FC } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Megaphone, ExternalLink, X } from 'lucide-react';
+import { Megaphone, ExternalLink, X } from '@/components/Icons';
 import { getActiveAnnouncements } from '../services/announcements';
 import type { Announcement } from '../types';
 import { Btn } from '../ui';

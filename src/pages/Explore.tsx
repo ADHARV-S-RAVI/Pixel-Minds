@@ -19,7 +19,7 @@ import {
   MoveRight,
   MoveLeft,
   MousePointerClick,
-} from 'lucide-react';
+} from '@/components/Icons';
 import { ClickStack } from '../components/ClickStack';
 import { useApp } from '../store';
 import { getPublishedOpportunities } from '../services/opportunities';

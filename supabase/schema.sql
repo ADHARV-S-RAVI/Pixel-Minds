@@ -13,6 +13,7 @@ CREATE TABLE IF NOT EXISTS public.profiles (
   id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   email TEXT NOT NULL,
   full_name TEXT,
+  username TEXT UNIQUE,
   avatar_url TEXT,
   bio TEXT,
   role TEXT NOT NULL DEFAULT 'user' CHECK (role IN ('user', 'admin')),
@@ -35,8 +36,74 @@ CREATE TABLE IF NOT EXISTS public.profiles (
 
 -- Indexing for fast lookups
 CREATE INDEX IF NOT EXISTS idx_profiles_role ON public.profiles(role);
+CREATE INDEX IF NOT EXISTS idx_profiles_username ON public.profiles(username);
 CREATE INDEX IF NOT EXISTS idx_profiles_referral_id ON public.profiles(referral_id);
 CREATE INDEX IF NOT EXISTS idx_profiles_pixels ON public.profiles(pixels DESC);
+
+-- Secure public profiles view exposing only non-sensitive columns
+CREATE OR REPLACE VIEW public.public_profiles
+WITH (security_invoker = false) AS
+SELECT 
+  id,
+  username,
+  full_name,
+  avatar_url,
+  bio,
+  rank,
+  pixels,
+  contributions,
+  opportunities_shared,
+  approved_submissions,
+  badges,
+  created_at
+FROM public.profiles
+WHERE is_suspended = FALSE;
+
+ALTER VIEW public.public_profiles OWNER TO postgres;
+
+GRANT SELECT ON public.public_profiles TO anon, authenticated, service_role;
+
+-- Dedicated secure function to retrieve post likers (public identity only)
+CREATE OR REPLACE FUNCTION public.get_post_likers(p_post_id UUID)
+RETURNS TABLE (
+  id UUID,
+  full_name TEXT,
+  username TEXT,
+  avatar_url TEXT
+)
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, pg_temp
+AS $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM public.community_posts
+    WHERE community_posts.id = p_post_id
+    AND (
+      community_posts.status = 'published'
+      OR community_posts.user_id = auth.uid()
+      OR public.is_admin()
+    )
+  ) THEN
+    RETURN;
+  END IF;
+
+  RETURN QUERY
+  SELECT
+    p.id,
+    p.full_name,
+    p.username,
+    p.avatar_url
+  FROM public.community_likes l
+  JOIN public.profiles p ON p.id = l.user_id
+  WHERE l.post_id = p_post_id
+    AND p.is_suspended = FALSE
+  ORDER BY l.created_at DESC;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.get_post_likers(UUID) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.get_post_likers(UUID) TO anon, authenticated, service_role;
 
 -- ==============================================================================
 -- 2. CATEGORIES TABLE
@@ -167,11 +234,13 @@ CREATE TABLE IF NOT EXISTS public.pixel_transactions (
   reason TEXT NOT NULL,
   type TEXT NOT NULL CHECK (type IN ('earn', 'spend', 'adjustment')),
   admin_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+  idempotency_key TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
 );
 
 CREATE INDEX IF NOT EXISTS idx_pixel_transactions_user_id ON public.pixel_transactions(user_id);
 CREATE INDEX IF NOT EXISTS idx_pixel_transactions_created_at ON public.pixel_transactions(created_at DESC);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_pixel_transactions_idempotency ON public.pixel_transactions (user_id, idempotency_key) WHERE idempotency_key IS NOT NULL;
 
 -- ==============================================================================
 -- 7. REFERRALS TABLE
@@ -197,15 +266,92 @@ CREATE TABLE IF NOT EXISTS public.reports (
   reporter_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   target_type TEXT NOT NULL CHECK (target_type IN ('opportunity', 'post', 'user')),
   target_id TEXT NOT NULL,
+  target_title TEXT,
+  target_snippet TEXT,
+  reporter_email TEXT,
   reason TEXT NOT NULL,
+  details TEXT,
   status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'resolved', 'dismissed')),
   admin_notes TEXT,
   resolved_by UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+  resolved_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
 );
 
 CREATE INDEX IF NOT EXISTS idx_reports_status ON public.reports(status);
+CREATE INDEX IF NOT EXISTS idx_reports_target ON public.reports(target_type, target_id);
+CREATE INDEX IF NOT EXISTS idx_reports_reporter ON public.reports(reporter_id);
+
+-- ==============================================================================
+-- 8b. USER APPLICATIONS TABLE
+-- ==============================================================================
+CREATE TABLE IF NOT EXISTS public.user_applications (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  opportunity_id TEXT NOT NULL,
+  opportunity_title TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'pending_confirmation' CHECK (status IN ('pending_confirmation', 'confirmed')),
+  applied_at BIGINT NOT NULL DEFAULT round(extract(epoch from now()) * 1000)::BIGINT,
+  confirmed_at BIGINT,
+  reward_claimed BOOLEAN NOT NULL DEFAULT false,
+  pixels_rewarded INTEGER NOT NULL DEFAULT 0,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
+  CONSTRAINT uq_user_applications_user_opp UNIQUE (user_id, opportunity_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_user_applications_user_id ON public.user_applications(user_id);
+CREATE INDEX IF NOT EXISTS idx_user_applications_opp_id ON public.user_applications(opportunity_id);
+CREATE INDEX IF NOT EXISTS idx_user_applications_status ON public.user_applications(status);
+
+-- ==============================================================================
+-- 8c. RATE LIMITING & SECURITY MONITORING TABLES
+-- ==============================================================================
+CREATE TABLE IF NOT EXISTS public.user_rate_limits (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  action_type TEXT NOT NULL,
+  window_start TIMESTAMPTZ NOT NULL DEFAULT clock_timestamp(),
+  request_count INTEGER NOT NULL DEFAULT 1,
+  CONSTRAINT uq_user_action_rate_limit UNIQUE (user_id, action_type)
+);
+
+CREATE INDEX IF NOT EXISTS idx_user_rate_limits_lookup ON public.user_rate_limits (user_id, action_type);
+
+CREATE TABLE IF NOT EXISTS public.rate_limit_policy (
+  action_type    TEXT PRIMARY KEY,
+  max_requests   INTEGER NOT NULL,
+  window_seconds INTEGER NOT NULL
+);
+
+INSERT INTO public.rate_limit_policy (action_type, max_requests, window_seconds) VALUES
+  ('post_create',               5,    60),
+  ('comment_create',           15,    60),
+  ('like_toggle',              40,    60),
+  ('comment_like_toggle',      40,    60),
+  ('bookmark_toggle',          30,    60),
+  ('post_interaction',         20,    60),
+  ('send_email',                5,   600),
+  ('opportunity_submit_minute', 1,    60),
+  ('opportunity_submit_day',    5, 86400)
+ON CONFLICT (action_type) DO UPDATE SET
+  max_requests = EXCLUDED.max_requests,
+  window_seconds = EXCLUDED.window_seconds;
+
+CREATE TABLE IF NOT EXISTS public.security_logs (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  event_type TEXT NOT NULL,
+  severity TEXT NOT NULL DEFAULT 'warning' CHECK (severity IN ('info', 'warning', 'error', 'critical')),
+  user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+  correlation_id TEXT,
+  details JSONB DEFAULT '{}'::jsonb,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
+);
+
+CREATE INDEX IF NOT EXISTS idx_security_logs_created_at ON public.security_logs (created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_security_logs_event_type ON public.security_logs (event_type);
+CREATE INDEX IF NOT EXISTS idx_security_logs_user_id ON public.security_logs (user_id);
 
 -- ==============================================================================
 -- 9. REWARD CONFIG TABLE (Singleton / Config Record)
@@ -599,6 +745,10 @@ ALTER TABLE public.community_posts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.pixel_transactions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.referrals ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.reports ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.user_applications ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.user_rate_limits ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.rate_limit_policy ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.security_logs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.reward_config ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.announcements ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.notifications ENABLE ROW LEVEL SECURITY;
@@ -607,10 +757,16 @@ ALTER TABLE public.audit_logs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.analytics_events ENABLE ROW LEVEL SECURITY;
 
 -- 1. PROFILES POLICIES
--- Anyone can view public profile fields (for community, leaderboard, authors)
-CREATE POLICY "Profiles are viewable by everyone"
+-- Private profile data: only row owner or verified admin can select directly from public.profiles.
+-- Public profile data is accessed via the public_profiles view.
+DROP POLICY IF EXISTS "Profiles are viewable by everyone" ON public.profiles;
+DROP POLICY IF EXISTS "Profiles self view or admin view" ON public.profiles;
+CREATE POLICY "Profiles self view or admin view"
 ON public.profiles FOR SELECT
-USING (TRUE);
+TO authenticated, anon
+USING (
+  auth.uid() = id OR public.is_admin()
+);
 
 -- Users can update their own safe profile fields (never role, pixels, or is_suspended directly)
 CREATE POLICY "Users can update own safe profile fields"
@@ -644,11 +800,15 @@ CREATE POLICY "Public can read published opportunities"
 ON public.opportunities FOR SELECT
 USING (status = 'published' OR public.is_admin() OR auth.uid() = created_by);
 
--- Authenticated users can insert pending opportunities or admins can insert anything
+-- Authenticated users can insert pending opportunities (hardened by Phase 1 & Phase 2 migrations)
+-- NOTE: The final INSERT policy "Users can submit pending opportunities" (with suspension check)
+-- is defined in 20261121120000_phase1_counter_trigger_ratelimit_suspension.sql and
+-- 20261121150000_phase2_referrals_applications_reports_opp_policies.sql.
+-- The legacy broad policy below is superseded and dropped by those migrations.
 CREATE POLICY "Users can submit or admins can create opportunities"
 ON public.opportunities FOR INSERT
 WITH CHECK (
-  public.is_admin() OR 
+  public.is_admin() OR
   (auth.uid() IS NOT NULL AND status = 'pending' AND created_by = auth.uid())
 );
 
@@ -731,22 +891,320 @@ CREATE POLICY "Users can view own referrals or admin view all"
 ON public.referrals FOR SELECT
 USING (auth.uid() = referrer_id OR auth.uid() = referred_user_id OR public.is_admin());
 
-CREATE POLICY "Authenticated users or system can create referral records"
-ON public.referrals FOR INSERT
-WITH CHECK (auth.uid() = referrer_id OR auth.uid() = referred_user_id OR public.is_admin());
+-- NOTE: Direct client INSERT on referrals is intentionally blocked.
+-- All referral claims must flow through claim_referral_code() (SECURITY DEFINER).
+-- The legacy INSERT policy below is dropped by 20261121150000_phase2_referrals_applications_reports_opp_policies.sql.
+-- CREATE POLICY "Authenticated users or system can create referral records" ... (removed)
 
 -- 8. REPORTS POLICIES
 CREATE POLICY "Users can view own reports or admins view all"
 ON public.reports FOR SELECT
+TO authenticated
 USING (auth.uid() = reporter_id OR public.is_admin());
 
-CREATE POLICY "Authenticated users can create reports"
+CREATE POLICY "Users can insert reports"
 ON public.reports FOR INSERT
+TO authenticated
 WITH CHECK (auth.uid() = reporter_id);
 
 CREATE POLICY "Admins can update reports"
 ON public.reports FOR UPDATE
+TO authenticated
+USING (public.is_admin())
+WITH CHECK (public.is_admin());
+
+CREATE POLICY "Admins can delete reports"
+ON public.reports FOR DELETE
+TO authenticated
 USING (public.is_admin());
+
+-- 8b. USER APPLICATIONS POLICIES
+CREATE POLICY "Users can insert own applications"
+ON public.user_applications FOR INSERT
+TO authenticated
+WITH CHECK (
+  auth.uid() = user_id
+  AND status = 'pending_confirmation'
+  AND reward_claimed = false
+  AND pixels_rewarded = 0
+);
+
+CREATE POLICY "Users can view own applications"
+ON public.user_applications FOR SELECT
+TO authenticated
+USING (auth.uid() = user_id OR public.is_admin());
+
+CREATE POLICY "Admins can update applications"
+ON public.user_applications FOR UPDATE
+TO authenticated
+USING (public.is_admin());
+
+CREATE POLICY "Admins can delete applications"
+ON public.user_applications FOR DELETE
+TO authenticated
+USING (public.is_admin());
+
+-- 8c. RATE LIMIT & SECURITY MONITORING POLICIES
+CREATE POLICY "Users can view own rate limits" 
+ON public.user_rate_limits FOR SELECT 
+TO authenticated 
+USING (auth.uid() = user_id OR public.is_admin());
+
+-- rate_limit_policy is internal only: service_role only
+REVOKE ALL ON TABLE public.rate_limit_policy FROM PUBLIC;
+REVOKE ALL ON TABLE public.rate_limit_policy FROM anon;
+REVOKE ALL ON TABLE public.rate_limit_policy FROM authenticated;
+GRANT ALL ON TABLE public.rate_limit_policy TO service_role;
+
+CREATE POLICY "Admins can view security logs"
+ON public.security_logs FOR SELECT
+TO authenticated
+USING (public.is_admin());
+
+CREATE POLICY "Admins can delete security logs"
+ON public.security_logs FOR DELETE
+TO authenticated
+USING (public.is_admin());
+
+-- Seed the rate-limit policy entry for security log events
+INSERT INTO public.rate_limit_policy (action_type, max_requests, window_seconds)
+VALUES ('security_log_event', 10, 60)
+ON CONFLICT (action_type) DO NOTHING;
+
+-- Recursive JSONB sensitive-key redactor (traverses objects and arrays)
+CREATE OR REPLACE FUNCTION public.redact_sensitive_jsonb(p_data JSONB)
+RETURNS JSONB
+LANGUAGE plpgsql
+IMMUTABLE
+SECURITY DEFINER
+SET search_path = public, pg_temp
+AS $$
+DECLARE
+  SENSITIVE_KEYS CONSTANT TEXT[] := ARRAY[
+    'password','passwd','token','access_token','refresh_token',
+    'secret','cookie','apikey','api_key','authorization','auth',
+    'credential','credentials','smtp','private_key','private',
+    'bearer','session_id','session_token','credit_card','card_number',
+    'cvv','ssn','pin'
+  ];
+  v_key    TEXT;
+  v_val    JSONB;
+  v_result JSONB;
+BEGIN
+  IF p_data IS NULL THEN
+    RETURN NULL;
+  END IF;
+
+  IF jsonb_typeof(p_data) = 'object' THEN
+    v_result := '{}'::jsonb;
+    FOR v_key, v_val IN SELECT * FROM jsonb_each(p_data) LOOP
+      IF EXISTS (
+        SELECT 1 FROM unnest(SENSITIVE_KEYS) AS sk
+        WHERE lower(v_key) LIKE '%' || sk || '%'
+      ) THEN
+        v_result := v_result || jsonb_build_object(v_key, '[REDACTED]');
+      ELSIF jsonb_typeof(v_val) IN ('object', 'array') THEN
+        v_result := v_result || jsonb_build_object(v_key, public.redact_sensitive_jsonb(v_val));
+      ELSE
+        v_result := v_result || jsonb_build_object(v_key, v_val);
+      END IF;
+    END LOOP;
+    RETURN v_result;
+
+  ELSIF jsonb_typeof(p_data) = 'array' THEN
+    SELECT COALESCE(
+      jsonb_agg(
+        CASE
+          WHEN jsonb_typeof(elem) IN ('object', 'array') THEN public.redact_sensitive_jsonb(elem)
+          ELSE elem
+        END
+        ORDER BY ord
+      ),
+      '[]'::jsonb
+    )
+    INTO v_result
+    FROM jsonb_array_elements(p_data) WITH ORDINALITY AS t(elem, ord);
+
+    RETURN COALESCE(v_result, '[]'::jsonb);
+
+  ELSE
+    RETURN p_data;
+  END IF;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.redact_sensitive_jsonb(JSONB) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.redact_sensitive_jsonb(JSONB) FROM anon;
+GRANT EXECUTE ON FUNCTION public.redact_sensitive_jsonb(JSONB)
+  TO authenticated, service_role;
+
+-- Hardened log_security_event()
+CREATE OR REPLACE FUNCTION public.log_security_event(
+  p_event_type     TEXT,
+  p_severity       TEXT    DEFAULT 'warning',
+  p_details        JSONB   DEFAULT '{}'::jsonb,
+  p_correlation_id TEXT    DEFAULT NULL
+)
+RETURNS UUID
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, pg_temp
+AS $$
+DECLARE
+  v_user_id           UUID    := auth.uid();
+  v_role              TEXT    := auth.role();
+  v_clean_type        TEXT;
+  v_clean_severity    TEXT;
+  v_derived_severity  TEXT;
+  v_sanitized_details JSONB;
+  v_log_id            UUID;
+
+  ALLOWED_EVENT_TYPES CONSTANT TEXT[] := ARRAY[
+    'failed_post_submission',
+    'rate_limit_exceeded',
+    'unauthorized_action_attempt',
+    'input_validation_failure',
+    'failed_image_upload',
+    'feed_operation_error',
+    'auth_failure',
+    'suspicious_activity',
+    'account_suspension',
+    'admin_action',
+    'system_error',
+    'storage_violation',
+    'security_log_event'
+  ];
+BEGIN
+  IF v_role NOT IN ('authenticated', 'service_role') THEN
+    RETURN NULL;
+  END IF;
+
+  v_clean_type := lower(trim(COALESCE(p_event_type, '')));
+  IF v_clean_type = '' THEN
+    RETURN NULL;
+  END IF;
+
+  IF NOT (v_clean_type = ANY(ALLOWED_EVENT_TYPES)) THEN
+    IF v_role = 'service_role' THEN
+      v_clean_type := substring(v_clean_type FROM 1 FOR 100);
+    ELSE
+      RETURN NULL;
+    END IF;
+  END IF;
+
+  IF v_role = 'authenticated' AND v_user_id IS NOT NULL THEN
+    IF NOT public.check_and_increment_rate_limit(v_user_id, 'security_log_event', 10, 60) THEN
+      RETURN NULL;
+    END IF;
+  END IF;
+
+  CASE v_clean_type
+    WHEN 'input_validation_failure'    THEN v_derived_severity := 'info';
+    WHEN 'admin_action'                THEN v_derived_severity := 'info';
+    WHEN 'failed_post_submission'      THEN v_derived_severity := 'warning';
+    WHEN 'rate_limit_exceeded'         THEN v_derived_severity := 'warning';
+    WHEN 'failed_image_upload'         THEN v_derived_severity := 'warning';
+    WHEN 'auth_failure'                THEN v_derived_severity := 'warning';
+    WHEN 'suspicious_activity'         THEN v_derived_severity := 'warning';
+    WHEN 'storage_violation'           THEN v_derived_severity := 'warning';
+    WHEN 'security_log_event'          THEN v_derived_severity := 'warning';
+    WHEN 'unauthorized_action_attempt' THEN v_derived_severity := 'error';
+    WHEN 'feed_operation_error'        THEN v_derived_severity := 'error';
+    WHEN 'account_suspension'          THEN v_derived_severity := 'error';
+    WHEN 'system_error'                THEN v_derived_severity := 'error';
+    ELSE                                    v_derived_severity := 'warning';
+  END CASE;
+
+  IF v_role = 'service_role' THEN
+    v_clean_severity := lower(trim(COALESCE(p_severity, v_derived_severity)));
+    IF NOT (v_clean_severity = ANY(ARRAY['info', 'warning', 'error', 'critical'])) THEN
+      v_clean_severity := v_derived_severity;
+    END IF;
+  ELSE
+    v_clean_severity := v_derived_severity;
+  END IF;
+
+  v_sanitized_details := public.redact_sensitive_jsonb(COALESCE(p_details, '{}'::jsonb));
+
+  IF octet_length(v_sanitized_details::text) > 4096 THEN
+    v_sanitized_details := jsonb_build_object(
+      'error',   'Details payload exceeded maximum allowed size (truncated)',
+      'preview', substring(v_sanitized_details::text FROM 1 FOR 500)
+    );
+  END IF;
+
+  INSERT INTO public.security_logs (
+    event_type,
+    severity,
+    user_id,
+    correlation_id,
+    details
+  ) VALUES (
+    v_clean_type,
+    v_clean_severity,
+    v_user_id,
+    substring(trim(COALESCE(p_correlation_id, '')) FROM 1 FOR 100),
+    v_sanitized_details
+  ) RETURNING id INTO v_log_id;
+
+  RETURN v_log_id;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.log_security_event(TEXT, TEXT, JSONB, TEXT) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.log_security_event(TEXT, TEXT, JSONB, TEXT) FROM anon;
+GRANT EXECUTE ON FUNCTION public.log_security_event(TEXT, TEXT, JSONB, TEXT)
+  TO authenticated, service_role;
+
+-- Restrict cleanup_old_security_logs() to service_role only
+CREATE OR REPLACE FUNCTION public.cleanup_old_security_logs()
+RETURNS INTEGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, pg_temp
+AS $$
+DECLARE
+  v_deleted INTEGER := 0;
+BEGIN
+  DELETE FROM public.security_logs
+  WHERE created_at < (timezone('utc'::text, now()) - INTERVAL '90 days');
+  GET DIAGNOSTICS v_deleted = ROW_COUNT;
+  RETURN v_deleted;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.cleanup_old_security_logs() FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.cleanup_old_security_logs() FROM anon;
+REVOKE ALL ON FUNCTION public.cleanup_old_security_logs() FROM authenticated;
+GRANT EXECUTE ON FUNCTION public.cleanup_old_security_logs() TO service_role;
+
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM pg_extension WHERE extname = 'pg_cron') THEN
+    IF EXISTS (
+      SELECT 1 FROM pg_proc p
+      JOIN pg_namespace n ON n.oid = p.pronamespace
+      WHERE n.nspname = 'cron' AND p.proname = 'schedule'
+    ) THEN
+      PERFORM cron.unschedule('cleanup-security-logs')
+      WHERE EXISTS (
+        SELECT 1 FROM cron.job WHERE jobname = 'cleanup-security-logs'
+      );
+
+      PERFORM cron.schedule(
+        'cleanup-security-logs',
+        '0 3 * * *',
+        'SELECT public.cleanup_old_security_logs();'
+      );
+    END IF;
+  ELSE
+    RAISE NOTICE 'pg_cron is not installed. Automated security log cleanup must be scheduled via pg_cron or an external cron worker invoking cleanup_old_security_logs() with service_role.';
+  END IF;
+EXCEPTION
+  WHEN OTHERS THEN
+    RAISE NOTICE 'pg_cron schedule notice: %. Continuing without automated DB cron.', SQLERRM;
+END;
+$$;
 
 -- 9. REWARD CONFIG POLICIES
 -- Anyone authenticated can read reward config
@@ -870,44 +1328,36 @@ ON CONFLICT (id) DO NOTHING;
 
 -- ==============================================================================
 -- STORAGE BUCKETS SETUP
+-- NOTE: Bucket MIME types, file size limits, and all storage RLS policies are
+-- managed by the following migrations (applied in order). Do not redefine
+-- storage policies here — this section only seeds the bucket records.
+--   • 20261121110000_phase1_security_and_privacy_hardening.sql  (initial hardening)
+--   • 20261121100000_feed_security_hardening_and_monitoring.sql (post-image policies)
+--   • 20261121160000_phase3_storage_monitoring_schema_alignment.sql (final symmetric policies)
 -- ==============================================================================
-INSERT INTO storage.buckets (id, name, public)
-VALUES 
-  ('avatars', 'avatars', true),
-  ('opportunity-banners', 'opportunity-banners', true),
-  ('post-images', 'post-images', true),
-  ('announcement-images', 'announcement-images', true)
-ON CONFLICT (id) DO NOTHING;
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+VALUES
+  ('avatars',             'avatars',             true, 2097152,
+   ARRAY['image/jpeg','image/png','image/webp','image/gif']::text[]),
+  ('opportunity-banners', 'opportunity-banners', true, 5242880,
+   ARRAY['image/jpeg','image/png','image/webp']::text[]),
+  ('post-images',         'post-images',         true, 5242880,
+   ARRAY['image/jpeg','image/png','image/webp','image/gif']::text[]),
+  ('announcement-images', 'announcement-images', true, 5242880,
+   ARRAY['image/jpeg','image/png','image/webp']::text[])
+ON CONFLICT (id) DO UPDATE SET
+  public             = EXCLUDED.public,
+  file_size_limit    = EXCLUDED.file_size_limit,
+  allowed_mime_types = EXCLUDED.allowed_mime_types;
 
--- Storage Policies
-CREATE POLICY "Public can view avatar images"
-ON storage.objects FOR SELECT
-USING (bucket_id = 'avatars');
+-- Storage policies are defined in the Phase 3 migration.
+-- The legacy broad policies below are dropped by that migration; they are
+-- intentionally omitted here to prevent OR-combined permissive policy leaks.
+-- (Legacy entries removed: "Public can view avatar images",
+--  "Authenticated users can upload avatars", "Public can view opportunity banners",
+--  "Authenticated users can upload opportunity banners", "Public can view post images",
+--  "Authenticated users can upload post images", "Public can view announcement images",
+--  "Admins can upload announcement images")
 
-CREATE POLICY "Authenticated users can upload avatars"
-ON storage.objects FOR INSERT
-WITH CHECK (bucket_id = 'avatars' AND auth.uid() IS NOT NULL);
-
-CREATE POLICY "Public can view opportunity banners"
-ON storage.objects FOR SELECT
-USING (bucket_id = 'opportunity-banners');
-
-CREATE POLICY "Authenticated users can upload opportunity banners"
-ON storage.objects FOR INSERT
-WITH CHECK (bucket_id = 'opportunity-banners' AND auth.uid() IS NOT NULL);
-
-CREATE POLICY "Public can view post images"
-ON storage.objects FOR SELECT
-USING (bucket_id = 'post-images');
-
-CREATE POLICY "Authenticated users can upload post images"
-ON storage.objects FOR INSERT
-WITH CHECK (bucket_id = 'post-images' AND auth.uid() IS NOT NULL);
-
-CREATE POLICY "Public can view announcement images"
-ON storage.objects FOR SELECT
-USING (bucket_id = 'announcement-images');
-
-CREATE POLICY "Admins can upload announcement images"
-ON storage.objects FOR INSERT
-WITH CHECK (bucket_id = 'announcement-images' AND public.is_admin());
+-- Reload PostgREST schema cache
+NOTIFY pgrst, 'reload schema';

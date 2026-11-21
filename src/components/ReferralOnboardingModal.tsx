@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Tag, Sparkles, CheckCircle2, AlertCircle, X } from 'lucide-react';
+import { Tag, Sparkles, CheckCircle2, AlertCircle, X } from '@/components/Icons';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import { validateReferralCode, recordReferralSignup } from '../services/referrals';

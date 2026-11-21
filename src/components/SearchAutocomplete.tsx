@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { Search, X, ArrowRight, Tag, Building2, User as UserIcon, MessageSquare } from 'lucide-react';
+import { Search, X, ArrowRight, Tag, Building2, User as UserIcon, MessageSquare } from '@/components/Icons';
 import { useNavigate } from 'react-router-dom';
 import { opps } from '../data';
 import { searchGlobal, type SearchResults } from '../services/search';

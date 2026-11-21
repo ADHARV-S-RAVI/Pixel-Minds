@@ -11,7 +11,7 @@ import {
   Bookmark,
   FileText,
   CircleHelp,
-} from 'lucide-react';
+} from '@/components/Icons';
 import { useTheme } from '../contexts/ThemeContext';
 import './GooeyNav.css';
 

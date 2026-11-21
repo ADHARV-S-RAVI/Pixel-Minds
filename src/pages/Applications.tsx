@@ -11,7 +11,7 @@ import {
   Send,
   Sparkles,
   ArrowLeft
-} from 'lucide-react';
+} from '@/components/Icons';
 import { useAuth } from '../contexts/AuthContext';
 import { useApp } from '../store';
 import {

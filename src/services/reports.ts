@@ -71,14 +71,18 @@ export const createReport = async (payload: {
     ? `[${payload.targetTitle}] ${fullReason}`
     : fullReason;
 
-  // Insert to Supabase reports table (let PostgreSQL assign gen_random_uuid())
+  // Insert to Supabase reports table with normalized schema columns
   const { data, error } = await supabase
     .from('reports')
     .insert({
       reporter_id: payload.reporterId,
       target_type: payload.targetType,
       target_id: payload.targetId,
+      target_title: payload.targetTitle || null,
+      target_snippet: payload.targetContent || null,
+      reporter_email: payload.reporterEmail || null,
       reason: formattedReason,
+      details: payload.details || null,
       status: 'pending'
     })
     .select()
@@ -148,14 +152,14 @@ export const getAllReports = async (): Promise<ReportItem[]> => {
           id: row.id,
           reporterId: row.reporter_id,
           reporterName: 'Community Member',
-          reporterEmail: '',
+          reporterEmail: row.reporter_email || '',
           targetType: (row.target_type === 'opportunity' ? 'opportunity' : 'post') as 'opportunity' | 'post',
           targetId: row.target_id,
-          targetTitle: extractedTitle,
-          targetContent: row.reason,
-          targetSnippet: row.reason,
-          reason: cleanReason,
-          details: cleanDetails,
+          targetTitle: row.target_title || extractedTitle,
+          targetContent: row.target_snippet || row.reason,
+          targetSnippet: row.target_snippet || row.reason,
+          reason: row.reason || cleanReason,
+          details: row.details || cleanDetails,
           status: (row.status || 'pending') as 'pending' | 'resolved' | 'dismissed',
           notes: row.admin_notes || '',
           adminNotes: row.admin_notes || '',
@@ -205,6 +209,7 @@ export const resolveReport = async (
     status: 'resolved',
     admin_notes: adminNotes || null,
     resolved_by: resolvedByUuid,
+    resolved_at: new Date().toISOString(),
     updated_at: new Date().toISOString()
   }).eq('id', reportId);
 
@@ -247,6 +252,7 @@ export const dismissReport = async (
   const { error } = await supabase.from('reports').update({
     status: 'dismissed',
     resolved_by: resolvedByUuid,
+    resolved_at: new Date().toISOString(),
     updated_at: new Date().toISOString()
   }).eq('id', reportId);
 

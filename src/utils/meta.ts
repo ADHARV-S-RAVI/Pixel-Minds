@@ -10,8 +10,8 @@ import {
   Mic,
   Award,
   Sparkles
-} from 'lucide-react';
-import type { LucideIcon } from 'lucide-react';
+} from '@/components/Icons';
+import type { LucideIcon } from '@/components/Icons';
 
 export interface CategoryMeta {
   Icon: LucideIcon;

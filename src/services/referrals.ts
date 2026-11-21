@@ -1,6 +1,5 @@
 import { supabase } from '../lib/supabase';
 import type { Referral } from '../types';
-import { getRewardConfig } from './pixels';
 
 /**
  * Fetch all real referrals made by the authenticated user
@@ -38,15 +37,15 @@ export const getUserReferrals = async (userId: string): Promise<Referral[]> => {
     const userMap = new Map<string, { full_name: string; email: string; avatar_url?: string }>();
 
     if (referredUserIds.length > 0) {
-      const { data: profilesData } = await supabase
-        .from('profiles')
-        .select('id, full_name, email, avatar_url')
+      const { data: profilesData } = await (supabase as any)
+        .from('public_profiles')
+        .select('id, full_name, username, avatar_url')
         .in('id', referredUserIds);
 
-      (profilesData || []).forEach((p) => {
+      (profilesData || []).forEach((p: any) => {
         userMap.set(p.id, {
-          full_name: p.full_name || 'Pixel Builder',
-          email: p.email || '',
+          full_name: p.full_name?.trim() || (p.username ? `@${p.username}` : 'Pixel Member'),
+          email: '',
           avatar_url: p.avatar_url || ''
         });
       });
@@ -122,69 +121,35 @@ export const recordReferralSignup = async (
   const cleanCode = referralCode.trim().toUpperCase();
 
   try {
-    // 1. Primary path: Invoke the secure claim_referral_code RPC
+    // Invoke the secure, atomic claim_referral_code RPC (validates auth.uid(), prevents self/dup, credits ledger)
     const { data: rpcData, error: rpcErr } = await (supabase.rpc as any)('claim_referral_code', {
       p_referral_code: cleanCode,
       p_opportunity_id: opportunityId || null
     });
 
-    if (!rpcErr && rpcData) {
-      if (rpcData.success === true) {
-        console.log('[recordReferralSignup] Referral claimed successfully via RPC:', rpcData);
-        return { success: true, message: rpcData.message || 'Referral applied successfully.' };
-      }
+    if (rpcErr) {
+      console.error('[recordReferralSignup] RPC error:', rpcErr);
       return {
         success: false,
-        message: rpcData.error || rpcData.message || 'Failed to claim referral.'
+        message: rpcErr.message || 'Unable to process referral at this time.'
       };
     }
 
-    // 2. Fallback if RPC is pending deployment in Supabase
-    console.warn('[recordReferralSignup] RPC not available or failed, using client check:', rpcErr?.message);
-
-    const { data: referrer, error: referrerErr } = await supabase
-      .from('profiles')
-      .select('id, full_name, pixels, referrals, referral_id')
-      .eq('referral_id', cleanCode)
-      .maybeSingle();
-
-    if (referrerErr || !referrer) {
-      return { success: false, message: 'Referral code not found.' };
+    if (rpcData) {
+      if (rpcData.success === true) {
+        console.log('[recordReferralSignup] Referral claimed successfully via RPC:', rpcData);
+        return {
+          success: true,
+          message: rpcData.message || 'Referral applied successfully!'
+        };
+      }
+      return {
+        success: false,
+        message: rpcData.error || rpcData.message || 'Failed to claim referral code.'
+      };
     }
 
-    if (referrer.id === newUserId) {
-      return { success: false, message: 'Self-referrals are not permitted.' };
-    }
-
-    const { data: existingRef } = await supabase
-      .from('referrals')
-      .select('id')
-      .eq('referred_user_id', newUserId)
-      .maybeSingle();
-
-    if (existingRef) {
-      return { success: false, message: 'User has already joined via a referral link.' };
-    }
-
-    const rewardConfig = await getRewardConfig();
-    const rewardAmount = rewardConfig.referralSignup || 25;
-
-    const { error: insertRefErr } = await supabase
-      .from('referrals')
-      .insert({
-        referrer_id: referrer.id,
-        referred_user_id: newUserId,
-        referral_code: cleanCode,
-        pixels_rewarded: rewardAmount,
-        opportunity_id: opportunityId || null,
-        status: 'completed'
-      });
-
-    if (insertRefErr) {
-      return { success: false, message: insertRefErr.message };
-    }
-
-    return { success: true, message: `Referral applied! +${rewardAmount} Pixels for ${referrer.full_name || 'referrer'}.` };
+    return { success: false, message: 'Invalid response from referral service.' };
   } catch (err: any) {
     console.error('[recordReferralSignup] Exception:', err);
     return { success: false, message: err?.message || 'Unable to record referral.' };
@@ -220,21 +185,24 @@ export const validateReferralCode = async (
   }
 
   try {
-    // 1. Try validate_referral_code RPC first
+    // 1. Try validate_referral_code RPC first (returns TABLE: valid, referrer_id, referrer_name)
     const { data: rpcData, error: rpcErr } = await (supabase.rpc as any)('validate_referral_code', {
       p_code: cleanCode
     });
 
     if (!rpcErr && rpcData) {
-      return {
-        valid: Boolean(rpcData.valid),
-        message: rpcData.message || (rpcData.valid ? 'Valid referral code!' : 'Invalid referral code.'),
-        referrerName: rpcData.referrer_name,
-        referrerId: rpcData.referrer_id
-      };
+      const res = Array.isArray(rpcData) ? rpcData[0] : rpcData;
+      if (res && res.valid) {
+        return {
+          valid: true,
+          message: `Valid referral from ${res.referrer_name || 'Pixel Member'}!`,
+          referrerName: res.referrer_name || 'Pixel Member',
+          referrerId: res.referrer_id
+        };
+      }
     }
 
-    // 2. Direct profiles table fallback
+    // 2. Direct profiles table fallback (if user is authenticated admin or self)
     const { data: referrer, error } = await supabase
       .from('profiles')
       .select('id, full_name, referral_id')
@@ -250,8 +218,8 @@ export const validateReferralCode = async (
 
     return {
       valid: true,
-      message: `Valid referral from ${referrer.full_name || 'Pixel Builder'}!`,
-      referrerName: referrer.full_name || 'Pixel Builder',
+      message: `Valid referral from ${referrer.full_name || 'Pixel Member'}!`,
+      referrerName: referrer.full_name || 'Pixel Member',
       referrerId: referrer.id
     };
   } catch (err: any) {

@@ -40,7 +40,8 @@ export const cats = [
   'Courses',
   'Startup Programs',
   'Conferences',
-  'Fellowships'
+  'Fellowships',
+  'Other'
 ];
 
 const tints = ['#e0f2fe', '#e0e7ff', '#dcfce7', '#fef3c7', '#fce7f3', '#ccfbf1'];

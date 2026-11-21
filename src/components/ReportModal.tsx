@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Flag, X, CheckCircle2, AlertCircle, LogIn, ShieldAlert } from 'lucide-react';
+import { Flag, X, CheckCircle2, AlertCircle, LogIn, ShieldAlert } from '@/components/Icons';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useApp } from '../store';

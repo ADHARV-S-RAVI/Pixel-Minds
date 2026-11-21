@@ -20,7 +20,7 @@ import {
   Flag,
   ShieldCheck,
   X
-} from 'lucide-react';
+} from '@/components/Icons';
 import { opps } from './data';
 import type { Opp } from './data';
 import { AnnouncementModal } from './components/AnnouncementModal';
@@ -30,6 +30,7 @@ import { ConfirmModal } from './components/ConfirmModal';
 import { SidebarGooeyNav } from './components/GooeyNav';
 import { MobileGooeyNav } from './components/MobileGooeyNav';
 import { AccountMenuContent } from './components/AccountMenu';
+import { Footer } from './components/Footer';
 import { grad, getCategoryMeta } from './utils/meta';
 import { useApp } from './store';
 import { NotificationBell } from './components/NotificationBell';
@@ -50,7 +51,7 @@ import {
   recordPostInteraction
 } from './services/community';
 import { searchUsernamesForMention } from './services/users';
-import { renderWithHashtags, validateMessageSafety, sanitizeInput } from './utils/text';
+import { renderWithHashtags, validateMessageSafety, sanitizeInput, safeUrl, validateUrlSafety } from './utils/text';
 import {
   IconHeart,
   IconMessage,
@@ -103,14 +104,26 @@ export const BtnLink: FC<any> = ({ to, children, v = 'primary', className = '', 
   </Link>
 );
 
-export const Card: FC<{ children: ReactNode; className?: string; onClick?: () => void }> = ({
+export const Card: FC<{
+  children: ReactNode;
+  className?: string;
+  onClick?: (e?: any) => void;
+  role?: string;
+  tabIndex?: number;
+}> = ({
   children,
   className = '',
-  onClick
+  onClick,
+  ...props
 }) => (
   <div
     onClick={onClick}
-    className={`rounded-3xl border border-white/85 bg-white/75 shadow-sm backdrop-blur-xl text-[#0e1b33] ${className}`}
+    role={onClick ? (props.role || 'button') : props.role}
+    tabIndex={onClick ? (props.tabIndex ?? 0) : props.tabIndex}
+    className={`rounded-3xl border border-white/85 bg-white/75 shadow-sm backdrop-blur-xl text-[#0e1b33] ${
+      onClick ? 'cursor-pointer ' : ''
+    }${className}`}
+    {...props}
   >
     {children}
   </div>
@@ -556,6 +569,14 @@ export const Composer: FC<{ onPostCreated?: (p: any) => void; isModal?: boolean 
       return;
     }
 
+    if (lnk.trim()) {
+      const urlCheck = validateUrlSafety(lnk);
+      if (!urlCheck.safe) {
+        say(urlCheck.error || 'Invalid link URL. Must use HTTP or HTTPS.');
+        return;
+      }
+    }
+
     setPosting(true);
     try {
       const cleanTitle = sanitizeInput(postTitle.trim());
@@ -619,6 +640,12 @@ export const Composer: FC<{ onPostCreated?: (p: any) => void; isModal?: boolean 
     const safety = validateMessageSafety(`${hName} ${hDate} ${hLoc} ${hDesc} ${hLink}`);
     if (!safety.safe) {
       say(safety.error || 'Hackathon details contain unsafe script or HTML injection.');
+      return;
+    }
+
+    const urlCheck = validateUrlSafety(hLink);
+    if (!urlCheck.safe) {
+      say(urlCheck.error || 'Invalid registration link. Must start with http:// or https://');
       return;
     }
 
@@ -865,7 +892,7 @@ export const Composer: FC<{ onPostCreated?: (p: any) => void; isModal?: boolean 
                         onClick={() => selectMention(person)}
                         className="w-full text-left px-2 py-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center gap-2 transition cursor-pointer"
                       >
-                        <Avatar name={person.displayName || person.name} photoURL={person.avatar} size={22} />
+                        <Avatar name={person.displayName || person.name} photoURL={person.photoURL || person.avatar} size={22} />
                         <div className="truncate">
                           <p className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">{person.displayName || person.name}</p>
                           <p className="text-[10px] text-slate-500 truncate">@{person.username || (person.displayName || person.name).replace(/\s+/g, '_').toLowerCase()}</p>
@@ -965,8 +992,8 @@ export const PostCard: FC<{ p: any; onPostDeleted?: (id: string) => void; onPost
 
   // Sync reposts & shares count if p changes
   useEffect(() => {
-    if (typeof p.reposts === 'number') setRepostsCount(p.reposts);
-    if (typeof p.shares === 'number') setSharesCount(p.shares);
+    if (typeof p.reposts === 'number' && p.reposts > repostsCount) setRepostsCount(p.reposts);
+    if (typeof p.shares === 'number' && p.shares > sharesCount) setSharesCount(p.shares);
   }, [p.reposts, p.shares]);
 
   // Local state for post content to avoid mutating props directly
@@ -1012,13 +1039,13 @@ export const PostCard: FC<{ p: any; onPostDeleted?: (id: string) => void; onPost
       if (val !== null) storedUserLiked = val === 'true';
     } catch {}
 
-    if (isUserLiker) {
+    if (storedUserLiked !== null) {
+      setLiked(storedUserLiked);
+    } else if (isUserLiker) {
       setLiked(true);
       try {
         localStorage.setItem(userStorageKey, 'true');
       } catch {}
-    } else if (storedUserLiked !== null) {
-      setLiked(storedUserLiked);
     } else if (p.liked !== undefined) {
       setLiked(Boolean(p.liked));
     } else {
@@ -1034,17 +1061,37 @@ export const PostCard: FC<{ p: any; onPostDeleted?: (id: string) => void; onPost
   }, [p.likes]);
 
   const [showLikers, setShowLikers] = useState(false);
-  const [likersList, setLikersList] = useState<Array<{ id: string; name: string; avatar?: string }>>([]);
+  const [likersList, setLikersList] = useState<Array<{ id: string; name: string; username?: string; avatar?: string }>>([]);
   const [loadingLikers, setLoadingLikers] = useState(false);
+  const [likersError, setLikersError] = useState<string | null>(null);
 
   const handleOpenLikers = async (e: React.MouseEvent) => {
     e.stopPropagation();
     setShowLikers(true);
     setLoadingLikers(true);
+    setLikersError(null);
     try {
       const list = await getPostLikes(String(p.id));
-      setLikersList(list);
-    } catch {
+      const enrichedList = list.map((l) => {
+        if (user && l.id === user.uid) {
+          const rawName = userProfile?.displayName || user?.displayName;
+          const isGeneric = !rawName || rawName.toLowerCase() === 'pixel builder';
+          const name = isGeneric
+            ? (userProfile?.username ? `@${userProfile.username}` : (user.email ? user.email.split('@')[0] : l.name))
+            : rawName;
+          return {
+            ...l,
+            name: name || l.name,
+            username: userProfile?.username || l.username,
+            avatar: userProfile?.photoURL || user?.photoURL || l.avatar
+          };
+        }
+        return l;
+      });
+      setLikersList(enrichedList);
+    } catch (err: any) {
+      console.warn('[handleOpenLikers] Failed to load likers:', err);
+      setLikersError(err?.message || 'Failed to load likers.');
       setLikersList([]);
     } finally {
       setLoadingLikers(false);
@@ -1124,7 +1171,7 @@ export const PostCard: FC<{ p: any; onPostDeleted?: (id: string) => void; onPost
   const [editCommentText, setEditCommentText] = useState('');
   const [savingCommentEdit, setSavingCommentEdit] = useState(false);
 
-  const isSaved = saved.includes('p' + p.id);
+  const isSaved = saved.includes('p' + p.id) || saved.includes(String(p.id));
   const savedCount = (p.bookmarksCount ?? p.savesCount ?? 0) + (isSaved ? 1 : 0);
   const currentUserName = userProfile?.displayName || user?.displayName || 'Community Member';
   const canDelete = user && (user.uid === p.userId || userProfile?.role === 'admin');
@@ -1146,25 +1193,82 @@ export const PostCard: FC<{ p: any; onPostDeleted?: (id: string) => void; onPost
     // Optimistic UI updates
     setLiked(nextLiked);
     setLikesCount(nextCount);
+    if (Array.isArray(p.likerIds)) {
+      if (nextLiked) {
+        if (!p.likerIds.includes(user.uid)) p.likerIds.push(user.uid);
+      } else {
+        const idx = p.likerIds.indexOf(user.uid);
+        if (idx !== -1) p.likerIds.splice(idx, 1);
+      }
+    }
+    p.liked = nextLiked;
+    p.likes = nextCount;
     try {
       localStorage.setItem(userStorageKey, String(nextLiked));
     } catch {}
+
+    const rawCurrentName = userProfile?.displayName || user?.displayName;
+    const isCurrentGeneric = !rawCurrentName || rawCurrentName.toLowerCase() === 'pixel builder';
+    const currentName = isCurrentGeneric
+      ? (userProfile?.username ? `@${userProfile.username}` : (user?.email ? user.email.split('@')[0] : 'Pixel Member'))
+      : rawCurrentName;
+    const currentAvatar = userProfile?.photoURL || user?.photoURL || undefined;
+    if (showLikers) {
+      if (nextLiked) {
+        setLikersList((prev) => {
+          if (prev.some((l) => l.id === user.uid)) return prev;
+          return [{ id: user.uid, name: currentName, username: userProfile?.username || undefined, avatar: currentAvatar }, ...prev];
+        });
+      } else {
+        setLikersList((prev) => prev.filter((l) => l.id !== user.uid));
+      }
+    }
 
     try {
       const res = await togglePostLike(String(p.id), user.uid, wasLiked, likesCount);
       setLiked(res.liked);
       setLikesCount(res.likesCount);
+      if (Array.isArray(p.likerIds)) {
+        if (res.liked) {
+          if (!p.likerIds.includes(user.uid)) p.likerIds.push(user.uid);
+        } else {
+          const idx = p.likerIds.indexOf(user.uid);
+          if (idx !== -1) p.likerIds.splice(idx, 1);
+        }
+      }
+      p.liked = res.liked;
+      p.likes = res.likesCount;
       try {
         localStorage.setItem(userStorageKey, String(res.liked));
       } catch {}
+      if (showLikers) {
+        const { getPostLikes } = await import('./services/community');
+        const list = await getPostLikes(String(p.id));
+        setLikersList(list);
+      }
     } catch (err) {
       console.warn('Could not sync like to server, rolling back:', err);
       // Rollback on failure
       setLiked(wasLiked);
       setLikesCount(likesCount);
+      if (Array.isArray(p.likerIds)) {
+        if (wasLiked) {
+          if (!p.likerIds.includes(user.uid)) p.likerIds.push(user.uid);
+        } else {
+          const idx = p.likerIds.indexOf(user.uid);
+          if (idx !== -1) p.likerIds.splice(idx, 1);
+        }
+      }
+      p.liked = wasLiked;
+      p.likes = likesCount;
       try {
         localStorage.setItem(userStorageKey, String(wasLiked));
       } catch {}
+      if (showLikers) {
+        const { getPostLikes } = await import('./services/community');
+        const list = await getPostLikes(String(p.id));
+        setLikersList(list);
+      }
     }
   };
 
@@ -1202,10 +1306,12 @@ export const PostCard: FC<{ p: any; onPostDeleted?: (id: string) => void; onPost
       setCommentText('');
       setCommentMentionQuery(null);
       setCommentMentionSuggestions([]);
+      p.comments = (p.comments || 0) + 1;
       localStorage.setItem(`pm_post_comments_${p.id}`, JSON.stringify(updated));
       say('Comment posted');
-    } catch (err) {
+    } catch (err: any) {
       console.warn('Could not sync comment to server:', err);
+      say(err?.message || 'Failed to post comment.');
     } finally {
       setSubmittingComment(false);
     }
@@ -1400,17 +1506,18 @@ export const PostCard: FC<{ p: any; onPostDeleted?: (id: string) => void; onPost
         }
       );
 
+      const nextCount = (p.reposts || repostsCount || 0) + 1;
+      p.reposts = nextCount;
+      setRepostsCount(nextCount);
+
       // Record interaction in database ledger
       try {
         const res = await recordPostInteraction(String(p.id), user.uid, 'repost');
         if (res.success && typeof res.count === 'number') {
+          p.reposts = res.count;
           setRepostsCount(res.count);
-        } else {
-          setRepostsCount((c) => c + 1);
         }
-      } catch {
-        setRepostsCount((c) => c + 1);
-      }
+      } catch {}
 
       if (onPostCreated) {
         onPostCreated(newPost);
@@ -1460,7 +1567,7 @@ export const PostCard: FC<{ p: any; onPostDeleted?: (id: string) => void; onPost
     }
 
     const shareUrl = `${baseOrigin}/feed#${encodeURIComponent(String(p.id))}`;
-    const author = p.user || 'Pixel Builder';
+    const author = p.user || 'Pixel Member';
     const postSnippet = p.text ? (p.text.length > 80 ? p.text.substring(0, 77) + '...' : p.text) : 'Check out this post on Pixel Minds';
 
     const shareData = {
@@ -1564,7 +1671,7 @@ export const PostCard: FC<{ p: any; onPostDeleted?: (id: string) => void; onPost
       {/* Author Header */}
       <div className="flex items-center justify-between gap-3">
         <Link to={authorProfileUrl} className="flex items-center gap-3 min-w-0 group cursor-pointer">
-          <Avatar name={p.user} size={40} />
+          <Avatar name={p.user} photoURL={p.avatar} size={40} />
           <div className="flex-1 min-w-0">
             <p className="text-sm font-bold text-[#0e1b33] dark:text-white truncate group-hover:text-blue-600 transition">
               {p.user}
@@ -1623,11 +1730,11 @@ export const PostCard: FC<{ p: any; onPostDeleted?: (id: string) => void; onPost
               <IconRocket size={12} />
               Upcoming Hackathon
             </span>
-            {parsedDetails.link && (
+            {safeUrl(parsedDetails.link) && (
               <a
-                href={parsedDetails.link}
+                href={safeUrl(parsedDetails.link)!}
                 target="_blank"
-                rel="noreferrer"
+                rel="noopener noreferrer"
                 className="inline-flex items-center gap-1 text-xs font-semibold text-blue-600 dark:text-sky-400 hover:underline"
               >
                 <span>Registration Link</span>
@@ -1663,12 +1770,12 @@ export const PostCard: FC<{ p: any; onPostDeleted?: (id: string) => void; onPost
             </p>
           )}
 
-          {parsedDetails.link && (
+          {safeUrl(parsedDetails.link) && (
             <div className="pt-1">
               <a
-                href={parsedDetails.link}
+                href={safeUrl(parsedDetails.link)!}
                 target="_blank"
-                rel="noreferrer"
+                rel="noopener noreferrer"
                 className="inline-flex items-center justify-center gap-2 w-full sm:w-auto rounded-xl bg-[#112240] hover:bg-[#1a335e] px-5 py-2.5 text-xs font-bold text-white shadow-sm active:scale-[0.98] transition cursor-pointer"
               >
                 <span>Register for Hackathon</span>
@@ -1762,15 +1869,15 @@ export const PostCard: FC<{ p: any; onPostDeleted?: (id: string) => void; onPost
                 {renderWithHashtags(postDesc || postText)}
               </p>
 
-              {p.link && (
+              {safeUrl(p.link) && (
                 <a
-                  href={p.link}
+                  href={safeUrl(p.link)!}
                   target="_blank"
-                  rel="noreferrer"
+                  rel="noopener noreferrer"
                   className="mt-2.5 inline-flex items-center gap-1.5 truncate text-xs font-semibold text-blue-600 dark:text-sky-400 hover:underline"
                 >
                   <IconExternalLink size={13} />
-                  <span>{p.link}</span>
+                  <span>{safeUrl(p.link)}</span>
                 </a>
               )}
             </>
@@ -1822,7 +1929,7 @@ export const PostCard: FC<{ p: any; onPostDeleted?: (id: string) => void; onPost
               <button
                 type="button"
                 onClick={handleOpenLikers}
-                className="text-[10px] font-semibold text-slate-500 hover:text-blue-600 transition"
+                className="text-[10px] font-semibold text-slate-500 hover:text-blue-600 transition cursor-pointer"
                 title="View who liked this post"
               >
                 {likesCount}
@@ -1896,8 +2003,8 @@ export const PostCard: FC<{ p: any; onPostDeleted?: (id: string) => void; onPost
 
       {/* Likers Modal */}
       {showLikers && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4">
-          <div className="w-full max-w-sm rounded-3xl bg-white dark:bg-slate-900 border border-black/10 dark:border-white/10 p-5 shadow-2xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4 cursor-pointer" onClick={() => setShowLikers(false)}>
+          <div className="w-full max-w-sm rounded-3xl bg-white dark:bg-slate-900 border border-black/10 dark:border-white/10 p-5 shadow-2xl cursor-default" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between pb-3 border-b border-black/5 dark:border-white/10">
               <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
                 <IconHeart size={15} className="text-rose-600" fill="currentColor" />
@@ -1906,7 +2013,7 @@ export const PostCard: FC<{ p: any; onPostDeleted?: (id: string) => void; onPost
               <button
                 type="button"
                 onClick={() => setShowLikers(false)}
-                className="text-slate-400 hover:text-slate-600 dark:hover:text-white p-1 rounded-full"
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-white p-1 rounded-full cursor-pointer"
               >
                 <X size={16} />
               </button>
@@ -1914,17 +2021,35 @@ export const PostCard: FC<{ p: any; onPostDeleted?: (id: string) => void; onPost
             <div className="py-3 max-h-60 overflow-y-auto space-y-2.5">
               {loadingLikers ? (
                 <p className="text-xs text-slate-500 py-3 text-center">Loading likers...</p>
+              ) : likersError ? (
+                <p className="text-xs text-rose-500 py-3 text-center font-medium">{likersError}</p>
               ) : likersList.length > 0 ? (
-                likersList.map((liker) => (
-                  <Link
-                    key={liker.id}
-                    to={`/profile?uid=${liker.id}&name=${encodeURIComponent(liker.name)}`}
-                    className="flex items-center gap-2.5 p-1.5 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800/60 transition"
-                  >
-                    <Avatar name={liker.name} photoURL={liker.avatar} size={28} />
-                    <span className="text-xs font-bold text-slate-800 dark:text-slate-200">{liker.name}</span>
-                  </Link>
-                ))
+                likersList.map((liker) => {
+                  const rawLikerName = liker.name?.trim();
+                  const isPixelBuilder = !rawLikerName || rawLikerName.toLowerCase() === 'pixel builder';
+                  const cleanUsername = liker.username ? (liker.username.startsWith('@') ? liker.username : `@${liker.username}`) : undefined;
+                  const displayName = isPixelBuilder
+                    ? (cleanUsername || (rawLikerName && rawLikerName.length > 0 ? rawLikerName : 'Pixel Member'))
+                    : (rawLikerName || cleanUsername || 'Pixel Member');
+                  const profileUrl = liker.username
+                    ? `/profile?u=${encodeURIComponent(liker.username.replace(/^@/, ''))}`
+                    : `/profile?uid=${encodeURIComponent(liker.id)}&name=${encodeURIComponent(displayName)}`;
+                  return (
+                    <Link
+                      key={liker.id}
+                      to={profileUrl}
+                      className="flex items-center gap-2.5 p-1.5 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800/60 transition cursor-pointer"
+                    >
+                      <Avatar name={displayName} photoURL={liker.avatar} size={28} />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-xs font-bold text-slate-800 dark:text-slate-100 truncate">{displayName}</p>
+                        {liker.username && !isPixelBuilder && (
+                          <p className="text-[10px] text-slate-400 dark:text-slate-500 truncate">@{liker.username.replace(/^@/, '')}</p>
+                        )}
+                      </div>
+                    </Link>
+                  );
+                })
               ) : (
                 <p className="text-xs text-slate-500 py-3 text-center font-medium">No likers recorded yet.</p>
               )}
@@ -2063,7 +2188,7 @@ export const PostCard: FC<{ p: any; onPostDeleted?: (id: string) => void; onPost
                       onClick={() => selectCommentMention(person)}
                       className="w-full text-left px-2 py-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center gap-2 transition cursor-pointer"
                     >
-                      <Avatar name={person.displayName || person.name} photoURL={person.avatar} size={22} />
+                      <Avatar name={person.displayName || person.name} photoURL={person.photoURL || person.avatar} size={22} />
                       <div className="truncate">
                         <p className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">{person.displayName || person.name}</p>
                         <p className="text-[10px] text-slate-500 truncate">@{person.username || (person.displayName || person.name).replace(/\s+/g, '_').toLowerCase()}</p>
@@ -2241,7 +2366,7 @@ export const Layout: FC = () => {
     }
   };
 
-  const displayName = userProfile?.displayName || user?.displayName || 'Pixel Builder';
+  const displayName = userProfile?.displayName || user?.displayName || 'Pixel Member';
   const isAdmin = userProfile?.role === 'admin' || user?.email === 'admin@pixelminds.org';
 
   return (
@@ -2493,6 +2618,9 @@ export const Layout: FC = () => {
             <Outlet />
           </Suspense>
         </main>
+
+        {/* Global Website Footer */}
+        <Footer />
       </div>
 
       {/* Mobile Profile Dropdown / Sheet (Opened via Top Header Profile Icon) */}

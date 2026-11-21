@@ -1,5 +1,5 @@
 import React from 'react';
-import { Sparkles, Trophy, ArrowRight, Rocket, Globe, Gem, Crown, CheckCircle2, X } from 'lucide-react';
+import { Sparkles, Trophy, ArrowRight, Rocket, Globe, Gem, Crown, CheckCircle2, X } from '@/components/Icons';
 import { CelebrationConfetti } from './CelebrationConfetti';
 
 export interface LevelMeta {

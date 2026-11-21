@@ -15,18 +15,51 @@ export const getUserProfile = async (uid: string): Promise<User | null> => {
 
     if (error) {
       console.error('[getUserProfile Debug] Error querying profiles table:', error.message, error.details);
-      return null;
     }
 
     if (!data) {
-      console.warn('[getUserProfile Debug] No row found in public.profiles for ID:', uid);
+      // Fallback: If querying another user's public profile while non-admin, read from public_profiles view
+      const { data: pubData } = await (supabase as any)
+        .from('public_profiles')
+        .select('*')
+        .eq('id', uid)
+        .maybeSingle();
+
+      if (pubData) {
+        const rawPubName = pubData.full_name?.trim();
+        const hasRealPubName = rawPubName && rawPubName.toLowerCase() !== 'pixel builder';
+        return {
+          id: pubData.id,
+          email: '',
+          displayName: (hasRealPubName ? rawPubName : undefined) || (pubData.username ? `@${pubData.username}` : 'Pixel Member'),
+          username: pubData.username || undefined,
+          photoURL: pubData.avatar_url || '',
+          role: 'user',
+          pixels: pubData.pixels || 0,
+          status: 'active',
+          bio: pubData.bio || '',
+          opportunitiesShared: pubData.opportunities_shared || 0,
+          approvedSubmissions: pubData.approved_submissions || 0,
+          referrals: 0,
+          contributions: pubData.contributions || 0,
+          badges: pubData.badges || [],
+          referralId: '',
+          college: '',
+          course: '',
+          yearOfStudy: '',
+          branch: '',
+          createdAt: new Date(pubData.created_at).getTime()
+        };
+      }
       return null;
     }
 
+    const rawDataName = data.full_name?.trim();
+    const hasRealDataName = rawDataName && rawDataName.toLowerCase() !== 'pixel builder';
     return {
       id: data.id,
       email: data.email,
-      displayName: data.full_name || 'Pixel Builder',
+      displayName: (hasRealDataName ? rawDataName : undefined) || (data.username ? `@${data.username}` : (data.email ? data.email.split('@')[0] : 'Pixel Member')),
       username: data.username || undefined,
       photoURL: data.avatar_url || '',
       role: data.role || 'user',
@@ -306,35 +339,36 @@ export const getUserProfileByUsername = async (username: string): Promise<User |
   if (!username) return null;
   const clean = username.replace(/^@/, '').toLowerCase().trim();
   try {
-    const { data, error } = await supabase
-      .from('profiles')
+    const { data, error } = await (supabase as any)
+      .from('public_profiles')
       .select('*')
       .ilike('username', clean)
-      .eq('is_suspended', false)
       .maybeSingle();
 
     if (error || !data) return null;
 
+    const rawDataName = data.full_name?.trim();
+    const hasRealDataName = rawDataName && rawDataName.toLowerCase() !== 'pixel builder';
     return {
       id: data.id,
-      email: data.email,
-      displayName: data.full_name || 'Pixel Builder',
+      email: '',
+      displayName: (hasRealDataName ? rawDataName : undefined) || (data.username ? `@${data.username}` : 'Pixel Member'),
       username: data.username || undefined,
       photoURL: data.avatar_url || '',
-      role: data.role || 'user',
+      role: 'user',
       pixels: data.pixels || 0,
-      status: data.is_suspended ? 'suspended' : 'active',
+      status: 'active',
       bio: data.bio || '',
       opportunitiesShared: data.opportunities_shared || 0,
       approvedSubmissions: data.approved_submissions || 0,
-      referrals: data.referrals || 0,
+      referrals: 0,
       contributions: data.contributions || 0,
       badges: data.badges || [],
-      referralId: data.referral_id || '',
-      college: data.college || '',
-      course: data.course || '',
-      yearOfStudy: data.year_of_study || '',
-      branch: data.branch || '',
+      referralId: '',
+      college: '',
+      course: '',
+      yearOfStudy: '',
+      branch: '',
       createdAt: new Date(data.created_at).getTime()
     };
   } catch {
@@ -351,7 +385,7 @@ export const searchUsernamesForMention = async (
 ): Promise<Array<{ id: string; username: string; displayName: string; photoURL?: string }>> => {
   const clean = (query || '').replace(/^@/, '').toLowerCase().trim();
 
-  // Try RPC search_usernames_for_mention
+  // 1. Try RPC search_usernames_for_mention
   try {
     const { data: rpcData, error: rpcError } = await (supabase.rpc as any)('search_usernames_for_mention', {
       p_query: clean,
@@ -360,34 +394,85 @@ export const searchUsernamesForMention = async (
     if (!rpcError && Array.isArray(rpcData) && rpcData.length > 0) {
       return rpcData.map((u: any) => ({
         id: u.id,
-        username: u.username || '',
-        displayName: u.full_name || 'Pixel Member',
+        username: u.username || (u.full_name ? u.full_name.replace(/\s+/g, '_').toLowerCase() : 'user'),
+        displayName: (u.full_name && u.full_name !== 'Pixel Builder') ? u.full_name : (u.username ? `@${u.username}` : 'Pixel Member'),
         photoURL: u.avatar_url || undefined
       }));
     }
   } catch {}
 
-  // Direct table query fallback
+  // 2. Direct public_profiles view lookup
   try {
-    let dbQuery = supabase
-      .from('profiles')
-      .select('id, username, full_name, avatar_url')
-      .eq('is_suspended', false);
+    let dbQuery = (supabase as any)
+      .from('public_profiles')
+      .select('id, username, full_name, avatar_url');
 
     if (clean) {
       dbQuery = dbQuery.or(`username.ilike.%${clean}%,full_name.ilike.%${clean}%`);
     }
 
-    const { data } = await dbQuery.limit(limit);
-    return (data || []).map((u: any) => ({
-      id: u.id,
-      username: u.username || (u.full_name ? u.full_name.replace(/\s+/g, '_').toLowerCase() : 'user'),
-      displayName: u.full_name || 'Pixel Member',
-      photoURL: u.avatar_url || undefined
-    }));
-  } catch {
-    return [];
-  }
+    const { data: pubData } = await dbQuery.limit(limit);
+    if (pubData && pubData.length > 0) {
+      return pubData.map((u: any) => ({
+        id: u.id,
+        username: u.username || (u.full_name ? u.full_name.replace(/\s+/g, '_').toLowerCase() : 'user'),
+        displayName: (u.full_name && u.full_name !== 'Pixel Builder') ? u.full_name : (u.username ? `@${u.username}` : 'Pixel Member'),
+        photoURL: u.avatar_url || undefined
+      }));
+    }
+  } catch {}
+
+  // 3. Fallback: search profiles table directly
+  try {
+    let profQuery = supabase
+      .from('profiles')
+      .select('id, username, full_name, avatar_url');
+
+    if (clean) {
+      profQuery = profQuery.or(`username.ilike.%${clean}%,full_name.ilike.%${clean}%`);
+    }
+
+    const { data: profData } = await profQuery.limit(limit);
+    if (profData && profData.length > 0) {
+      return profData.map((u: any) => ({
+        id: u.id,
+        username: u.username || (u.full_name ? u.full_name.replace(/\s+/g, '_').toLowerCase() : 'user'),
+        displayName: (u.full_name && u.full_name !== 'Pixel Builder') ? u.full_name : (u.username ? `@${u.username}` : 'Pixel Member'),
+        photoURL: u.avatar_url || undefined
+      }));
+    }
+  } catch {}
+
+  // 4. Fallback: recent community post authors
+  try {
+    let postQuery = supabase
+      .from('community_posts')
+      .select('user_id, author_name')
+      .limit(10);
+    if (clean) {
+      postQuery = postQuery.ilike('author_name', `%${clean}%`);
+    }
+    const { data: recentAuthors } = await postQuery;
+    if (recentAuthors && Array.isArray(recentAuthors) && recentAuthors.length > 0) {
+      const seen = new Set<string>();
+      const results: any[] = [];
+      for (const a of recentAuthors) {
+        if (!a.user_id || seen.has(a.user_id)) continue;
+        seen.add(a.user_id);
+        const name = a.author_name || 'Pixel Member';
+        results.push({
+          id: a.user_id,
+          username: name.replace(/\s+/g, '_').toLowerCase(),
+          displayName: name,
+          photoURL: undefined
+        });
+        if (results.length >= limit) break;
+      }
+      return results;
+    }
+  } catch {}
+
+  return [];
 };
 
 export interface LeaderboardUserEntry {
@@ -406,40 +491,58 @@ export interface LeaderboardResponse {
 }
 
 /**
- * Fetch top users for the community leaderboard from Supabase public.profiles.
+ * Fetch top users for the community leaderboard from Supabase public.public_profiles view.
  * Strictly limits to top 20, using consistent tie-breaking (pixels DESC, created_at ASC).
  * Returns both the top entries and the exact total eligible count.
  */
 export const getLeaderboardUsers = async (limitCount = 20): Promise<LeaderboardResponse> => {
   try {
-    const { data, count, error } = await supabase
-      .from('profiles')
-      .select('id, full_name, email, pixels, avatar_url, role, contributions', { count: 'exact' })
-      .eq('is_suspended', false)
+    const { data, count, error } = await (supabase as any)
+      .from('public_profiles')
+      .select('id, full_name, username, pixels, avatar_url, contributions', { count: 'exact' })
       .order('pixels', { ascending: false })
       .order('created_at', { ascending: true })
       .limit(limitCount);
 
+    let rows = data;
+    let totalCount = count;
+
     if (error) {
-      console.error('[getLeaderboardUsers] Error querying profiles:', error.message);
-      return { users: [], totalCount: 0 };
+      // Graceful fallback to profiles table directly if public_profiles view is not yet created remotely
+      const { data: profData, count: profCount, error: profError } = await supabase
+        .from('profiles')
+        .select('id, full_name, username, pixels, avatar_url, contributions', { count: 'exact' })
+        .eq('is_suspended', false)
+        .order('pixels', { ascending: false })
+        .order('created_at', { ascending: true })
+        .limit(limitCount);
+
+      if (!profError && Array.isArray(profData)) {
+        rows = profData;
+        totalCount = profCount;
+      } else {
+        return { users: [], totalCount: 0 };
+      }
     }
 
-    const totalCount = count ?? (data?.length || 0);
+    const resolvedCount = totalCount ?? (rows?.length || 0);
 
-    const users: LeaderboardUserEntry[] = (data || []).map((p, idx) => ({
-      id: p.id,
-      rank: idx + 1,
-      name: p.full_name?.trim() || (p.email ? p.email.split('@')[0] : 'Pixel Builder'),
-      pixels: p.pixels || 0,
-      contribs: p.contributions || 0,
-      avatarUrl: p.avatar_url || undefined,
-      role: p.role || 'user'
-    }));
+    const users: LeaderboardUserEntry[] = (rows || []).map((p: any, idx: number) => {
+      const rawName = p.full_name?.trim();
+      const hasRealName = rawName && rawName.toLowerCase() !== 'pixel builder';
+      return {
+        id: p.id,
+        rank: idx + 1,
+        name: (hasRealName ? rawName : undefined) || (p.username ? `@${p.username}` : 'Pixel Member'),
+        pixels: p.pixels || 0,
+        contribs: p.contributions || 0,
+        avatarUrl: p.avatar_url || undefined,
+        role: 'user'
+      };
+    });
 
-    return { users, totalCount };
-  } catch (err) {
-    console.error('[getLeaderboardUsers] Exception:', err);
+    return { users, totalCount: resolvedCount };
+  } catch {
     return { users: [], totalCount: 0 };
   }
 };
