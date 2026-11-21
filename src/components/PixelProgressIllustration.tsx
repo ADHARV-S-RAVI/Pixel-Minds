@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { Award, Trophy, Activity, Rocket, Globe, Gem, Crown } from 'lucide-react';
+import { Award, Trophy, Activity, Rocket, Globe, Gem, Crown } from '@/components/Icons';
 
 export interface PixelTile {
   x: number;

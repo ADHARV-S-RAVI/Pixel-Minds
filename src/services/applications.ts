@@ -171,57 +171,73 @@ export const recordOpportunityApplication = async (
     console.warn('[applications] Remote existing check note:', err);
   }
 
-  const newApp: UserApplication = {
-    id: `app_${effectiveUserId}_${opp.id}`,
-    userId: effectiveUserId,
-    opportunityId: String(opp.id),
-    opportunityTitle: opp.title,
-    organizer: opp.organizer || 'Official Host',
-    category: opp.category || 'Opportunities',
+  // 1. Authoritative insert to Supabase first
+  const { data: insertedData, error: insertError } = await userAppsTable().insert({
+    user_id: effectiveUserId,
+    opportunity_id: String(opp.id),
+    opportunity_title: opp.title,
+    opportunity_organizer: opp.organizer || 'Official Host',
+    opportunity_category: opp.category || 'Opportunities',
     mode: opp.mode || 'Online',
     deadline: opp.deadline || 'Closing Soon',
-    officialUrl: opp.officialUrl || '',
-    appliedAt: Date.now(),
+    official_url: opp.officialUrl || '',
+    applied_at: Date.now(),
     status: 'pending_confirmation',
+    reward_claimed: false,
+    pixels_rewarded: 0
+  }).select('*').maybeSingle();
+
+  if (insertError) {
+    // If unique constraint violation, application was already recorded
+    if ((insertError as any).code === '23505' || insertError.message?.includes('duplicate') || insertError.message?.includes('uq_user_applications')) {
+      const { data: existingAppRow } = await userAppsTable()
+        .select('*')
+        .eq('user_id', effectiveUserId)
+        .eq('opportunity_id', String(opp.id))
+        .maybeSingle();
+
+      if (existingAppRow) {
+        const existingApp: UserApplication = {
+          id: String(existingAppRow.id),
+          userId: existingAppRow.user_id,
+          opportunityId: existingAppRow.opportunity_id,
+          opportunityTitle: existingAppRow.opportunity_title,
+          organizer: existingAppRow.opportunity_organizer || existingAppRow.organizer || '',
+          category: existingAppRow.opportunity_category || existingAppRow.category || 'Opportunities',
+          mode: existingAppRow.mode || 'Online',
+          deadline: existingAppRow.deadline || '',
+          officialUrl: existingAppRow.official_url || '',
+          appliedAt: parseEpochMs(existingAppRow.applied_at, existingAppRow.created_at),
+          status: existingAppRow.status || 'pending_confirmation',
+          confirmedAt: existingAppRow.confirmed_at ? parseEpochMs(existingAppRow.confirmed_at) : undefined,
+          rewardClaimed: Boolean(existingAppRow.reward_claimed),
+          pixelsRewarded: existingAppRow.pixels_rewarded || 10
+        };
+        saveLocalStorageApplications(effectiveUserId, [existingApp, ...localApps.filter(a => a.opportunityId !== String(opp.id))]);
+        return existingApp;
+      }
+    }
+    console.error('Failed to record application in Supabase:', insertError);
+    throw new Error(insertError.message || 'Failed to record application in database.');
+  }
+
+  const newApp: UserApplication = {
+    id: String(insertedData.id),
+    userId: insertedData.user_id,
+    opportunityId: insertedData.opportunity_id,
+    opportunityTitle: insertedData.opportunity_title,
+    organizer: insertedData.opportunity_organizer || insertedData.organizer || 'Official Host',
+    category: insertedData.opportunity_category || insertedData.category || 'Opportunities',
+    mode: insertedData.mode || 'Online',
+    deadline: insertedData.deadline || 'Closing Soon',
+    officialUrl: insertedData.official_url || '',
+    appliedAt: parseEpochMs(insertedData.applied_at, insertedData.created_at),
+    status: insertedData.status || 'pending_confirmation',
     rewardClaimed: false,
     pixelsRewarded: 0
   };
 
-  const updated = [newApp, ...localApps];
-  saveLocalStorageApplications(effectiveUserId, updated);
-
-  // Sync to Supabase in background
-  try {
-    const { data: insertedData, error: insertError } = await userAppsTable().insert({
-      user_id: effectiveUserId,
-      opportunity_id: newApp.opportunityId,
-      opportunity_title: newApp.opportunityTitle,
-      opportunity_organizer: newApp.organizer,
-      opportunity_category: newApp.category,
-      mode: newApp.mode,
-      deadline: newApp.deadline,
-      official_url: newApp.officialUrl,
-      applied_at: newApp.appliedAt,
-      status: 'pending_confirmation',
-      reward_claimed: false,
-      pixels_rewarded: 0
-    }).select('id, applied_at').maybeSingle();
-
-    if (insertedData?.id) {
-      newApp.id = String(insertedData.id);
-      if (insertedData.applied_at) {
-        newApp.appliedAt = parseEpochMs(insertedData.applied_at);
-      }
-      saveLocalStorageApplications(effectiveUserId, [newApp, ...localApps]);
-    }
-
-    if (insertError) {
-      console.warn('Could not sync application to Supabase:', insertError);
-    }
-  } catch (err) {
-    console.warn('Could not sync application to Supabase:', err);
-  }
-
+  saveLocalStorageApplications(effectiveUserId, [newApp, ...localApps.filter(a => a.opportunityId !== String(opp.id))]);
   return newApp;
 };
 
@@ -380,8 +396,11 @@ export const confirmOpportunityRegistration = async (
   }
 
   // 2. Award Pixels via secured claim_registration_pixels RPC
-  // The RPC verifies auth.uid(), status = 'confirmed', reward_claimed = false, and atomically updates reward_claimed = true
-  let actualRewardGranted = rewardPixels;
+  // Confirmation and reward claiming are treated as separate steps.
+  let isRewardClaimed = false;
+  let actualRewardGranted = 0;
+  let rewardMessage = 'Registration confirmed successfully.';
+
   try {
     const { data: rpcData, error: rpcErr } = await (supabase.rpc as any)('claim_registration_pixels', {
       p_opportunity_id: String(app.opportunityId),
@@ -391,22 +410,30 @@ export const confirmOpportunityRegistration = async (
 
     if (rpcErr) {
       console.warn('[applications] claim_registration_pixels RPC error:', rpcErr.message);
+      rewardMessage = 'Registration confirmed, but reward claim encountered a temporary issue. You can retry claiming your Pixels.';
     } else if (rpcData && rpcData.already_claimed) {
+      isRewardClaimed = true;
       actualRewardGranted = 0;
-      console.log('[applications] Registration reward already claimed:', rpcData);
+      rewardMessage = 'Registration confirmed (reward previously claimed).';
+    } else if (rpcData && rpcData.success) {
+      isRewardClaimed = true;
+      actualRewardGranted = Number(rpcData.pixels_awarded ?? rpcData.pixelsRewarded ?? rewardPixels);
+      rewardMessage = `Registration confirmed! +${actualRewardGranted} Pixels claimed.`;
     } else {
-      console.log('[applications] Registration reward claimed successfully via RPC:', rpcData);
+      console.warn('[applications] Unexpected response from claim_registration_pixels:', rpcData);
+      rewardMessage = 'Registration confirmed. Please retry claiming your Pixels if not credited.';
     }
   } catch (err) {
     console.warn('[applications] Failed to claim registration pixels via RPC:', err);
+    rewardMessage = 'Registration confirmed, but reward crediting was deferred. You can retry claiming.';
   }
 
-  // 3. Persist local state reflecting confirmed & claimed status
+  // 3. Persist local cache reflecting verified database state
   const finalizedApp: UserApplication = {
     ...confirmedApp,
     status: 'confirmed',
     confirmedAt: confirmedTimestamp,
-    rewardClaimed: true,
+    rewardClaimed: isRewardClaimed,
     pixelsRewarded: actualRewardGranted
   };
 
@@ -444,9 +471,7 @@ export const confirmOpportunityRegistration = async (
   return {
     success: true,
     pixelsRewarded: actualRewardGranted,
-    message: actualRewardGranted > 0
-      ? `Registration confirmed! +${actualRewardGranted} Pixels added to your balance.`
-      : 'Registration confirmed. Reward has already been claimed for this opportunity.'
+    message: rewardMessage
   };
 };
 

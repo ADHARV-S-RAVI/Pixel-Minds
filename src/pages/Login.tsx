@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation, useSearchParams, Link } from 'react-router-dom';
-import { Eye, EyeOff, Info, ArrowRight } from 'lucide-react';
+import { Eye, EyeOff, Info, ArrowRight } from '@/components/Icons';
 import { useAuth } from '../contexts/AuthContext';
+import { safeRedirectUrl } from '../utils/text';
 import { PixelMark } from '../components/PixelMark';
 
 export function Login() {
@@ -15,13 +16,15 @@ export function Login() {
   const location = useLocation();
   const [searchParams] = useSearchParams();
 
-  const redirect = searchParams.get('redirect') || (location.state as any)?.from?.pathname || '/';
-  const infoMsg = searchParams.get('msg') || ((searchParams.get('redirect') || (location.state as any)?.from) ? 'Please sign up or log in to continue.' : '');
+  const rawRedirect = searchParams.get('redirect') || (location.state as any)?.from?.pathname;
+  const redirect = safeRedirectUrl(rawRedirect, '/');
+  const infoMsg = searchParams.get('msg') || ((rawRedirect) ? 'Please sign up or log in to continue.' : '');
 
   // Automatically redirect if user is already authenticated
   useEffect(() => {
     if (!authLoading && currentUser) {
-      const target = sessionStorage.getItem('pm_auth_redirect') || localStorage.getItem('pm_auth_redirect') || redirect || '/';
+      const rawTarget = sessionStorage.getItem('pm_auth_redirect') || localStorage.getItem('pm_auth_redirect') || redirect;
+      const target = safeRedirectUrl(rawTarget, '/');
       sessionStorage.removeItem('pm_auth_redirect');
       localStorage.removeItem('pm_auth_redirect');
       navigate(target, { replace: true });

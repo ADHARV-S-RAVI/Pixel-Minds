@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Sparkles, X, LogIn, UserPlus } from 'lucide-react';
+import { Sparkles, X, LogIn, UserPlus } from '@/components/Icons';
 import { Link, useLocation } from 'react-router-dom';
 
 interface AuthPromptModalProps {

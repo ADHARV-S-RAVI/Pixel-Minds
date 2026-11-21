@@ -32,8 +32,39 @@ interface RequestBody {
 }
 
 // ============================================================================
-// Security Helpers & Rate Limiting
+// Security Helpers, Origin Validation & Fixed Reward Constants
 // ============================================================================
+
+const SUBMISSION_PIXELS = 20;
+const APPROVAL_PIXELS = 50;
+const MAX_PAYLOAD_BYTES = 64 * 1024; // 64 KB
+
+const APP_URL = (process.env.APP_URL || 'https://pixelminds.tech').replace(/\/+$/, '');
+
+const ALLOWED_ORIGIN_PATTERNS = [
+  /^https:\/\/(www\.)?pixelminds\.tech$/,
+  /^https:\/\/(www\.)?pixelminds\.in$/,
+  /^https:\/\/pixelmindss\.vercel\.app$/,
+  /^https:\/\/pixel-minds(-[a-z0-9-]+)?\.vercel\.app$/,
+  /^https:\/\/[a-z0-9-]+-adharv-s-ravis-projects\.vercel\.app$/,
+  /^http:\/\/localhost:(5173|3000|4173)$/,
+  /^http:\/\/127\.0\.0\.1:(5173|3000|4173)$/,
+];
+
+function isAllowedOrigin(origin: string): boolean {
+  if (!origin || typeof origin !== 'string') return false;
+  return ALLOWED_ORIGIN_PATTERNS.some((pattern) => pattern.test(origin.trim()));
+}
+
+function isValidSafeUrl(url: string): boolean {
+  if (typeof url !== 'string' || url.length > 500) return false;
+  try {
+    const parsed = new URL(url);
+    return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+  } catch {
+    return false;
+  }
+}
 
 function escapeHtml(str: any): string {
   if (typeof str !== 'string') return '';
@@ -45,39 +76,44 @@ function escapeHtml(str: any): string {
     .replace(/'/g, '&#39;');
 }
 
-const RATE_LIMIT_WINDOW_MS = 10 * 60 * 1000; // 10 minutes
-const MAX_REQUESTS_PER_WINDOW = 5; // Max 5 emails per window per user
-
-interface RateRecord {
-  timestamps: number[];
+function getClientIp(req: any): string {
+  const vercelForwarded = req.headers['x-vercel-forwarded-for'];
+  if (typeof vercelForwarded === 'string' && vercelForwarded.trim()) {
+    return vercelForwarded.split(',')[0].trim();
+  }
+  const forwarded = req.headers['x-forwarded-for'];
+  if (typeof forwarded === 'string' && forwarded.trim()) {
+    return forwarded.split(',')[0].trim();
+  }
+  return req.socket?.remoteAddress || 'unknown';
 }
 
-const rateLimitMap = new Map<string, RateRecord>();
+async function checkRateLimit(
+  adminClient: any,
+  userId: string
+): Promise<{ allowed: boolean; error?: string }> {
+  try {
+    const { data, error } = await adminClient.rpc('check_and_increment_rate_limit', {
+      p_user_id: userId,
+      p_action: 'send_email',
+      p_max_requests: 5,
+      p_window_seconds: 600
+    });
 
-function isRateLimited(identifier: string): boolean {
-  const now = Date.now();
-  const record = rateLimitMap.get(identifier) || { timestamps: [] };
-  record.timestamps = record.timestamps.filter((ts) => now - ts < RATE_LIMIT_WINDOW_MS);
-
-  if (record.timestamps.length >= MAX_REQUESTS_PER_WINDOW) {
-    rateLimitMap.set(identifier, record);
-    return true;
-  }
-
-  record.timestamps.push(now);
-  rateLimitMap.set(identifier, record);
-
-  // Periodic cleanup if map grows too large
-  if (rateLimitMap.size > 1000) {
-    for (const [key, val] of rateLimitMap.entries()) {
-      val.timestamps = val.timestamps.filter((ts) => now - ts < RATE_LIMIT_WINDOW_MS);
-      if (val.timestamps.length === 0) {
-        rateLimitMap.delete(key);
-      }
+    if (error) {
+      console.error('[send-email] Persistent rate limit RPC error:', error.message);
+      return { allowed: false, error: error.message };
     }
-  }
 
-  return false;
+    if (data === false) {
+      return { allowed: false };
+    }
+
+    return { allowed: true };
+  } catch (err: any) {
+    console.error('[send-email] Persistent rate limit check exception:', err);
+    return { allowed: false, error: err?.message || 'Rate limit service failure' };
+  }
 }
 
 // ============================================================================
@@ -179,7 +215,7 @@ function buildRegistrationHtml(data: RegistrationData): string {
               <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0">
                 <tr>
                   <td align="center" style="padding-bottom: 12px;">
-                    <a href="https://pixelmindss.vercel.app/profile?tab=applications" target="_blank" style="display: inline-block; background: linear-gradient(135deg, #38bdf8 0%, #2563eb 100%); color: #ffffff; text-decoration: none; font-size: 13px; font-weight: 700; padding: 14px 28px; border-radius: 9999px; box-shadow: 0 4px 14px rgba(56, 189, 248, 0.35);">
+                    <a href="${APP_URL}/profile?tab=applications" target="_blank" style="display: inline-block; background: linear-gradient(135deg, #38bdf8 0%, #2563eb 100%); color: #ffffff; text-decoration: none; font-size: 13px; font-weight: 700; padding: 14px 28px; border-radius: 9999px; box-shadow: 0 4px 14px rgba(56, 189, 248, 0.35);">
                       Open Applications Dashboard &rarr;
                     </a>
                   </td>
@@ -219,8 +255,8 @@ function buildSubmissionHtml(data: SubmissionData): string {
   const category = escapeHtml(data.category || 'Opportunities');
   const mode = escapeHtml(data.mode || 'Online');
   const deadline = escapeHtml(data.deadline || 'Closing Soon');
-  const submissionReward = data.submissionPixels ?? 20;
-  const approvalReward = data.approvalPixels ?? 50;
+  const submissionReward = SUBMISSION_PIXELS;
+  const approvalReward = APPROVAL_PIXELS;
   const recipientEmail = escapeHtml(data.recipientEmail);
   const year = new Date().getFullYear();
 
@@ -283,6 +319,14 @@ function buildSubmissionHtml(data: SubmissionData): string {
                   <td style="padding: 12px 16px; border-bottom: 1px solid #1e3a5f; font-size: 13px; color: #38bdf8; font-weight: 600;">${category}</td>
                 </tr>
                 <tr>
+                  <td style="padding: 12px 16px; border-bottom: 1px solid #1e3a5f; font-size: 12px; color: #94a3b8; font-weight: 600;">Mode</td>
+                  <td style="padding: 12px 16px; border-bottom: 1px solid #1e3a5f; font-size: 13px; color: #cbd5e1;">${mode}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 12px 16px; border-bottom: 1px solid #1e3a5f; font-size: 12px; color: #94a3b8; font-weight: 600;">Deadline</td>
+                  <td style="padding: 12px 16px; border-bottom: 1px solid #1e3a5f; font-size: 13px; color: #fbbf24; font-weight: 600;">${deadline}</td>
+                </tr>
+                <tr>
                   <td style="padding: 12px 16px; border-bottom: 1px solid #1e3a5f; font-size: 12px; color: #94a3b8; font-weight: 600;">Status</td>
                   <td style="padding: 12px 16px; border-bottom: 1px solid #1e3a5f; font-size: 13px; color: #fbbf24; font-weight: 700;">Under Review</td>
                 </tr>
@@ -308,7 +352,7 @@ function buildSubmissionHtml(data: SubmissionData): string {
               <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0">
                 <tr>
                   <td align="center" style="padding-bottom: 12px;">
-                    <a href="https://pixelmindss.vercel.app/profile?tab=submissions" target="_blank" style="display: inline-block; background: linear-gradient(135deg, #38bdf8 0%, #2563eb 100%); color: #ffffff; text-decoration: none; font-size: 13px; font-weight: 700; padding: 14px 28px; border-radius: 9999px; box-shadow: 0 4px 14px rgba(56, 189, 248, 0.35);">
+                    <a href="${APP_URL}/profile?tab=submissions" target="_blank" style="display: inline-block; background: linear-gradient(135deg, #38bdf8 0%, #2563eb 100%); color: #ffffff; text-decoration: none; font-size: 13px; font-weight: 700; padding: 14px 28px; border-radius: 9999px; box-shadow: 0 4px 14px rgba(56, 189, 248, 0.35);">
                       View My Submissions &rarr;
                     </a>
                   </td>
@@ -341,25 +385,41 @@ function buildSubmissionHtml(data: SubmissionData): string {
 // ============================================================================
 
 export default async function handler(req: any, res: any) {
-  // Set CORS headers
-  res.setHeader('Access-Control-Allow-Origin', '*');
+  // 1. Strict CORS Validation
+  const origin = req.headers['origin'] || req.headers['Origin'] || '';
+  if (typeof origin === 'string' && isAllowedOrigin(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+  }
+  res.setHeader('Vary', 'Origin');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.setHeader('Access-Control-Max-Age', '86400');
 
   if (req.method === 'OPTIONS') {
-    res.status(200).end();
-    return;
+    return res.status(204).end();
   }
 
   if (req.method !== 'POST') {
     return res.status(405).json({ success: false, error: 'Method not allowed. Use POST.' });
   }
 
+  // 2. Payload size validation (max 64 KB)
+  const rawBody = typeof req.body === 'string' ? req.body : JSON.stringify(req.body || {});
+  if (Buffer.byteLength(rawBody, 'utf8') > MAX_PAYLOAD_BYTES) {
+    return res.status(413).json({ success: false, error: 'Payload too large. Maximum size is 64KB.' });
+  }
+
   try {
-    const body: RequestBody = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
+    let body: RequestBody;
+    try {
+      body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
+    } catch {
+      return res.status(400).json({ success: false, error: 'Invalid JSON request payload.' });
+    }
+
     const { type, data } = body || {};
 
-    // 1. Basic Schema Validation
+    // 3. Schema & Field Validations
     if (!type || !data || !data.recipientEmail) {
       return res.status(400).json({
         success: false,
@@ -374,20 +434,46 @@ export default async function handler(req: any, res: any) {
       });
     }
 
-    const recipientEmail = data.recipientEmail.trim().toLowerCase();
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(recipientEmail)) {
-      return res.status(400).json({ success: false, error: 'Invalid recipient email format.' });
+    const recipientEmail = typeof data.recipientEmail === 'string' ? data.recipientEmail.trim().toLowerCase() : '';
+    if (!recipientEmail || recipientEmail.length > 100 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(recipientEmail)) {
+      return res.status(400).json({ success: false, error: 'Invalid recipient email format or length exceeds 100 characters.' });
     }
 
     if (!data.opportunityTitle || typeof data.opportunityTitle !== 'string' || data.opportunityTitle.trim().length === 0) {
       return res.status(400).json({ success: false, error: 'Opportunity title is required.' });
     }
 
-    if (data.opportunityTitle.length > 200) {
-      return res.status(400).json({ success: false, error: 'Opportunity title exceeds maximum length (200).' });
+    if (data.opportunityTitle.length > 150) {
+      return res.status(400).json({ success: false, error: 'Opportunity title exceeds maximum length (150).' });
     }
 
-    // 2. Authentication Verification with Supabase
+    if (data.recipientName && (typeof data.recipientName !== 'string' || data.recipientName.length > 100)) {
+      return res.status(400).json({ success: false, error: 'Recipient name exceeds maximum length (100).' });
+    }
+
+    if (data.organizer && (typeof data.organizer !== 'string' || data.organizer.length > 100)) {
+      return res.status(400).json({ success: false, error: 'Organizer exceeds maximum length (100).' });
+    }
+
+    if (data.category && (typeof data.category !== 'string' || data.category.length > 50)) {
+      return res.status(400).json({ success: false, error: 'Category exceeds maximum length (50).' });
+    }
+
+    if (data.mode && (typeof data.mode !== 'string' || data.mode.length > 30)) {
+      return res.status(400).json({ success: false, error: 'Mode exceeds maximum length (30).' });
+    }
+
+    if (data.deadline && (typeof data.deadline !== 'string' || data.deadline.length > 50)) {
+      return res.status(400).json({ success: false, error: 'Deadline exceeds maximum length (50).' });
+    }
+
+    if ('officialUrl' in data && data.officialUrl) {
+      if (!isValidSafeUrl(data.officialUrl)) {
+        return res.status(400).json({ success: false, error: 'Official URL must be a valid http or https URL under 500 characters.' });
+      }
+    }
+
+    // 4. Authentication Verification with Supabase
     const authHeader = req.headers['authorization'] || req.headers['Authorization'];
     if (!authHeader || typeof authHeader !== 'string' || !authHeader.startsWith('Bearer ')) {
       return res.status(401).json({
@@ -403,24 +489,36 @@ export default async function handler(req: any, res: any) {
 
     const supabaseUrl =
       process.env.SUPABASE_URL ||
-      process.env.VITE_SUPABASE_URL ||
-      'https://gdvycwwonnfpvldgbatb.supabase.co';
+      process.env.VITE_SUPABASE_URL;
 
     const supabaseAnonKey =
       process.env.SUPABASE_ANON_KEY ||
       process.env.VITE_SUPABASE_ANON_KEY ||
-      process.env.VITE_SUPABASE_PUBLISHABLE_KEY ||
-      '';
+      process.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
-    if (!supabaseAnonKey) {
-      console.error('[send-email] Server authentication config missing (SUPABASE_ANON_KEY or VITE_SUPABASE_PUBLISHABLE_KEY).');
+    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+    if (!supabaseUrl || !supabaseAnonKey || !supabaseServiceKey) {
+      console.error('[send-email] Server authentication config missing (SUPABASE_URL, SUPABASE_ANON_KEY, or SUPABASE_SERVICE_ROLE_KEY).');
       return res.status(500).json({
         success: false,
-        error: 'Server security configuration missing.'
+        error: 'Server security configuration missing: SUPABASE_SERVICE_ROLE_KEY is required.'
       });
     }
 
     const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false
+      },
+      global: {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      }
+    });
+
+    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
       auth: {
         persistSession: false,
         autoRefreshToken: false
@@ -438,7 +536,7 @@ export default async function handler(req: any, res: any) {
     const authenticatedUser = authData.user;
     const authenticatedEmail = authenticatedUser.email?.trim().toLowerCase();
 
-    // 3. User Ownership Verification: The target email must match the logged-in user
+    // 5. User Ownership Verification: The target email must match the logged-in user
     if (!authenticatedEmail || recipientEmail !== authenticatedEmail) {
       return res.status(403).json({
         success: false,
@@ -446,17 +544,45 @@ export default async function handler(req: any, res: any) {
       });
     }
 
-    // 4. Rate Limiting Protection (per authenticated user)
-    const clientIp = req.headers['x-forwarded-for'] || req.socket?.remoteAddress || 'unknown';
-    const rateLimitKey = `${authenticatedUser.id}_${clientIp}`;
-    if (isRateLimited(rateLimitKey)) {
+    // 6. Account Status Verification: Block suspended accounts
+    const { data: profileData, error: profileError } = await supabaseAdmin
+      .from('profiles')
+      .select('is_suspended')
+      .eq('id', authenticatedUser.id)
+      .maybeSingle();
+
+    if (profileError) {
+      console.error('[send-email] Profile status verification error:', profileError.message);
+      return res.status(503).json({
+        success: false,
+        error: 'Service temporarily unavailable: Unable to verify account status.'
+      });
+    }
+
+    if (profileData?.is_suspended === true) {
+      return res.status(403).json({
+        success: false,
+        error: 'Forbidden: Your account has been suspended.'
+      });
+    }
+
+    // 7. Rate Limiting Protection (enforced via server-side service role RPC)
+    const rateLimitResult = await checkRateLimit(supabaseAdmin, authenticatedUser.id);
+    if (!rateLimitResult.allowed) {
+      if (rateLimitResult.error) {
+        // Fail closed on rate limit RPC errors
+        return res.status(503).json({
+          success: false,
+          error: 'Service temporarily unavailable: Rate limit check failed.'
+        });
+      }
       return res.status(429).json({
         success: false,
         error: 'Rate limit exceeded: You have sent too many notification requests. Please wait a few minutes.'
       });
     }
 
-    // 5. SMTP Configuration (never exposed to client bundle)
+    // 7. SMTP Configuration (never exposed to client bundle)
     const host = process.env.SMTP_HOST || 'smtp.gmail.com';
     const port = Number(process.env.SMTP_PORT) || 587;
     const secure = process.env.SMTP_SECURE === 'true' || port === 465;
@@ -464,13 +590,12 @@ export default async function handler(req: any, res: any) {
     const pass = process.env.SMTP_PASS || process.env.GMAIL_APP_PASSWORD || '';
     const fromAddress = process.env.SMTP_FROM || `"Pixel Minds" <${user}>`;
 
-    // Graceful fallback if credentials are not configured in environment variables
+    // Graceful check if credentials are not configured in environment variables
     if (!pass) {
-      console.warn('[send-email] SMTP password is not configured (SMTP_PASS or GMAIL_APP_PASSWORD). Notification logged without sending.');
       return res.status(503).json({
         success: false,
         code: 'SMTP_NOT_CONFIGURED',
-        message: 'SMTP credentials not configured yet. Configure SMTP_PASS in Vercel environment variables to send live emails.'
+        error: 'Email service is temporarily unavailable. SMTP credentials not configured.'
       });
     }
 
@@ -509,11 +634,11 @@ export default async function handler(req: any, res: any) {
       messageId: info.messageId,
       recipient: recipientEmail
     });
-  } catch (err: any) {
-    console.error('[send-email] Error sending email notification:', err);
+  } catch {
+    console.error('[send-email] Error sending email notification');
     return res.status(500).json({
       success: false,
-      error: err?.message || 'Failed to dispatch email notification.'
+      error: 'Failed to dispatch email notification.'
     });
   }
 }

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { LogOut, User as UserIcon, Coins, Shield, Menu, X } from 'lucide-react';
+import { LogOut, User as UserIcon, Coins, Shield, Menu, X } from '@/components/Icons';
 
 export const Navbar = () => {
   const { currentUser, userData, logout } = useAuth();
@@ -101,7 +101,7 @@ export const Navbar = () => {
             {currentUser && (
               <>
                 <Link to="/submit" onClick={() => setMobileOpen(false)} className={`block ${navLinkClass('/submit')}`}>Submit Opportunity</Link>
-                <Link to="/my-submissions" onClick={() => setMobileOpen(false)} className={`block ${navLinkClass('/my-submissions')}`}>My Submissions</Link>
+                <Link to="/profile?tab=submissions" onClick={() => setMobileOpen(false)} className={`block ${navLinkClass('/profile')}`}>My Submissions</Link>
                 {userData?.role === 'admin' && (
                   <Link to="/admin" onClick={() => setMobileOpen(false)} className={`block ${navLinkClass('/admin')}`}>Admin Dashboard</Link>
                 )}

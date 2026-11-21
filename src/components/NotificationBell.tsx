@@ -11,7 +11,7 @@ import {
   FileCheck2,
   X,
   ChevronRight
-} from 'lucide-react';
+} from '@/components/Icons';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import {
@@ -62,6 +62,16 @@ export const NotificationBell: React.FC<{ className?: string }> = ({ className =
       console.error('[NotificationBell] Failed to fetch notifications:', err);
       setFetchError(err?.message || 'Failed to fetch notifications');
     }
+  };
+
+  // Trigger popup when new unread notification is detected
+  const triggerNotificationPopup = (n: AppNotification) => {
+    setPopupNotification(n);
+    setShowPopup(true);
+    if (popupTimeoutRef.current) clearTimeout(popupTimeoutRef.current);
+    popupTimeoutRef.current = setTimeout(() => {
+      setShowPopup(false);
+    }, 6000);
   };
 
   useEffect(() => {
@@ -143,16 +153,6 @@ export const NotificationBell: React.FC<{ className?: string }> = ({ className =
       }
     };
   }, [user?.uid]);
-
-  // Trigger popup when new unread notification is detected
-  const triggerNotificationPopup = (n: AppNotification) => {
-    setPopupNotification(n);
-    setShowPopup(true);
-    if (popupTimeoutRef.current) clearTimeout(popupTimeoutRef.current);
-    popupTimeoutRef.current = setTimeout(() => {
-      setShowPopup(false);
-    }, 6000);
-  };
 
   // Check unread notifications and show popup banner if not shown in current session
   useEffect(() => {

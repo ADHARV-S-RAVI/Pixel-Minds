@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useLayoutEffect, useRef, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Home, Compass, Plus, MessageSquare, User, Layers, Trophy } from 'lucide-react';
+import { Home, Compass, Plus, MessageSquare, User, Layers, Trophy } from '@/components/Icons';
 import { useTheme } from '../contexts/ThemeContext';
 import { AccountMenuContent } from './AccountMenu';
 

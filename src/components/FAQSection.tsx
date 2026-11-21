@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Mail, ChevronDown, HelpCircle, Check, Copy, Sparkles, MessageCircleQuestion } from 'lucide-react';
+import { Mail, ChevronDown, HelpCircle, Check, Copy, Sparkles, MessageCircleQuestion } from '@/components/Icons';
 
 interface FAQItem {
   id: string;

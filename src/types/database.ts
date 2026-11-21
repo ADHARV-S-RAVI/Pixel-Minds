@@ -556,28 +556,56 @@ export type Database = {
         Relationships: [];
       };
       reports: {
+        /**
+         * created_at  — TIMESTAMPTZ ISO-8601 string (DEFAULT now()).
+         *               The legacy BIGINT created_at column was converted in
+         *               20261121150000_phase2_referrals_applications_reports_opp_policies.sql.
+         * resolved_at — TIMESTAMPTZ ISO-8601 string or null.
+         * resolved_by — UUID string (FK → auth.users) or null.
+         *               The legacy TEXT column was converted to UUID in the same migration.
+         * reporter_id — Required UUID; must equal auth.uid() (RLS enforced).
+         *               The legacy reporter_id IS NULL INSERT policy has been dropped.
+         */
         Row: {
           id: string;
+          /** UUID of the authenticated user who filed the report (required, RLS-enforced) */
           reporter_id: string;
           target_type: 'opportunity' | 'post' | 'user';
           target_id: string;
+          target_title: string | null;
+          target_snippet: string | null;
+          reporter_email: string | null;
           reason: string;
+          details: string | null;
           status: 'pending' | 'resolved' | 'dismissed';
           admin_notes: string | null;
+          /** UUID of the admin who resolved/dismissed the report */
           resolved_by: string | null;
+          /** ISO-8601 TIMESTAMPTZ string */
+          resolved_at: string | null;
+          /** ISO-8601 TIMESTAMPTZ string — has DEFAULT now() */
           created_at: string;
+          /** ISO-8601 TIMESTAMPTZ string — has DEFAULT now() */
           updated_at: string;
         };
         Insert: {
           id?: string;
+          /** Must equal auth.uid() — INSERT RLS rejects mismatches */
           reporter_id: string;
           target_type: 'opportunity' | 'post' | 'user';
           target_id: string;
+          target_title?: string | null;
+          target_snippet?: string | null;
+          reporter_email?: string | null;
           reason: string;
+          details?: string | null;
           status?: 'pending' | 'resolved' | 'dismissed';
           admin_notes?: string | null;
           resolved_by?: string | null;
+          resolved_at?: string | null;
+          /** Defaults to now() — omit to let the DB set it */
           created_at?: string;
+          /** Defaults to now() — omit to let the DB set it */
           updated_at?: string;
         };
         Update: {
@@ -585,10 +613,15 @@ export type Database = {
           reporter_id?: string;
           target_type?: 'opportunity' | 'post' | 'user';
           target_id?: string;
+          target_title?: string | null;
+          target_snippet?: string | null;
+          reporter_email?: string | null;
           reason?: string;
+          details?: string | null;
           status?: 'pending' | 'resolved' | 'dismissed';
           admin_notes?: string | null;
           resolved_by?: string | null;
+          resolved_at?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -807,9 +840,167 @@ export type Database = {
         };
         Relationships: [];
       };
+      user_applications: {
+        Row: {
+          id: string;
+          user_id: string;
+          opportunity_id: string;
+          opportunity_title: string;
+          status: 'pending_confirmation' | 'confirmed';
+          applied_at: number;
+          confirmed_at: number | null;
+          reward_claimed: boolean;
+          pixels_rewarded: number;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          opportunity_id: string;
+          opportunity_title: string;
+          status?: 'pending_confirmation' | 'confirmed';
+          applied_at?: number;
+          confirmed_at?: number | null;
+          reward_claimed?: boolean;
+          pixels_rewarded?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          opportunity_id?: string;
+          opportunity_title?: string;
+          status?: 'pending_confirmation' | 'confirmed';
+          applied_at?: number;
+          confirmed_at?: number | null;
+          reward_claimed?: boolean;
+          pixels_rewarded?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      rate_limit_policy: {
+        Row: {
+          action_type: string;
+          max_requests: number;
+          window_seconds: number;
+        };
+        Insert: {
+          action_type: string;
+          max_requests: number;
+          window_seconds: number;
+        };
+        Update: {
+          action_type?: string;
+          max_requests?: number;
+          window_seconds?: number;
+        };
+        Relationships: [];
+      };
+      user_rate_limits: {
+        Row: {
+          id: string;
+          user_id: string;
+          action_type: string;
+          window_start: string;
+          request_count: number;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          action_type: string;
+          window_start?: string;
+          request_count?: number;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          action_type?: string;
+          window_start?: string;
+          request_count?: number;
+        };
+        Relationships: [];
+      };
+      security_logs: {
+        Row: {
+          id: string;
+          event_type: string;
+          severity: 'info' | 'warning' | 'error' | 'critical';
+          user_id: string | null;
+          correlation_id: string | null;
+          details: Json;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          event_type: string;
+          severity?: 'info' | 'warning' | 'error' | 'critical';
+          user_id?: string | null;
+          correlation_id?: string | null;
+          details?: Json;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          event_type?: string;
+          severity?: 'info' | 'warning' | 'error' | 'critical';
+          user_id?: string | null;
+          correlation_id?: string | null;
+          details?: Json;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
     };
-    Views: Record<string, never>;
+    Views: {
+      public_profiles: {
+        Row: {
+          id: string;
+          username: string | null;
+          full_name: string | null;
+          avatar_url: string | null;
+          bio: string | null;
+          rank: string | null;
+          pixels: number;
+          contributions: number;
+          opportunities_shared: number;
+          approved_submissions: number;
+          badges: string[];
+          created_at: string;
+        };
+        Relationships: [];
+      };
+    };
     Functions: {
+      claim_referral_code: {
+        Args: {
+          p_referral_code: string;
+          p_opportunity_id?: string | null;
+        };
+        Returns: {
+          success: boolean;
+          message?: string;
+          error?: string;
+          code?: string;
+          referrer_name?: string;
+          pixels_rewarded?: number;
+          already_referred?: boolean;
+          referral_code?: string;
+        };
+      };
+      validate_referral_code: {
+        Args: {
+          p_code: string;
+        };
+        Returns: {
+          valid: boolean;
+          referrer_id: string;
+          referrer_name: string;
+        }[];
+      };
       is_admin: {
         Args: Record<PropertyKey, never>;
         Returns: boolean;

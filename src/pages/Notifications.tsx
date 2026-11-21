@@ -11,7 +11,7 @@ import {
   FileCheck2,
   Trash2,
   ArrowLeft
-} from 'lucide-react';
+} from '@/components/Icons';
 import { useAuth } from '../contexts/AuthContext';
 import {
   getUserNotifications,

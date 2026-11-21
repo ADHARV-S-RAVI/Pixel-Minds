@@ -10,13 +10,14 @@ import {
   ArrowRight,
   ArrowLeft,
   RotateCw
-} from 'lucide-react';
+} from '@/components/Icons';
 import { useAuth } from '../contexts/AuthContext';
 import { PixelMark } from '../components/PixelMark';
 import { OtpInput } from '../components/OtpInput';
 import { validateReferralCode, recordReferralSignup } from '../services/referrals';
 import { checkUsernameAvailable } from '../services/users';
 import { COURSE_OPTIONS, getBranchesForCourse } from '../data/academicOptions';
+import { safeRedirectUrl } from '../utils/text';
 
 export function Signup() {
   const [name, setName] = useState('');
@@ -73,8 +74,9 @@ export function Signup() {
   const location = useLocation();
   const [searchParams] = useSearchParams();
 
-  const redirect = searchParams.get('redirect') || (location.state as any)?.from?.pathname || '/';
-  const infoMsg = searchParams.get('msg') || ((searchParams.get('redirect') || (location.state as any)?.from) ? 'Please sign up or log in to continue.' : '');
+  const rawRedirect = searchParams.get('redirect') || (location.state as any)?.from?.pathname;
+  const redirect = safeRedirectUrl(rawRedirect, '/');
+  const infoMsg = searchParams.get('msg') || ((rawRedirect) ? 'Please sign up or log in to continue.' : '');
 
   // Cooldown countdown timer for resend OTP
   useEffect(() => {
@@ -151,7 +153,8 @@ export function Signup() {
   useEffect(() => {
     if (step === 'otp') return;
     if (!authLoading && user) {
-      const target = sessionStorage.getItem('pm_auth_redirect') || localStorage.getItem('pm_auth_redirect') || redirect || '/';
+      const rawTarget = sessionStorage.getItem('pm_auth_redirect') || localStorage.getItem('pm_auth_redirect') || redirect;
+      const target = safeRedirectUrl(rawTarget, '/');
       sessionStorage.removeItem('pm_auth_redirect');
       localStorage.removeItem('pm_auth_redirect');
       navigate(target, { replace: true });
@@ -930,6 +933,18 @@ export function Signup() {
                 </>
               )}
             </button>
+
+            {/* Legal Notice & Policy Acknowledgment */}
+            <p className="text-[11px] text-center text-slate-400 mt-3 px-2 leading-relaxed">
+              By creating an account, you agree to our{' '}
+              <Link to="/terms" target="_blank" className="text-sky-400 hover:text-sky-300 underline font-medium">
+                Terms & Conditions
+              </Link>{' '}
+              and acknowledge our{' '}
+              <Link to="/privacy-policy" target="_blank" className="text-sky-400 hover:text-sky-300 underline font-medium">
+                Privacy Policy
+              </Link>.
+            </p>
           </form>
 
           <div className="mt-6">

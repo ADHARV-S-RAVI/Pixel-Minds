@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
-import { Lock, Mail, ArrowLeft, AlertCircle, Eye, EyeOff } from 'lucide-react';
+import { Lock, Mail, ArrowLeft, AlertCircle, Eye, EyeOff } from '@/components/Icons';
 import { supabase } from '../lib/supabase';
 import { getUserProfile } from '../services/users';
 import { useAuth } from '../contexts/AuthContext';

@@ -43,11 +43,10 @@ export const searchGlobal = async (
 
   try {
     const [peopleRes, oppsRes, postsRes] = await Promise.all([
-      // 1. Search People (Only active, non-suspended, public profile fields)
-      supabase
-        .from('profiles')
-        .select('id, full_name, username, avatar_url, role, bio')
-        .eq('is_suspended', false)
+      // 1. Search People (Using secure public_profiles view)
+      (supabase as any)
+        .from('public_profiles')
+        .select('id, full_name, username, avatar_url, bio')
         .or(`full_name.ilike.%${clean}%,username.ilike.%${clean}%`)
         .limit(limitPerCategory),
 
@@ -81,7 +80,7 @@ export const searchGlobal = async (
 
     const people = (rawPeople || []).map((p: any) => ({
       id: p.id,
-      displayName: p.full_name || 'Pixel Builder',
+      displayName: p.full_name?.trim() || (p.username ? `@${p.username}` : 'Pixel Member'),
       username: p.username || undefined,
       avatarUrl: p.avatar_url || undefined,
       role: p.role || 'user',
