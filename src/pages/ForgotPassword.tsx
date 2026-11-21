@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, ArrowRight, Mail, CheckCircle2, RotateCw, Eye, EyeOff } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Mail, CheckCircle2, RotateCw, Eye, EyeOff } from '@/components/Icons';
 import { useAuth } from '../contexts/AuthContext';
 import { PixelMark } from '../components/PixelMark';
 import { OtpInput } from '../components/OtpInput';

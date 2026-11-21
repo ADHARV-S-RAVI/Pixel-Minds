@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import type { ReactNode, FC } from 'react';
-import { Copy, Check, X, MessageCircle, Send, MoreHorizontal, Share2 } from 'lucide-react';
+import { Copy, Check, X, MessageCircle, Send, MoreHorizontal, Share2 } from '@/components/Icons';
 import { PixelMark } from './components/PixelMark';
 import { useAuth } from './contexts/AuthContext';
 import { recordOpportunityApplication } from './services/applications';
@@ -131,8 +131,17 @@ export const AppProvider: FC<{ children: ReactNode }> = ({ children }) => {
   };
 
   const toggle = async (k: string) => {
-    const isCurrentlySaved = saved.includes(k);
-    const updated = isCurrentlySaved ? saved.filter((x) => x !== k) : [...saved, k];
+    const isPostPrefixed = k.startsWith('p') && k.length > 1;
+    const cleanId = isPostPrefixed ? k.slice(1) : k;
+    const prefixedId = isPostPrefixed ? k : 'p' + k;
+
+    const isCurrentlySaved = saved.includes(k) || saved.includes(cleanId) || (isPostPrefixed && saved.includes(prefixedId));
+    let updated: string[];
+    if (isCurrentlySaved) {
+      updated = saved.filter((x) => x !== k && x !== cleanId && x !== prefixedId);
+    } else {
+      updated = Array.from(new Set([...saved, k, cleanId, prefixedId]));
+    }
 
     setSaved(updated);
     sv('pm_saved', updated);

@@ -83,7 +83,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return {
       ...sbUser,
       uid: sbUser.id,
-      displayName: sbUser.user_metadata?.full_name || sbUser.user_metadata?.name || sbUser.email?.split('@')[0] || 'Pixel Builder',
+      displayName: sbUser.user_metadata?.full_name || sbUser.user_metadata?.name || (sbUser.user_metadata?.username ? `@${sbUser.user_metadata.username}` : (sbUser.email ? sbUser.email.split('@')[0] : 'Pixel Member')),
       photoURL: sbUser.user_metadata?.avatar_url || sbUser.user_metadata?.picture || ''
     };
   };
@@ -163,7 +163,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         const profile = await createUserProfile(uid, {
           email: authUser.email || '',
-          displayName: extraDetails?.name || authUser.user_metadata?.full_name || authUser.user_metadata?.name || 'Pixel Builder',
+          displayName: extraDetails?.name || authUser.user_metadata?.full_name || authUser.user_metadata?.name || (autoUsername ? `@${autoUsername}` : (authUser.email ? authUser.email.split('@')[0] : 'Pixel Member')),
           username: autoUsername || undefined,
           photoURL: authUser.user_metadata?.avatar_url || authUser.user_metadata?.picture || '',
           college: extraDetails?.college || authUser.user_metadata?.college,
@@ -424,7 +424,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   ) => {
     const origin = typeof window !== 'undefined' && window.location.origin
       ? window.location.origin
-      : 'https://pixelmindss.vercel.app';
+      : 'https://pixelminds.tech';
     const emailRedirectTo = `${origin}/`;
     const cleanUsername = username ? username.toLowerCase().trim() : undefined;
 
@@ -519,7 +519,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const resetPasswordForEmail = async (email: string) => {
     const origin = typeof window !== 'undefined' && window.location.origin
       ? window.location.origin
-      : 'https://pixelmindss.vercel.app';
+      : 'https://pixelminds.tech';
     const redirectTo = `${origin}/reset-password`;
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo
@@ -571,7 +571,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 return {
                   id: updatedRow.id,
                   email: updatedRow.email || currentUser.email || '',
-                  displayName: updatedRow.full_name || currentUser.displayName || 'Pixel Builder',
+                  displayName: updatedRow.full_name || (updatedRow.username ? `@${updatedRow.username}` : (currentUser.displayName || 'Pixel Member')),
                   photoURL: updatedRow.avatar_url || currentUser.photoURL || '',
                   role: updatedRow.role || 'user',
                   pixels: updatedRow.pixels || 0,

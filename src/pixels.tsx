@@ -23,7 +23,7 @@ import {
   Rocket,
   Copy,
   Check
-} from 'lucide-react';
+} from '@/components/Icons';
 import { Avatar } from './ui';
 import { PixelMark } from './components/PixelMark';
 import { tierInfo, rankOf, tiers } from './data';

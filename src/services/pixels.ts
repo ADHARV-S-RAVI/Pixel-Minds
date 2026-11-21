@@ -197,7 +197,7 @@ export const getAllUsersAdmin = async (): Promise<User[]> => {
     return (data || []).map((row) => ({
       id: row.id,
       email: row.email,
-      displayName: row.full_name || 'Pixel Builder',
+      displayName: row.full_name?.trim() || (row.username ? `@${row.username}` : 'Pixel Member'),
       photoURL: row.avatar_url || '',
       role: row.role || 'user',
       pixels: row.pixels || 0,

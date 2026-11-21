@@ -100,11 +100,10 @@ export const getRecentPlatformActivities = async (limit = 4): Promise<RecentActi
   }
 
   try {
-    // 3. Fetch recent member signups (public profile created)
-    const { data: members } = await supabase
-      .from('profiles')
+    // 3. Fetch recent member signups (via secure public_profiles view)
+    const { data: members } = await (supabase as any)
+      .from('public_profiles')
       .select('id, full_name, created_at')
-      .eq('is_suspended', false)
       .order('created_at', { ascending: false })
       .limit(3);
 

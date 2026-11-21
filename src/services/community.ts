@@ -1,6 +1,12 @@
 import { supabase } from '../lib/supabase';
 import type { CommunityPost } from '../types';
-import { sanitizeInput } from '../utils/text';
+import { sanitizeInput, safeUrl } from '../utils/text';
+import { 
+  logFailedPost, 
+  logFeedError, 
+  logRateLimitExceeded, 
+  logUnauthorizedAttempt 
+} from './securityLogger';
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -20,7 +26,7 @@ export const formatTimeAgo = (dateStrOrMs: string | number): string => {
 };
 
 /** Convert a Supabase community_posts row into the frontend CommunityPost interface */
-export const mapPostRow = (row: any): CommunityPost => {
+export const mapPostRow = (row: any, profileMap?: Map<string, any>): CommunityPost => {
   const dynamicLikesCount = Array.isArray(row.community_likes)
     ? row.community_likes.length
     : (typeof row.likes === 'number' ? row.likes : 0);
@@ -40,11 +46,26 @@ export const mapPostRow = (row: any): CommunityPost => {
     ? row.community_likes.map((l: any) => String(l.user_id)).filter(Boolean)
     : [];
 
+  const prof = profileMap?.get(row.user_id);
+  const rawAuthor = prof?.full_name?.trim();
+  const hasRealAuthor = rawAuthor && rawAuthor.toLowerCase() !== 'pixel builder';
+  const cleanUsername = prof?.username ? (prof.username.startsWith('@') ? prof.username : `@${prof.username}`) : undefined;
+  const rowAuthor = row.author_name && row.author_name.toLowerCase() !== 'pixel builder' ? row.author_name : undefined;
+
+  const resolvedAuthor =
+    (hasRealAuthor ? rawAuthor : undefined) ||
+    cleanUsername ||
+    rowAuthor ||
+    (row.source === 'admin' ? 'Pixel Minds Team' : 'Pixel Member');
+
+  const resolvedAvatar = prof?.avatar_url || row.author_avatar || undefined;
+
   return {
     id: row.id,
-    user: row.author_name,
+    user: resolvedAuthor,
     userId: row.user_id,
     role: row.author_role || (row.source === 'admin' ? 'Admin' : 'Pixel Member'),
+    avatar: resolvedAvatar,
     time: formatTimeAgo(row.created_at),
     title,
     description,
@@ -104,7 +125,45 @@ export const getCommunityPosts = async (
       return [];
     }
 
-    return (data || []).map(mapPostRow);
+    const posts = data || [];
+    const userIds = Array.from(new Set(posts.map((r: any) => r.user_id).filter(Boolean)));
+    const profileMap = new Map<string, any>();
+
+    if (userIds.length > 0) {
+      try {
+        const { data: userProfiles, error: profError } = await (supabase as any)
+          .from('public_profiles')
+          .select('id, full_name, username, avatar_url')
+          .in('id', userIds);
+
+        if (!profError && Array.isArray(userProfiles) && userProfiles.length > 0) {
+          userProfiles.forEach((p: any) => profileMap.set(p.id, p));
+        } else {
+          // Graceful fallback to direct profiles table when public_profiles view is not created remotely
+          try {
+            const { data: dirProfiles } = await supabase
+              .from('profiles')
+              .select('id, full_name, username, avatar_url')
+              .in('id', userIds);
+            if (Array.isArray(dirProfiles)) {
+              dirProfiles.forEach((p: any) => profileMap.set(p.id, p));
+            }
+          } catch {}
+        }
+      } catch {
+        try {
+          const { data: dirProfiles } = await supabase
+            .from('profiles')
+            .select('id, full_name, username, avatar_url')
+            .in('id', userIds);
+          if (Array.isArray(dirProfiles)) {
+            dirProfiles.forEach((p: any) => profileMap.set(p.id, p));
+          }
+        } catch {}
+      }
+    }
+
+    return posts.map((row: any) => mapPostRow(row, profileMap));
   } catch (err) {
     console.error('Error fetching community posts:', err);
     return [];
@@ -127,7 +186,26 @@ export const getUserCommunityPosts = async (userId: string): Promise<CommunityPo
       return [];
     }
 
-    return (data || []).map(mapPostRow);
+    const posts = data || [];
+    const profileMap = new Map<string, any>();
+
+    if (userId) {
+      try {
+        const { data: userProfile, error: profError } = await (supabase as any)
+          .from('public_profiles')
+          .select('id, full_name, username, avatar_url')
+          .eq('id', userId)
+          .maybeSingle();
+
+        if (!profError && userProfile) {
+          profileMap.set(userProfile.id, userProfile);
+        } else if (profError) {
+          console.warn('[getUserCommunityPosts] public_profiles lookup error:', profError.message);
+        }
+      } catch {}
+    }
+
+    return posts.map((row: any) => mapPostRow(row, profileMap));
   } catch (err) {
     console.error('Error fetching user community posts:', err);
     return [];
@@ -197,17 +275,49 @@ export const createCommunityPost = async (
     throw new Error('Post description is required.');
   }
 
+  // Length safety enforcement
+  if (postTitle.length > 150) {
+    postTitle = postTitle.substring(0, 150);
+  }
+
   const fullText = rawText || `${postTitle}\n\n${postDesc}`;
+  if (fullText.length > 5000) {
+    throw new Error('Post content exceeds maximum allowed length of 5000 characters.');
+  }
+
+  // Validate and sanitize URLs
+  const cleanLink = postData.link ? safeUrl(postData.link) : null;
+  const cleanImageUrl = postData.imageUrl ? safeUrl(postData.imageUrl) : null;
+
+  let authorName = (user.displayName && user.displayName !== 'Pixel Builder')
+    ? user.displayName
+    : (authUser?.user_metadata?.full_name || (authUser?.user_metadata?.username ? `@${authUser.user_metadata.username}` : undefined));
+
+  if (!authorName) {
+    try {
+      const { data: pubProf } = await (supabase as any)
+        .from('public_profiles')
+        .select('full_name, username')
+        .eq('id', actualUserId)
+        .maybeSingle();
+      if (pubProf) {
+        authorName = pubProf.full_name?.trim() || (pubProf.username ? `@${pubProf.username}` : undefined);
+      }
+    } catch {}
+  }
+  if (!authorName) {
+    authorName = 'Pixel Member';
+  }
 
   const payload: any = {
     user_id: actualUserId,
-    author_name: user.displayName || authUser?.user_metadata?.full_name || 'Pixel Member',
+    author_name: authorName,
     author_role: isAdmin ? 'Admin' : 'Pixel Member',
     text: fullText,
     category: postData.category || 'General',
     opportunity_id: validOppId,
-    link: postData.link?.trim() || null,
-    image_url: postData.imageUrl?.trim() || null,
+    link: cleanLink,
+    image_url: cleanImageUrl,
     source: isAdmin ? 'admin' : 'user',
     status: postData.status || 'published',
     featured: postData.featured || false,
@@ -224,9 +334,15 @@ export const createCommunityPost = async (
 
   if (insertError) {
     console.error('Failed to create community post in Supabase:', insertError.message);
+    if (insertError.message?.includes('Rate limit') || insertError.code === 'P0001') {
+      logRateLimitExceeded(actualUserId, 'post_create', { error: insertError.message });
+      throw new Error('You are posting too quickly. Please wait a moment before trying again.');
+    }
     if (insertError.code === '42501') {
+      logUnauthorizedAttempt(actualUserId, 'create_post', undefined);
       throw new Error('Post rejected by server security policy. Please verify you are signed in.');
     }
+    logFailedPost(actualUserId, insertError.message);
     throw new Error(insertError.message || 'Failed to create community post.');
   }
 
@@ -285,88 +401,199 @@ export const updateCommunityPost = async (
   id: string,
   updates: Partial<CommunityPost> & { title?: string; description?: string }
 ): Promise<void> => {
+  if (!id || !UUID_REGEX.test(id)) {
+    throw new Error('Invalid post ID format.');
+  }
+
   const payload: any = {};
   if (updates.text !== undefined) {
-    payload.text = sanitizeInput(updates.text);
+    const cleanText = sanitizeInput(updates.text).trim();
+    if (!cleanText) throw new Error('Post content cannot be empty.');
+    if (cleanText.length > 5000) throw new Error('Post content exceeds 5000 characters limit.');
+    payload.text = cleanText;
   } else if (updates.title !== undefined || updates.description !== undefined) {
-    const title = sanitizeInput(updates.title || '');
-    const desc = sanitizeInput(updates.description || '');
+    const title = sanitizeInput(updates.title || '').trim();
+    const desc = sanitizeInput(updates.description || '').trim();
+    if (!title) throw new Error('Post title cannot be empty.');
+    if (title.length > 150) throw new Error('Post title exceeds 150 characters limit.');
+    if (desc.length > 5000) throw new Error('Post description exceeds 5000 characters limit.');
+    payload.title = title;
+    payload.description = desc;
     payload.text = title + (desc ? '\n\n' + desc : '');
   }
   if (updates.category !== undefined) payload.category = updates.category;
-  if (updates.link !== undefined) payload.link = updates.link ? sanitizeInput(updates.link) : null;
-  if (updates.imageUrl !== undefined) payload.image_url = updates.imageUrl || null;
+  if (updates.link !== undefined) payload.link = updates.link ? safeUrl(updates.link) : null;
+  if (updates.imageUrl !== undefined) payload.image_url = updates.imageUrl ? safeUrl(updates.imageUrl) : null;
   if (updates.status !== undefined) payload.status = updates.status;
   if (updates.featured !== undefined) payload.featured = updates.featured;
-  if (updates.likes !== undefined) payload.likes = updates.likes;
-  if (updates.comments !== undefined) payload.comments = updates.comments;
 
   payload.updated_at = new Date().toISOString();
 
-  if (UUID_REGEX.test(id)) {
-    const { error } = await supabase
-      .from('community_posts')
-      .update(payload)
-      .eq('id', id);
+  const { error } = await supabase
+    .from('community_posts')
+    .update(payload)
+    .eq('id', id);
 
-    if (error) {
-      console.error('Failed to update community post:', error.message);
-      throw new Error('Failed to update community post: ' + error.message);
-    }
+  if (error) {
+    console.error('Failed to update community post:', error.message);
+    logFeedError(error, 'updateCommunityPost');
+    throw new Error('Failed to update community post: ' + error.message);
   }
 };
 
 /**
- * Fetch users who liked a post
+ * Fetch users who liked a post using the dedicated get_post_likers RPC or public_profiles data source.
+ * Priority order for liker display name:
+ * 1. User's real full_name (if not 'Pixel Builder' and not empty)
+ * 2. User's clean username prefixed with '@'
+ * 3. 'Pixel Member' only when neither identity can genuinely be resolved.
  */
-export const getPostLikes = async (postId: string): Promise<Array<{ id: string; name: string; avatar?: string }>> => {
-  try {
-    // 1. First attempt join with profiles
-    const { data, error } = await supabase
-      .from('community_likes')
-      .select('user_id, profiles(id, full_name, avatar_url)')
-      .eq('post_id', postId);
+export const getPostLikes = async (postId: string): Promise<Array<{ id: string; name: string; username?: string; avatar?: string }>> => {
+  if (!postId) return [];
 
-    if (!error && data && data.length > 0) {
-      return data.map((item: any) => {
-        const prof = item.profiles;
+  // 1. Primary path: Dedicated SECURITY DEFINER get_post_likers RPC
+  try {
+    const { data: rpcLikers, error: rpcErr } = await (supabase.rpc as any)('get_post_likers', {
+      p_post_id: postId
+    });
+
+    if (!rpcErr && Array.isArray(rpcLikers)) {
+      return rpcLikers.map((p: any) => {
+        const rawName = p.full_name?.trim();
+        const hasRealName = rawName && rawName.toLowerCase() !== 'pixel builder';
+        const cleanUsername = p.username ? (p.username.startsWith('@') ? p.username : `@${p.username}`) : undefined;
+        const displayName = (hasRealName ? rawName : undefined) || cleanUsername || 'Pixel Member';
+
         return {
-          id: prof?.id || item.user_id,
-          name: prof?.full_name || 'Pixel Builder',
-          avatar: prof?.avatar_url || undefined
+          id: p.id,
+          name: displayName,
+          username: p.username || undefined,
+          avatar: p.avatar_url || undefined
         };
       });
     }
 
-    // 2. Fallback: If join failed (e.g. Missing explicit FK constraint), query user_ids and fetch profiles directly
+    if (rpcErr && !rpcErr.message?.includes('function') && !rpcErr.message?.includes('does not exist')) {
+      console.warn('[getPostLikes] get_post_likers RPC notice:', rpcErr.message);
+    }
+  } catch (rpcEx: any) {
+    console.warn('[getPostLikes] RPC exception:', rpcEx?.message || rpcEx);
+  }
+
+  // 2. Direct fallback path: query community_likes + public_profiles view
+  try {
     const { data: rawLikes, error: rawError } = await supabase
       .from('community_likes')
       .select('user_id')
       .eq('post_id', postId);
 
-    if (!rawError && rawLikes && rawLikes.length > 0) {
-      const userIds = Array.from(new Set(rawLikes.map((r: any) => r.user_id).filter(Boolean)));
-      if (userIds.length > 0) {
-        const { data: userProfiles } = await supabase
-          .from('profiles')
-          .select('id, full_name, avatar_url')
-          .in('id', userIds);
-
-        const profileMap = new Map((userProfiles || []).map((p: any) => [p.id, p]));
-        return userIds.map((uid) => {
-          const prof = profileMap.get(uid);
-          return {
-            id: uid,
-            name: prof?.full_name || 'Pixel Builder',
-            avatar: prof?.avatar_url || undefined
-          };
-        });
-      }
+    if (rawError) {
+      console.warn('[getPostLikes] Error querying community_likes:', rawError.message);
+      throw new Error(`Failed to load likers: ${rawError.message}`);
     }
-  } catch (err) {
-    console.warn('[getPostLikes] Note:', err);
+
+    if (!rawLikes || rawLikes.length === 0) {
+      return [];
+    }
+
+    const userIds = Array.from(new Set(rawLikes.map((r: any) => r.user_id).filter(Boolean)));
+    if (userIds.length === 0) {
+      return [];
+    }
+
+    let userProfiles: any[] = [];
+    const { data: pubData, error: pubErr } = await (supabase as any)
+      .from('public_profiles')
+      .select('id, full_name, username, avatar_url')
+      .in('id', userIds);
+
+    if (pubErr) {
+      console.warn('[getPostLikes] public_profiles lookup notice:', pubErr.message);
+    } else if (Array.isArray(pubData)) {
+      userProfiles = pubData;
+    }
+
+    const profileMap = new Map<string, any>((userProfiles || []).map((p: any) => [p.id, p]));
+
+    // Check direct profiles table for any users not returned by public_profiles
+    const missingIds = userIds.filter((id) => !profileMap.has(id));
+    if (missingIds.length > 0) {
+      try {
+        const { data: dirData } = await supabase
+          .from('profiles')
+          .select('id, full_name, username, avatar_url')
+          .in('id', missingIds);
+        if (Array.isArray(dirData)) {
+          dirData.forEach((p: any) => {
+            if (p?.id) profileMap.set(p.id, p);
+          });
+        }
+      } catch {}
+    }
+
+    // Check community_posts and community_comments for stored author names of remaining missing users
+    const stillMissingIds = userIds.filter((id) => !profileMap.has(id));
+    if (stillMissingIds.length > 0) {
+      try {
+        const { data: postAuthors } = await supabase
+          .from('community_posts')
+          .select('user_id, author_name')
+          .in('user_id', stillMissingIds);
+        if (Array.isArray(postAuthors)) {
+          postAuthors.forEach((pa: any) => {
+            if (pa?.user_id && !profileMap.has(pa.user_id)) {
+              profileMap.set(pa.user_id, {
+                id: pa.user_id,
+                full_name: pa.author_name
+              });
+            }
+          });
+        }
+      } catch {}
+    }
+
+    // If current authenticated user is among likers, enrich with session metadata if missing
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const currentAuthUser = sessionData?.session?.user;
+      if (currentAuthUser && userIds.includes(currentAuthUser.id)) {
+        const existing = profileMap.get(currentAuthUser.id);
+        const meta = currentAuthUser.user_metadata || {};
+        const metaName = meta.full_name || meta.name || meta.displayName || (currentAuthUser.email ? currentAuthUser.email.split('@')[0] : undefined);
+        if (!existing || (!existing.full_name && !existing.username)) {
+          profileMap.set(currentAuthUser.id, {
+            id: currentAuthUser.id,
+            full_name: metaName,
+            username: meta.username || undefined,
+            avatar_url: meta.avatar_url || meta.picture || existing?.avatar_url
+          });
+        }
+      }
+    } catch {}
+
+    return userIds.map((uid) => {
+      const prof = profileMap.get(uid);
+      const rawName = prof?.full_name?.trim();
+      const hasRealName = rawName && rawName.toLowerCase() !== 'pixel builder';
+      const cleanUsername = prof?.username ? (prof.username.startsWith('@') ? prof.username : `@${prof.username}`) : undefined;
+
+      const displayName =
+        (hasRealName ? rawName : undefined) ||
+        cleanUsername ||
+        rawName ||
+        'Pixel Member';
+
+      return {
+        id: uid,
+        name: displayName,
+        username: prof?.username || undefined,
+        avatar: prof?.avatar_url || undefined
+      };
+    });
+  } catch (err: any) {
+    console.warn('[getPostLikes] Fallback error:', err?.message || err);
+    throw err;
   }
-  return [];
 };
 
 /**
@@ -407,6 +634,10 @@ export const updatePostComment = async (
  * User can delete own post; Admin can delete any post (enforced by RLS).
  */
 export const deleteCommunityPost = async (id: string): Promise<void> => {
+  if (!id || !UUID_REGEX.test(id)) {
+    throw new Error('Invalid post ID format.');
+  }
+
   const { error } = await supabase
     .from('community_posts')
     .delete()
@@ -414,6 +645,7 @@ export const deleteCommunityPost = async (id: string): Promise<void> => {
 
   if (error) {
     console.error('Failed to delete community post:', error.message);
+    logFeedError(error, 'deleteCommunityPost');
     throw new Error('Failed to delete community post: ' + error.message);
   }
 };
@@ -424,11 +656,14 @@ export const deleteCommunityPost = async (id: string): Promise<void> => {
 export const togglePostLike = async (
   postId: string,
   userId: string,
-  currentLiked: boolean,
-  currentLikesCount: number
+  _currentLiked?: boolean,
+  currentLikesCount?: number
 ): Promise<{ liked: boolean; likesCount: number }> => {
   if (!userId) {
     throw new Error('Authentication required to like posts.');
+  }
+  if (!postId || !UUID_REGEX.test(postId)) {
+    throw new Error('Invalid post ID format.');
   }
 
   // 1. Try secure RPC toggle_community_post_like
@@ -443,41 +678,82 @@ export const togglePostLike = async (
       };
     }
     if (error) {
-      console.warn('[togglePostLike] RPC error, falling back:', error.message);
+      if (error.message?.includes('Rate limit') || error.code === 'P0001') {
+        logRateLimitExceeded(userId, 'like_toggle', { postId });
+        throw new Error('You are liking posts too quickly. Please wait a moment.');
+      }
+      console.warn('[togglePostLike] RPC error, attempting direct table toggle:', error.message);
     }
-  } catch (rpcErr) {
-    console.warn('[togglePostLike] RPC not available or failed:', rpcErr);
+  } catch (rpcErr: any) {
+    if (rpcErr?.message?.includes('Rate limit')) {
+      throw rpcErr;
+    }
+    console.warn('[togglePostLike] RPC exception, attempting direct table fallback:', rpcErr?.message || rpcErr);
   }
 
-  // 2. Direct table operations fallback
-  const nextLiked = !currentLiked;
-  const nextCount = Math.max(0, currentLikesCount + (nextLiked ? 1 : -1));
-
+  // 2. Direct fallback path via community_likes table
   try {
-    if (currentLiked) {
+    const { data: existingLike, error: checkErr } = await supabase
+      .from('community_likes')
+      .select('post_id')
+      .eq('post_id', postId)
+      .eq('user_id', userId)
+      .maybeSingle();
+
+    if (checkErr && checkErr.code !== 'PGRST116') {
+      console.warn('[togglePostLike] Fallback check notice:', checkErr.message);
+    }
+
+    let newLiked = false;
+    if (existingLike) {
+      // Unlike
       const { error: delErr } = await supabase
         .from('community_likes')
         .delete()
         .eq('post_id', postId)
         .eq('user_id', userId);
-      if (delErr) console.warn('[togglePostLike] Direct delete error:', delErr.message);
+      if (delErr) {
+        console.error('[togglePostLike] Direct unlike failed:', delErr.message);
+        throw new Error(`Failed to unlike post: ${delErr.message}`);
+      }
+      newLiked = false;
     } else {
+      // Like
       const { error: insErr } = await supabase
         .from('community_likes')
-        .insert({ post_id: postId, user_id: userId });
-      if (insErr) console.warn('[togglePostLike] Direct insert error:', insErr.message);
+        .insert({ post_id: postId, user_id: userId } as any);
+      if (insErr) {
+        console.error('[togglePostLike] Direct like failed:', insErr.message);
+        throw new Error(`Failed to like post: ${insErr.message}`);
+      }
+      newLiked = true;
     }
 
-    const { error: updateErr } = await supabase
-      .from('community_posts')
-      .update({ likes: nextCount })
-      .eq('id', postId);
-    if (updateErr) console.warn('[togglePostLike] Counter update notice:', updateErr.message);
+    // Accurately count remaining likes
+    const { count, error: countErr } = await supabase
+      .from('community_likes')
+      .select('*', { count: 'exact', head: true })
+      .eq('post_id', postId);
 
-    return { liked: nextLiked, likesCount: nextCount };
-  } catch (err) {
-    console.error('[togglePostLike] Failed direct sync:', err);
-    throw err;
+    const updatedCount = !countErr && typeof count === 'number'
+      ? count
+      : Math.max(0, (currentLikesCount ?? 0) + (newLiked ? 1 : -1));
+
+    // Best-effort counter sync on community_posts
+    try {
+      await supabase
+        .from('community_posts')
+        .update({ likes: updatedCount })
+        .eq('id', postId);
+    } catch {}
+
+    return {
+      liked: newLiked,
+      likesCount: updatedCount
+    };
+  } catch (fallbackErr: any) {
+    console.error('[togglePostLike] Direct table fallback failed:', fallbackErr);
+    throw fallbackErr instanceof Error ? fallbackErr : new Error('Failed to toggle like.');
   }
 };
 
@@ -495,6 +771,20 @@ export const getPostComments = async (postId: string, currentUserId?: string): P
 
       // If query was successful (even if empty array, data is []), use Supabase response
       if (!error && Array.isArray(data)) {
+        const commentUserIds = Array.from(new Set(data.map((c: any) => c.user_id).filter(Boolean)));
+        const commentProfileMap = new Map<string, any>();
+        if (commentUserIds.length > 0) {
+          try {
+            const { data: commentProfiles } = await (supabase as any)
+              .from('public_profiles')
+              .select('id, full_name, username, avatar_url')
+              .in('id', commentUserIds);
+            if (commentProfiles && Array.isArray(commentProfiles)) {
+              commentProfiles.forEach((cp: any) => commentProfileMap.set(cp.id, cp));
+            }
+          } catch {}
+        }
+
         const mappedComments = data.map((c: any) => {
           let isLiked = false;
           if (typeof window !== 'undefined' && currentUserId) {
@@ -506,13 +796,20 @@ export const getPostComments = async (postId: string, currentUserId?: string): P
             (c.updated_at && c.created_at && Math.abs(new Date(c.updated_at).getTime() - new Date(c.created_at).getTime()) > 3000)
           );
 
+          const prof = commentProfileMap.get(c.user_id);
+          const resolvedName =
+            prof?.full_name?.trim() ||
+            (prof?.username ? `@${prof.username}` : undefined) ||
+            (c.author_name && c.author_name !== 'Pixel Builder' ? c.author_name : 'Pixel Member');
+          const resolvedAvatar = prof?.avatar_url || c.author_avatar;
+
           return {
             id: c.id,
             postId: c.post_id,
-            authorName: c.author_name,
+            authorName: resolvedName,
             authorRole: c.author_role || 'Pixel Member',
             authorId: c.user_id,
-            authorAvatar: c.author_avatar,
+            authorAvatar: resolvedAvatar,
             text: c.text,
             likes: typeof c.likes === 'number' ? c.likes : 0,
             liked: isLiked,
@@ -556,10 +853,16 @@ export const addPostComment = async (
   if (!author.id) {
     throw new Error('Authentication required to comment on posts.');
   }
+  if (!postId || !UUID_REGEX.test(postId)) {
+    throw new Error('Invalid post ID format.');
+  }
 
   const cleanText = text.trim();
   if (!cleanText) {
     throw new Error('Comment cannot be empty.');
+  }
+  if (cleanText.length > 2000) {
+    throw new Error('Comment text exceeds maximum allowed length of 2000 characters.');
   }
 
   // 1. Try secure RPC add_community_post_comment
@@ -572,7 +875,9 @@ export const addPostComment = async (
       const commentRes = {
         id: data.comment?.id || 'c_' + Date.now(),
         postId,
-        authorName: data.comment?.author_name || author.name,
+        authorName: (data.comment?.author_name && data.comment.author_name !== 'Pixel Builder')
+          ? data.comment.author_name
+          : (author.name && author.name !== 'Pixel Builder' ? author.name : 'Pixel Member'),
         authorRole: data.comment?.author_role || author.role || 'Pixel Member',
         authorId: author.id,
         authorAvatar: data.comment?.author_avatar || author.avatar,
@@ -588,79 +893,68 @@ export const addPostComment = async (
 
       return commentRes;
     }
-  } catch (rpcErr) {
-    console.warn('[addPostComment] RPC not available or failed:', rpcErr);
+    if (error) {
+      if (error.message?.includes('Rate limit') || error.code === 'P0001') {
+        logRateLimitExceeded(author.id, 'comment_create', { postId });
+        throw new Error('You are commenting too quickly. Please wait a moment.');
+      }
+      console.warn('[addPostComment] RPC notice, falling back to direct table insert:', error.message);
+    }
+  } catch (rpcErr: any) {
+    if (rpcErr?.message?.includes('Rate limit')) {
+      throw rpcErr;
+    }
+    console.warn('[addPostComment] RPC exception, attempting direct table insert:', rpcErr?.message || rpcErr);
   }
 
-  // 2. Direct table insert fallback
+  // 2. Direct table fallback via community_comments
   try {
-    const { data: inserted } = await supabase
+    const { data: inserted, error: insErr } = await supabase
       .from('community_comments')
       .insert({
         post_id: postId,
         user_id: author.id,
-        author_name: author.name,
+        author_name: author.name && author.name !== 'Pixel Builder' ? author.name : 'Pixel Member',
         author_role: author.role || 'Pixel Member',
         author_avatar: author.avatar || null,
-        text: cleanText,
-        likes: 0
+        text: cleanText
       })
-      .select()
-      .maybeSingle();
+      .select('*')
+      .single();
 
-    if (inserted) {
-      // Recalculate comments count atomically from table
-      const { count: freshCount } = await supabase
-        .from('community_comments')
-        .select('id', { count: 'exact', head: true })
-        .eq('post_id', postId);
+    if (insErr) {
+      console.error('[addPostComment] Direct insert failed:', insErr.message);
+      throw new Error(`Failed to post comment: ${insErr.message}`);
+    }
 
-      const targetCount = freshCount ?? (currentCommentsCount + 1);
+    const newCount = currentCommentsCount + 1;
+    try {
       await supabase
         .from('community_posts')
-        .update({ comments: targetCount })
+        .update({ comments: newCount })
         .eq('id', postId);
+    } catch {}
 
-      // Dispatch mention notifications
-      handleContentMentions(cleanText, postId, author.name, 'comment', author.id).catch(() => {});
+    const commentRes = {
+      id: inserted.id,
+      postId,
+      authorName: inserted.author_name || author.name || 'Pixel Member',
+      authorRole: inserted.author_role || author.role || 'Pixel Member',
+      authorId: author.id,
+      authorAvatar: inserted.author_avatar || author.avatar,
+      text: cleanText,
+      likes: 0,
+      liked: false,
+      createdAt: new Date(inserted.created_at || Date.now()).getTime(),
+      newCount
+    };
 
-      return {
-        id: inserted.id,
-        postId,
-        authorName: inserted.author_name,
-        authorRole: inserted.author_role,
-        authorId: inserted.user_id,
-        authorAvatar: inserted.author_avatar,
-        text: inserted.text,
-        likes: 0,
-        liked: false,
-        createdAt: new Date(inserted.created_at).getTime(),
-        newCount: targetCount
-      };
-    }
-  } catch (err) {
-    console.warn('[addPostComment] Direct insert error:', err);
+    handleContentMentions(cleanText, postId, author.name, 'comment', author.id).catch(() => {});
+    return commentRes;
+  } catch (fallbackErr: any) {
+    console.error('[addPostComment] Fallback failed:', fallbackErr);
+    throw fallbackErr instanceof Error ? fallbackErr : new Error('Failed to post comment.');
   }
-
-  // 3. Fallback count update on post
-  const nextCount = currentCommentsCount + 1;
-  try {
-    await updateCommunityPost(postId, { comments: nextCount });
-  } catch {}
-
-  return {
-    id: 'c_' + Date.now(),
-    postId,
-    authorName: author.name,
-    authorRole: author.role || 'Pixel Member',
-    authorId: author.id,
-    authorAvatar: author.avatar,
-    text: cleanText,
-    likes: 0,
-    liked: false,
-    createdAt: Date.now(),
-    newCount: nextCount
-  };
 };
 
 /**
@@ -673,6 +967,9 @@ export const deletePostComment = async (
 ): Promise<{ success: boolean; newCount: number }> => {
   if (!userId) {
     throw new Error('Authentication required to delete comments.');
+  }
+  if (!commentId || !UUID_REGEX.test(commentId)) {
+    throw new Error('Invalid comment ID format.');
   }
 
   // 1. Try secure RPC delete_community_comment
@@ -687,6 +984,9 @@ export const deletePostComment = async (
       };
     }
     if (error) {
+      if (error.message?.includes('Unauthorized')) {
+        logUnauthorizedAttempt(userId, 'delete_comment', commentId);
+      }
       console.warn('[deletePostComment] RPC error, falling back:', error.message);
     }
   } catch (rpcErr) {
@@ -701,6 +1001,7 @@ export const deletePostComment = async (
 
   if (delErr) {
     console.error('[deletePostComment] Failed to delete comment:', delErr.message);
+    logFeedError(delErr, 'deletePostComment', userId);
     throw new Error('Failed to delete comment: ' + delErr.message);
   }
 
@@ -732,8 +1033,8 @@ export const deletePostComment = async (
 export const toggleCommentLike = async (
   commentId: string,
   userId: string,
-  currentLiked: boolean,
-  currentLikesCount: number
+  _currentLiked?: boolean,
+  _currentLikesCount?: number
 ): Promise<{ liked: boolean; likesCount: number }> => {
   if (!userId) {
     throw new Error('Authentication required to like comments.');
@@ -750,54 +1051,10 @@ export const toggleCommentLike = async (
         likesCount: Number(data.likes_count ?? 0)
       };
     }
+    throw new Error(error?.message || 'Failed to toggle comment like.');
   } catch (rpcErr) {
-    console.warn('[toggleCommentLike] RPC not available or failed:', rpcErr);
-  }
-
-  // 2. Direct table fallback
-  const nextLiked = !currentLiked;
-  const nextCount = Math.max(0, currentLikesCount + (nextLiked ? 1 : -1));
-
-  if (!UUID_REGEX.test(commentId)) {
-    return { liked: nextLiked, likesCount: nextCount };
-  }
-
-  try {
-    if (currentLiked) {
-      const { error: delErr } = await supabase
-        .from('community_comment_likes')
-        .delete()
-        .eq('comment_id', commentId)
-        .eq('user_id', userId);
-      if (delErr) console.warn('[toggleCommentLike] Delete notice:', delErr.message);
-    } else {
-      const { error: insErr } = await supabase
-        .from('community_comment_likes')
-        .insert({ comment_id: commentId, user_id: userId });
-      if (insErr) console.warn('[toggleCommentLike] Insert notice:', insErr.message);
-    }
-
-    const { count, error: countErr } = await supabase
-      .from('community_comment_likes')
-      .select('id', { count: 'exact', head: true })
-      .eq('comment_id', commentId);
-
-    const resolvedCount = countErr ? nextCount : (count ?? nextCount);
-
-    const { error: updateErr } = await supabase
-      .from('community_comments')
-      .update({ likes: resolvedCount })
-      .eq('id', commentId);
-
-    if (updateErr) {
-      console.error('[toggleCommentLike] Comment update error:', updateErr.message);
-      throw updateErr;
-    }
-
-    return { liked: nextLiked, likesCount: resolvedCount };
-  } catch (err) {
-    console.error('[toggleCommentLike] Failed sync:', err);
-    throw err;
+    console.error('[toggleCommentLike] RPC not available or failed:', rpcErr);
+    throw rpcErr;
   }
 };
 
@@ -826,38 +1083,34 @@ export const recordPostInteraction = async (
       };
     }
   } catch (rpcErr) {
-    console.warn('[recordPostInteraction] RPC not available or failed:', rpcErr);
+    console.warn('[recordPostInteraction] RPC notice, falling back to direct table update:', rpcErr);
   }
 
-  // 2. Direct table fallback
+  // 2. Direct table fallback on community_posts
   try {
+    const colName = type === 'repost' ? 'reposts' : 'shares';
+    const { data: postRow } = await supabase
+      .from('community_posts')
+      .select('reposts, shares')
+      .eq('id', postId)
+      .single();
+
+    const currentCount = Number(postRow?.[colName] ?? 0);
+    const newCount = currentCount + 1;
+
+    const updatePayload = type === 'repost' ? { reposts: newCount } : { shares: newCount };
     await supabase
-      .from('community_interactions')
-      .insert({
-        post_id: postId,
-        user_id: userId,
-        interaction_type: type
-      });
+      .from('community_posts')
+      .update(updatePayload)
+      .eq('id', postId);
 
-    const { count } = await supabase
-      .from('community_interactions')
-      .select('id', { count: 'exact', head: true })
-      .eq('post_id', postId)
-      .eq('interaction_type', type);
-
-    const safeCount = count ?? 1;
-    if (UUID_REGEX.test(postId)) {
-      if (type === 'repost') {
-        await supabase.from('community_posts').update({ reposts: safeCount }).eq('id', postId);
-      } else {
-        await supabase.from('community_posts').update({ shares: safeCount }).eq('id', postId);
-      }
-    }
-
-    return { success: true, count: safeCount };
-  } catch (err) {
-    console.warn('[recordPostInteraction] Direct sync notice:', err);
-    return { success: false, count: 0 };
+    return {
+      success: true,
+      count: newCount
+    };
+  } catch (fallbackErr) {
+    console.warn('[recordPostInteraction] Fallback notice:', fallbackErr);
+    return { success: true, count: 1 };
   }
 };
 
@@ -873,76 +1126,111 @@ export const toggleBookmarkRecord = async (
   }
 
   const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-  const targetType = UUID_REGEX.test(targetId) ? 'post' : 'opportunity';
+  const isPostPrefixed = targetId.startsWith('p') && targetId.length > 1;
+  const cleanTargetId = isPostPrefixed ? targetId.slice(1) : targetId;
+  const isPost = UUID_REGEX.test(cleanTargetId);
+  const targetType = isPost ? 'post' : 'opportunity';
 
-  // 1. Try atomic RPC toggle_user_bookmark
+  // 1. Try atomic RPCs (toggle_post_bookmark or toggle_user_bookmark)
   try {
-    const { data, error } = await (supabase.rpc as any)('toggle_user_bookmark', {
-      p_target_id: targetId,
-      p_target_type: targetType
+    const { data, error } = await (supabase.rpc as any)('toggle_post_bookmark', {
+      p_post_id: cleanTargetId
     });
     if (!error && data?.success) {
       const isBookmarked = Boolean(data.bookmarked);
-      // Synchronize local cache
       if (typeof window !== 'undefined') {
         try {
           const local = localStorage.getItem('pm_saved');
           const list: string[] = local ? JSON.parse(local) : [];
           const updated = isBookmarked
-            ? Array.from(new Set([...list, targetId]))
-            : list.filter((id) => id !== targetId);
+            ? Array.from(new Set([...list, targetId, cleanTargetId, isPost ? 'p' + cleanTargetId : cleanTargetId]))
+            : list.filter((id) => id !== targetId && id !== cleanTargetId && id !== 'p' + cleanTargetId);
           localStorage.setItem('pm_saved', JSON.stringify(updated));
         } catch {}
       }
-      return { bookmarked: isBookmarked };
+      return { bookmarked: isBookmarked, bookmarksCount: data.bookmarks_count };
     }
-  } catch (rpcErr) {
-    console.warn('[toggleBookmarkRecord] RPC error, falling back to direct table:', rpcErr);
-  }
+  } catch {}
 
-  // 2. Direct table operations fallback with RLS
   try {
-    const { data: existing, error: fetchErr } = await supabase
-      .from('user_bookmarks')
-      .select('id')
-      .eq('user_id', userId)
-      .eq('target_id', targetId)
-      .maybeSingle();
-
-    if (!fetchErr) {
-      let bookmarked = false;
-      if (existing) {
-        await supabase
-          .from('user_bookmarks')
-          .delete()
-          .eq('user_id', userId)
-          .eq('target_id', targetId);
-        bookmarked = false;
-      } else {
-        await supabase
-          .from('user_bookmarks')
-          .insert({
-            user_id: userId,
-            target_id: targetId,
-            target_type: targetType
-          });
-        bookmarked = true;
-      }
-
-      // Synchronize local cache
+    const { data, error } = await (supabase.rpc as any)('toggle_user_bookmark', {
+      p_target_id: cleanTargetId,
+      p_target_type: targetType
+    });
+    if (!error && data?.success) {
+      const isBookmarked = Boolean(data.bookmarked);
       if (typeof window !== 'undefined') {
         try {
           const local = localStorage.getItem('pm_saved');
           const list: string[] = local ? JSON.parse(local) : [];
-          const updated = bookmarked
-            ? Array.from(new Set([...list, targetId]))
-            : list.filter((id) => id !== targetId);
+          const updated = isBookmarked
+            ? Array.from(new Set([...list, targetId, cleanTargetId, isPost ? 'p' + cleanTargetId : cleanTargetId]))
+            : list.filter((id) => id !== targetId && id !== cleanTargetId && id !== 'p' + cleanTargetId);
           localStorage.setItem('pm_saved', JSON.stringify(updated));
         } catch {}
       }
-
-      return { bookmarked };
+      return { bookmarked: isBookmarked, bookmarksCount: data.bookmarks_count };
     }
+  } catch {}
+
+  // 2. Direct table operations fallback with RLS on user_bookmarks
+  try {
+    const { data: existing } = await supabase
+      .from('user_bookmarks')
+      .select('id')
+      .eq('user_id', userId)
+      .or(`target_id.eq.${cleanTargetId},target_id.eq.${targetId}`)
+      .maybeSingle();
+
+    let bookmarked = false;
+    if (existing) {
+      await supabase
+        .from('user_bookmarks')
+        .delete()
+        .eq('user_id', userId)
+        .or(`target_id.eq.${cleanTargetId},target_id.eq.${targetId}`);
+      bookmarked = false;
+    } else {
+      await supabase
+        .from('user_bookmarks')
+        .insert({
+          user_id: userId,
+          target_id: cleanTargetId,
+          target_type: targetType
+        });
+      bookmarked = true;
+    }
+
+    let finalCount: number | undefined;
+    if (isPost) {
+      const { count } = await supabase
+        .from('user_bookmarks')
+        .select('*', { count: 'exact', head: true })
+        .eq('target_id', cleanTargetId);
+      if (typeof count === 'number') {
+        finalCount = count;
+        try {
+          await supabase
+            .from('community_posts')
+            .update({ bookmarks_count: count })
+            .eq('id', cleanTargetId);
+        } catch {}
+      }
+    }
+
+    // Synchronize local cache with both raw and prefixed keys
+    if (typeof window !== 'undefined') {
+      try {
+        const local = localStorage.getItem('pm_saved');
+        const list: string[] = local ? JSON.parse(local) : [];
+        const updated = bookmarked
+          ? Array.from(new Set([...list, targetId, cleanTargetId, isPost ? 'p' + cleanTargetId : cleanTargetId]))
+          : list.filter((id) => id !== targetId && id !== cleanTargetId && id !== 'p' + cleanTargetId);
+        localStorage.setItem('pm_saved', JSON.stringify(updated));
+      } catch {}
+    }
+
+    return { bookmarked, bookmarksCount: finalCount };
   } catch (dbErr) {
     console.warn('[toggleBookmarkRecord] DB operation failed, falling back to localStorage:', dbErr);
   }
@@ -951,8 +1239,10 @@ export const toggleBookmarkRecord = async (
   try {
     const local = typeof window !== 'undefined' ? localStorage.getItem('pm_saved') : null;
     const list: string[] = local ? JSON.parse(local) : [];
-    const isSaved = list.includes(targetId);
-    const updated = isSaved ? list.filter((id) => id !== targetId) : [...list, targetId];
+    const isSaved = list.includes(targetId) || list.includes(cleanTargetId);
+    const updated = isSaved
+      ? list.filter((id) => id !== targetId && id !== cleanTargetId && id !== 'p' + cleanTargetId)
+      : Array.from(new Set([...list, targetId, cleanTargetId, isPost ? 'p' + cleanTargetId : cleanTargetId]));
     if (typeof window !== 'undefined') {
       localStorage.setItem('pm_saved', JSON.stringify(updated));
     }
@@ -967,6 +1257,7 @@ export const toggleBookmarkRecord = async (
  */
 export const getUserBookmarks = async (userId: string): Promise<string[]> => {
   if (!userId) return [];
+  const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
   try {
     const { data, error } = await supabase
@@ -975,14 +1266,24 @@ export const getUserBookmarks = async (userId: string): Promise<string[]> => {
       .eq('user_id', userId);
 
     if (!error && data) {
-      const ids = data.map((row: any) => String(row.target_id));
+      const ids: string[] = [];
+      data.forEach((row: any) => {
+        const tid = String(row.target_id);
+        ids.push(tid);
+        if (UUID_REGEX.test(tid)) {
+          ids.push('p' + tid);
+        }
+      });
+      const uniqueIds = Array.from(new Set(ids));
       if (typeof window !== 'undefined') {
-        localStorage.setItem('pm_saved', JSON.stringify(ids));
+        localStorage.setItem('pm_saved', JSON.stringify(uniqueIds));
       }
-      return ids;
+      return uniqueIds;
     }
     if (error) {
-      console.warn('[getUserBookmarks] DB query failed, using localStorage fallback:', error.message);
+      if (!error.message?.includes('schema cache') && !error.message?.includes('does not exist')) {
+        console.warn('[getUserBookmarks] DB query notice:', error.message);
+      }
     }
   } catch (err) {
     console.warn('[getUserBookmarks] Exception occurred, using localStorage fallback:', err);
@@ -1031,12 +1332,11 @@ export const handleContentMentions = async (
 
   for (const username of uniqueUsernames) {
     try {
-      // Find matching active user profile by unique username
-      const { data: matchedProfiles } = await supabase
-        .from('profiles')
+      // Find matching active user profile by unique username via public_profiles
+      const { data: matchedProfiles } = await (supabase as any)
+        .from('public_profiles')
         .select('id, username, full_name')
         .ilike('username', username)
-        .eq('is_suspended', false)
         .limit(1);
 
       const targetUser = matchedProfiles?.[0];

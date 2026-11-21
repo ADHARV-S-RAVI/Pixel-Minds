@@ -10,6 +10,7 @@ export interface User {
   role: Role;
   pixels: number;
   status: 'active' | 'suspended';
+  is_suspended?: boolean;
   bio?: string;
   opportunitiesShared: number;
   approvedSubmissions: number;
@@ -169,6 +170,7 @@ export interface CommunityPost {
   user: string;
   userId: string;
   role: string;
+  avatar?: string;
   time: string;
   title?: string;
   description?: string;

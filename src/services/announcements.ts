@@ -80,19 +80,15 @@ export const getAnnouncements = async (onlyPublished = true): Promise<Announceme
 
 /**
  * Upload an announcement banner image to Supabase Storage.
- * Tries 'announcement-images' bucket first, then fallbacks to 'opportunity-banners' / 'opportunities'.
+ * Tries 'announcement-images' bucket first, then falls back to 'opportunity-banners' with user isolation.
  */
-export const uploadAnnouncementImage = async (file: File): Promise<string> => {
+export const uploadAnnouncementImage = async (file: File, userId?: string): Promise<string> => {
   const { uploadImage } = await import('./storage');
   try {
-    return await uploadImage(file, 'announcement-images', 'banners');
+    return await uploadImage(file, 'announcement-images', 'announcements', userId);
   } catch (err: any) {
-    console.warn('announcement-images bucket fallback:', err?.message);
-    try {
-      return await uploadImage(file, 'opportunity-banners', 'announcements');
-    } catch {
-      return await uploadImage(file, 'opportunities', 'announcements');
-    }
+    console.warn('announcement-images bucket upload fallback:', err?.message);
+    return await uploadImage(file, 'opportunity-banners', 'banners', userId);
   }
 };
 

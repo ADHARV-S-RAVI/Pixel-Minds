@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import type { FC } from 'react';
-import { Link, useParams, useSearchParams, useNavigate, useLocation } from 'react-router-dom';
+import { Link, useParams, useSearchParams, useNavigate, useLocation, Navigate } from 'react-router-dom';
 import {
   Search,
   Award,
@@ -44,7 +44,7 @@ import {
   ArrowRight,
   Share2,
   Flag
-} from 'lucide-react';
+} from '@/components/Icons';
 import { SubmissionDetailModal } from './components/SubmissionDetailModal';
 import { ReportModal } from './components/ReportModal';
 import { ConfirmModal } from './components/ConfirmModal';
@@ -82,7 +82,6 @@ import { useAuth } from './contexts/AuthContext';
 import {
   getPublishedOpportunities,
   getOpportunityById,
-  submitOpportunity as submitToFirestore,
   getPendingSubmissions,
   getAllOpportunities,
   updateOpportunityAdmin,
@@ -94,7 +93,7 @@ import {
   submitOpportunityAdmin,
   deleteOpportunityAdmin
 } from './services/opportunities';
-import { uploadImage, deleteStorageFile, validateOpportunityImageFile, parseOpportunityImages } from './services/storage';
+import { uploadOpportunityImage, deleteStorageFile, validateOpportunityImageFile, parseOpportunityImages } from './services/storage';
 import {
   formatTimestampToDateInput,
   parseDateInputToTimestamp,
@@ -714,8 +713,9 @@ export function Opportunities() {
   }, [sp]);
 
   useEffect(() => {
-    if (location.hash === '#discover-opportunities') {
-      const el = document.getElementById('discover-opportunities');
+    if (location.hash === '#discover-opportunities' || location.hash === '#faq') {
+      const targetId = location.hash.replace('#', '');
+      const el = document.getElementById(targetId);
       if (el) {
         el.scrollIntoView({ behavior: 'smooth' });
       }
@@ -1062,61 +1062,68 @@ export function OppDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const defaultOpp = initialOpps.find((x) => String(x.id) === String(id));
   const [firestoreOpp, setFirestoreOpp] = useState<Opp | null>(null);
+  const [loading, setLoading] = useState(!defaultOpp);
   const [showReportModal, setShowReportModal] = useState(false);
   const { saved, toggle, link, copy, applied, trackApplication, code, say } = useApp();
 
   useEffect(() => {
     if (id) {
-      getOpportunityById(id).then((o) => {
-        if (o) {
-          const dInfo = getOpportunityDeadlineInfo(o.deadline);
-          setFirestoreOpp({
-            id: o.id,
-            title: o.title,
-            org: o.organizer,
-            cat: o.category,
-            mode: o.mode ? o.mode.charAt(0).toUpperCase() + o.mode.slice(1) : 'Online',
-            deadline: dInfo.formattedDeadline,
-            days: dInfo.daysRemaining,
-            rawDeadline: o.deadline,
-            isExpired: dInfo.isExpired,
-            prize: o.prize || 'Certificate',
-            skills: o.skills || ['Tech'],
-            description: o.description,
-            officialUrl: o.officialUrl,
-            imageUrl: o.imageUrl,
-            views: o.views,
-            applyClicks: o.applyClicks,
-            featured: o.featured,
-            stipend: o.stipend,
-            eligibility: o.eligibility,
-            teamSize: o.teamSize,
-            additionalInfo: o.additionalInfo,
-            location: o.location,
-            source: o.source
-          });
-          incrementOpportunityViews(id);
-        }
-      });
+      getOpportunityById(id)
+        .then((o) => {
+          if (o) {
+            const dInfo = getOpportunityDeadlineInfo(o.deadline);
+            setFirestoreOpp({
+              id: o.id,
+              title: o.title,
+              org: o.organizer,
+              cat: o.category,
+              mode: o.mode ? o.mode.charAt(0).toUpperCase() + o.mode.slice(1) : 'Online',
+              deadline: dInfo.formattedDeadline,
+              days: dInfo.daysRemaining,
+              rawDeadline: o.deadline,
+              isExpired: dInfo.isExpired,
+              prize: o.prize || 'Certificate',
+              skills: o.skills || ['Tech'],
+              description: o.description,
+              officialUrl: o.officialUrl,
+              imageUrl: o.imageUrl,
+              views: o.views,
+              applyClicks: o.applyClicks,
+              featured: o.featured,
+              stipend: o.stipend,
+              eligibility: o.eligibility,
+              teamSize: o.teamSize,
+              additionalInfo: o.additionalInfo,
+              location: o.location,
+              source: o.source
+            });
+            incrementOpportunityViews(id);
+          }
+        })
+        .finally(() => {
+          setLoading(false);
+        });
+    } else {
+      setLoading(false);
     }
   }, [id]);
 
   const [selectedImgIdx, setSelectedImgIdx] = useState(0);
 
-  const defaultOpp = initialOpps.find((x) => String(x.id) === String(id));
   const o = firestoreOpp || defaultOpp;
 
-  if (!o) {
+  if (loading) {
     return (
-      <W className="py-20 text-center">
-        <h1 className="text-2xl font-extrabold text-slate-900">Opportunity Not Found</h1>
-        <p className="text-xs text-slate-500 mt-1">The opportunity might have been archived or removed.</p>
-        <BtnLink to="/opportunities" className="mt-5">
-          Browse Opportunities
-        </BtnLink>
-      </W>
+      <div className="min-h-[60vh] flex items-center justify-center">
+        <div className="w-8 h-8 rounded-full border-2 border-blue-600 dark:border-sky-400 border-t-transparent animate-spin" />
+      </div>
     );
+  }
+
+  if (!o) {
+    return <Navigate to="/404" state={{ attemptedPath: `/opportunities/${id}` }} replace />;
   }
 
   const catMeta = getCategoryMeta(o.cat);
@@ -1414,7 +1421,7 @@ export function Feed() {
   const [filterCategory, setFilterCategory] = useState<string>('All');
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-  const userName = userProfile?.displayName || user?.displayName || (user ? 'Pixel Builder' : 'Guest Builder');
+  const userName = userProfile?.displayName || user?.displayName || (user ? 'Pixel Member' : 'Guest Builder');
   const pixels = userProfile?.pixels ?? 0;
   const [globalRank, setGlobalRank] = useState<number | null>(null);
 
@@ -1556,18 +1563,15 @@ export function Feed() {
         {/* Center Main Feed Column (min-w-0 guarantees responsiveness and prevents blowouts) */}
         <section className="space-y-4 min-w-0">
           {/* Category Filters Bar */}
-          <div className="rounded-3xl pm-glass-card bg-white/35 backdrop-blur-2xl border border-white/50 p-3 sm:p-4 text-[#0e1b33] shadow-[0_12px_36px_rgba(14,50,120,0.08)] space-y-3">
+          <div className="rounded-3xl pm-glass-card bg-white/35 backdrop-blur-2xl border border-white/50 p-3 sm:p-4 text-[#0e1b33] dark:text-white shadow-[0_12px_36px_rgba(14,50,120,0.08)] space-y-3">
             <div className="flex items-center justify-between gap-3">
               <div className="flex items-center gap-2 shrink-0">
-                <span className="font-['Outfit',sans-serif] font-bold text-sm text-[#0e1b33]">Community Feed</span>
-                <span className="text-[11px] px-2.5 py-0.5 rounded-full bg-blue-500/15 text-blue-700 font-bold border border-blue-300/50 shadow-2xs">
-                  {filteredPosts.length} posts
-                </span>
+                <span className="font-['Outfit',sans-serif] font-bold text-sm text-[#0e1b33] dark:text-white">Community Feed</span>
               </div>
             </div>
 
             {/* Category Pills with clean scroll and no scrollbar */}
-            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 scrollbar-none no-scrollbar -mx-1 px-1 pt-1 border-t border-slate-200/50">
+            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 scrollbar-none no-scrollbar -mx-1 px-1 pt-1">
               {feedCategories.map((fc) => (
                 <button
                   key={fc.id}
@@ -1820,7 +1824,7 @@ export function Profile() {
     }
   }, [userProfile]);
 
-  const userName = userProfile?.displayName || user?.displayName || 'Pixel Builder';
+  const userName = userProfile?.displayName || user?.displayName || 'Pixel Member';
   const userPixels = userProfile?.pixels ?? 0;
 
   const [userPosts, setUserPosts] = useState<CommunityPost[]>([]);
@@ -2376,415 +2380,11 @@ const FormField = ({ label, children, required = false }: any) => (
   </label>
 );
 
-const SectionCard = ({ title: cardTitle, children }: any) => (
-  <Card className="p-5 sm:p-6 pm-glass-card bg-white/85 backdrop-blur-xl border border-white/90 shadow-sm text-[#0e1b33] space-y-4">
-    <h2 className="font-['Outfit',sans-serif] text-sm font-bold text-[#16171D] uppercase tracking-wider">{cardTitle}</h2>
-    <div className="grid gap-4 sm:grid-cols-2">{children}</div>
-  </Card>
-);
 
 const inpStyle =
   'w-full rounded-xl border border-black/10 bg-white/80 px-3.5 py-2.5 text-xs outline-none focus:border-[#C5A059] focus:ring-1 focus:ring-[#C5A059]/30 text-[#16171D] placeholder:text-[#9E958C] shadow-xs transition';
 
-export function Submit() {
-  const { user } = useAuth();
-  const { say } = useApp();
-  const navigate = useNavigate();
-  const [done, setDone] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState('');
-
-  // Form State
-  const [title, setTitle] = useState('');
-  const [organizer, setOrganizer] = useState('');
-  const [category, setCategory] = useState(cats[0]);
-  const [mode, setMode] = useState<'online' | 'offline' | 'hybrid'>('online');
-  const [description, setDescription] = useState('');
-  const [eligibility, setEligibility] = useState('');
-  const [skills, setSkills] = useState('');
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
-  const [deadline, setDeadline] = useState('');
-  const [prize, setPrize] = useState('');
-  const [officialUrl, setOfficialUrl] = useState('');
-  const [imageUrls, setImageUrls] = useState<string[]>([]);
-  const [uploadingImage, setUploadingImage] = useState(false);
-
-  const handleImagesUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files ? Array.from(e.target.files) : [];
-    if (files.length === 0) return;
-
-    if (imageUrls.length >= 3) {
-      say('Maximum 3 images allowed per opportunity.');
-      e.target.value = '';
-      return;
-    }
-
-    if (imageUrls.length + files.length > 3) {
-      say(`You can only upload up to 3 images in total. You can select ${3 - imageUrls.length} more.`);
-      e.target.value = '';
-      return;
-    }
-
-    // Validate all files first (format and size)
-    for (const f of files) {
-      const v = validateOpportunityImageFile(f);
-      if (!v.valid) {
-        say(v.error || 'Invalid file.');
-        e.target.value = '';
-        return;
-      }
-    }
-
-    setUploadingImage(true);
-    const uploadedBatch: string[] = [];
-
-    try {
-      for (const f of files) {
-        const url = await uploadImage(f, 'opportunity-banners');
-        uploadedBatch.push(url);
-      }
-      setImageUrls((prev) => [...prev, ...uploadedBatch]);
-      say(`${files.length} image${files.length > 1 ? 's' : ''} uploaded successfully`);
-    } catch (err: any) {
-      // Clean up orphaned uploads from this failed batch
-      for (const url of uploadedBatch) {
-        await deleteStorageFile(url);
-      }
-      say(err.message || 'Image upload failed. Please try again.');
-    } finally {
-      setUploadingImage(false);
-      e.target.value = '';
-    }
-  };
-
-  const handleRemoveImage = async (indexToRemove: number) => {
-    const urlToRemove = imageUrls[indexToRemove];
-    setImageUrls((prev) => prev.filter((_, idx) => idx !== indexToRemove));
-    if (urlToRemove) {
-      await deleteStorageFile(urlToRemove);
-      say('Image removed');
-    }
-  };
-
-  const handleSubmit = async () => {
-    if (submitting) return;
-
-    if (!user?.uid) {
-      setError('You must be signed in to submit an opportunity. Please sign in and try again.');
-      return;
-    }
-
-    if (!title.trim() || !organizer.trim() || !officialUrl.trim() || !description.trim()) {
-      setError('Please fill in all required fields (Title, Organizer, Application Link, Description).');
-      return;
-    }
-
-    if (!deadline.trim()) {
-      setError('Application deadline is required.');
-      return;
-    }
-
-    if (!officialUrl.startsWith('http://') && !officialUrl.startsWith('https://')) {
-      setError('Official URL must begin with http:// or https://');
-      return;
-    }
-
-    const dateVal = validateOpportunityDates({ startDate, endDate, deadline });
-    if (!dateVal.valid) {
-      setError(dateVal.error || 'Please provide valid dates.');
-      return;
-    }
-
-    setError('');
-    setSubmitting(true);
-
-    try {
-      await submitToFirestore(user.uid, {
-        title: title.trim(),
-        organizer: organizer.trim(),
-        category,
-        mode,
-        description: description.trim(),
-        eligibility: eligibility.trim() || 'Open to all students & builders',
-        skills: skills.split(',').map((s) => s.trim()).filter(Boolean),
-        startDate: startDate ? parseDateInputToTimestamp(startDate) : Date.now(),
-        endDate: endDate ? parseDateInputToTimestamp(endDate) : (startDate ? parseDateInputToTimestamp(startDate) + 86400000 : Date.now() + 86400000),
-        deadline: parseDateInputToTimestamp(deadline),
-        prize: prize.trim(),
-        officialUrl: officialUrl.trim(),
-        imageUrl: imageUrls.length > 0 ? imageUrls.join(',') : ''
-      });
-
-      setDone(true);
-      say('Opportunity submitted for review (+50 Pixels pending)');
-    } catch (err: any) {
-      console.error('Error submitting opportunity:', err);
-      setError(err?.message || 'Failed to submit opportunity. Please check your connection and try again.');
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  if (done) {
-    return (
-      <W className="max-w-xl py-20 text-center">
-        <div className="mx-auto grid h-16 w-16 place-items-center rounded-2xl bg-[#16171D] text-[#DFB76C] shadow-lg border border-white/10">
-          <CheckCircle2 size={32} />
-        </div>
-        <h1 className="mt-5 font-['Outfit',sans-serif] text-2xl font-extrabold text-[#16171D]">Submitted for Verification</h1>
-        <p className="mt-2 text-xs text-[#5D574F] leading-relaxed max-w-sm mx-auto">
-          Thanks for contributing to the community! Our moderators will verify the opportunity shortly, and you will receive{' '}
-          <b className="text-[#C5A059]">+50 Pixels</b> once approved.
-        </p>
-        <div className="mt-6 flex justify-center gap-3">
-          <BtnLink to="/opportunities" v="outline" className="!text-xs !rounded-full !px-5">
-            Browse Opportunities
-          </BtnLink>
-          <Btn onClick={() => setDone(false)} className="!text-xs !rounded-full !px-5">
-            Submit Another
-          </Btn>
-        </div>
-      </W>
-    );
-  }
-
-  return (
-    <W className="max-w-3xl space-y-7 py-8">
-      {/* Back Button */}
-      <div>
-        <button
-          onClick={() => navigate(-1)}
-          className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full pm-glass-control text-xs font-semibold text-slate-700 dark:text-slate-200 hover:text-blue-600 transition cursor-pointer"
-        >
-          <ArrowLeft size={14} />
-          <span>Back</span>
-        </button>
-      </div>
-
-      <div>
-        <div className="inline-flex items-center gap-2 rounded-full border border-black/8 bg-white/70 px-3 py-1 text-[11px] font-semibold text-[#6E655C] backdrop-blur-md mb-2 shadow-xs">
-          <Award size={12} className="text-[#C5A059]" />
-          Earn +50 Pixels Upon Approval
-        </div>
-        <h1 className="font-['Outfit',sans-serif] text-3xl font-extrabold tracking-tight text-[#16171D] sm:text-4xl">
-          Share an Opportunity
-        </h1>
-        <p className="text-xs sm:text-sm text-[#7D756C] mt-1">
-          Help 800+ tech community members discover your event, hackathon, workshop, or program.
-        </p>
-      </div>
-
-      {error && (
-        <div className="rounded-2xl border border-rose-300 bg-rose-50/80 p-4 text-xs font-semibold text-rose-800">
-          {error}
-        </div>
-      )}
-
-      <SectionCard title="Basic Information">
-        <FormField label="Title" required>
-          <input
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            className={inpStyle}
-            placeholder="e.g. Smart India Hackathon 2026"
-          />
-        </FormField>
-        <FormField label="Organizer / Organization" required>
-          <input
-            value={organizer}
-            onChange={(e) => setOrganizer(e.target.value)}
-            className={inpStyle}
-            placeholder="e.g. Ministry of Education"
-          />
-        </FormField>
-        <FormField label="Category" required>
-          <select value={category} onChange={(e) => setCategory(e.target.value)} className={inpStyle}>
-            {cats.map((c) => (
-              <option key={c} value={c}>
-                {c}
-              </option>
-            ))}
-          </select>
-        </FormField>
-        <FormField label="Mode" required>
-          <select value={mode} onChange={(e: any) => setMode(e.target.value)} className={inpStyle}>
-            <option value="online">Online</option>
-            <option value="offline">Onsite / In-Person</option>
-            <option value="hybrid">Hybrid</option>
-          </select>
-        </FormField>
-      </SectionCard>
-
-      <SectionCard title="Opportunity Details">
-        <div className="sm:col-span-2">
-          <FormField label="Full Description" required>
-            <textarea
-              rows={4}
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              className={inpStyle}
-              placeholder="Provide key details, problem statements, formats, perks, and expectations..."
-            />
-          </FormField>
-        </div>
-      </SectionCard>
-
-      <SectionCard title="Eligibility &amp; Tags">
-        <FormField label="Eligibility">
-          <input
-            value={eligibility}
-            onChange={(e) => setEligibility(e.target.value)}
-            className={inpStyle}
-            placeholder="e.g. College students, open to all streams"
-          />
-        </FormField>
-        <FormField label="Skills / Tags (comma separated)">
-          <input
-            value={skills}
-            onChange={(e) => setSkills(e.target.value)}
-            className={inpStyle}
-            placeholder="e.g. React, Python, Cloud, AI"
-          />
-        </FormField>
-      </SectionCard>
-
-      <SectionCard title="Key Dates">
-        <FormField label="Start Date">
-          <input
-            type="date"
-            value={startDate}
-            min="1000-01-01"
-            max="9999-12-31"
-            onChange={(e) => setStartDate(e.target.value)}
-            className={inpStyle}
-          />
-          <div className="mt-1 flex items-center justify-between text-[11px]">
-            <span className="text-[#7D756C]">Format: DD/MM/YYYY</span>
-            {startDate && formatDateToDDMMYYYY(startDate) && (
-              <span className="font-semibold text-[#16171D]">
-                Display: {formatDateToDDMMYYYY(startDate)}
-              </span>
-            )}
-          </div>
-        </FormField>
-        <FormField label="End Date">
-          <input
-            type="date"
-            value={endDate}
-            min={startDate || "1000-01-01"}
-            max="9999-12-31"
-            onChange={(e) => setEndDate(e.target.value)}
-            className={inpStyle}
-          />
-          <div className="mt-1 flex items-center justify-between text-[11px]">
-            <span className="text-[#7D756C]">Format: DD/MM/YYYY</span>
-            {endDate && formatDateToDDMMYYYY(endDate) && (
-              <span className="font-semibold text-[#16171D]">
-                Display: {formatDateToDDMMYYYY(endDate)}
-              </span>
-            )}
-          </div>
-        </FormField>
-        <div className="sm:col-span-2">
-          <FormField label="Application Deadline" required>
-            <input
-              type="date"
-              value={deadline}
-              min="1000-01-01"
-              max={endDate || "9999-12-31"}
-              onChange={(e) => setDeadline(e.target.value)}
-              className={inpStyle}
-              required
-            />
-            <div className="mt-1 flex items-center justify-between text-[11px]">
-              <span className="text-[#7D756C]">Format: DD/MM/YYYY</span>
-              {deadline && formatDateToDDMMYYYY(deadline) && (
-                <span className="font-semibold text-[#16171D]">
-                  Display: {formatDateToDDMMYYYY(deadline)}
-                </span>
-              )}
-            </div>
-          </FormField>
-        </div>
-      </SectionCard>
-
-      <SectionCard title="Rewards &amp; Official Link">
-        <FormField label="Prize or Stipend">
-          <input
-            value={prize}
-            onChange={(e) => setPrize(e.target.value)}
-            className={inpStyle}
-            placeholder="e.g. ₹1,00,000 / ₹40k per month"
-          />
-        </FormField>
-        <FormField label="Official Application URL" required>
-          <input
-            type="url"
-            value={officialUrl}
-            onChange={(e) => setOfficialUrl(e.target.value)}
-            className={inpStyle}
-            placeholder="https://example.com/apply"
-          />
-        </FormField>
-      </SectionCard>
-
-      <SectionCard title="Opportunity Images (Max 3, up to 2 MB each)">
-        <div className="sm:col-span-2 space-y-3">
-          {imageUrls.length < 3 && (
-            <label className="flex flex-col items-center justify-center h-28 rounded-2xl border-2 border-dashed border-black/15 bg-white/50 p-4 text-center cursor-pointer hover:bg-white hover:border-[#C5A059]/50 transition">
-              <Upload size={22} className="text-[#C5A059] mb-1.5" />
-              <span className="text-xs font-semibold text-[#2D2A26]">
-                {uploadingImage ? 'Uploading image...' : `Add images (${imageUrls.length}/3) · JPEG, PNG, or WebP up to 2 MB`}
-              </span>
-              <span className="text-[11px] text-[#8C827A] mt-0.5">
-                First image will serve as the primary cover banner
-              </span>
-              <input
-                type="file"
-                accept="image/jpeg,image/png,image/webp"
-                multiple
-                onChange={handleImagesUpload}
-                className="hidden"
-                disabled={uploadingImage}
-              />
-            </label>
-          )}
-
-          {imageUrls.length > 0 && (
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              {imageUrls.map((url, idx) => (
-                <div key={url + idx} className="relative rounded-2xl overflow-hidden border border-black/10 aspect-video bg-stone-100 shadow-sm group">
-                  <img src={url} alt={`Upload ${idx + 1}`} className="w-full h-full object-cover" />
-                  <div className="absolute top-2 left-2 px-2 py-0.5 rounded-md bg-black/60 text-white text-[10px] font-bold">
-                    {idx === 0 ? 'Primary Banner' : `Image ${idx + 1}`}
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => handleRemoveImage(idx)}
-                    className="absolute top-2 right-2 p-1.5 rounded-full bg-black/70 text-white hover:bg-rose-600 transition cursor-pointer shadow-sm"
-                    title="Remove image"
-                  >
-                    <X size={14} />
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </SectionCard>
-
-      <div className="flex justify-end gap-3 pt-2">
-        <Btn v="outline" onClick={() => navigate(-1)} className="!text-xs !rounded-full !px-5">
-          Cancel
-        </Btn>
-        <Btn onClick={handleSubmit} disabled={submitting || uploadingImage} className="!text-xs !rounded-full !px-6">
-          {submitting ? 'Submitting...' : 'Submit Opportunity (+50 Pixels)'}
-        </Btn>
-      </div>
-    </W>
-  );
-}
+export { SubmitOpportunity as Submit } from './pages/SubmitOpportunity';
 
 // ==========================================
 // ADMIN CONSOLE
@@ -2859,7 +2459,7 @@ const AdminOpportunityForm = ({ opp, onBack }: any) => {
     const uploadedBatch: string[] = [];
     try {
       for (const f of files) {
-        const url = await uploadImage(f, 'opportunity-banners');
+        const url = await uploadOpportunityImage(f, user?.id || (user as any)?.uid);
         uploadedBatch.push(url);
       }
       setImageUrls((prev) => {
@@ -3727,7 +3327,7 @@ export function Admin() {
     if (!file) return;
     setUploadingAnnImage(true);
     try {
-      const url = await uploadAnnouncementImage(file);
+      const url = await uploadAnnouncementImage(file, user?.uid || (user as any)?.id);
       setAnnImageUrl(url);
       say('Announcement banner uploaded successfully');
     } catch (err: any) {

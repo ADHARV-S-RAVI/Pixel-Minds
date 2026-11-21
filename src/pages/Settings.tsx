@@ -11,7 +11,7 @@ import {
   EyeOff,
   Sparkles,
   X
-} from 'lucide-react';
+} from '@/components/Icons';
 import { Card, Btn } from '../ui';
 import { useAuth } from '../contexts/AuthContext';
 import { useApp } from '../store';

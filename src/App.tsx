@@ -1,7 +1,8 @@
 import { useEffect } from 'react';
-import { Routes, Route, useNavigate } from 'react-router-dom';
+import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import { Layout } from './ui';
-import { Landing, Opportunities, OppDetail, Feed, Profile, Leaderboard, Submit, Admin, FAQ, Support, Explore, Applications } from './pages';
+import { Landing, Opportunities, OppDetail, Feed, Profile, Leaderboard, Admin, FAQ, Support, Explore, Applications } from './pages';
+import { SubmitOpportunity } from './pages/SubmitOpportunity';
 import { Notifications } from './pages/Notifications';
 import { Settings } from './pages/Settings';
 import { Login } from './pages/Login';
@@ -10,16 +11,21 @@ import { ForgotPassword } from './pages/ForgotPassword';
 import { ResetPassword } from './pages/ResetPassword';
 import { AdminLogin } from './pages/AdminLogin';
 import { NotFound } from './pages/NotFound';
+import { PrivacyPolicy } from './pages/PrivacyPolicy';
+import { Terms } from './pages/Terms';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { AdminRoute } from './components/AdminRoute';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { Analytics } from '@vercel/analytics/react';
 import { ReferralOnboardingModal } from './components/ReferralOnboardingModal';
+import { PixelClickEffect } from './components/PixelClickEffect';
 import { useAuth } from './contexts/AuthContext';
+import { safeRedirectUrl } from './utils/text';
 
 export default function App() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
     if (user) {
@@ -27,15 +33,19 @@ export default function App() {
       if (pendingRedirect) {
         sessionStorage.removeItem('pm_auth_redirect');
         localStorage.removeItem('pm_auth_redirect');
-        navigate(pendingRedirect, { replace: true });
+        const safeTarget = safeRedirectUrl(pendingRedirect);
+        if (safeTarget !== '/') {
+          navigate(safeTarget, { replace: true });
+        }
       }
     }
   }, [user, navigate]);
 
   return (
-    <ErrorBoundary>
+    <ErrorBoundary resetKey={location.pathname}>
       <Analytics />
       <ReferralOnboardingModal />
+      <PixelClickEffect />
       <Routes>
         <Route element={<Layout />}>
           {/* Public Routes */}
@@ -43,9 +53,30 @@ export default function App() {
           <Route path="/explore" element={<Explore />} />
           <Route path="/opportunities" element={<Opportunities />} />
           <Route path="/opportunities/:id" element={<OppDetail />} />
-          <Route path="/bookmarks" element={<Opportunities />} />
-          <Route path="/applications" element={<Applications />} />
-          <Route path="/notifications" element={<Notifications />} />
+          <Route
+            path="/bookmarks"
+            element={
+              <ProtectedRoute>
+                <Opportunities />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/applications"
+            element={
+              <ProtectedRoute>
+                <Applications />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/notifications"
+            element={
+              <ProtectedRoute>
+                <Notifications />
+              </ProtectedRoute>
+            }
+          />
           <Route path="/feed" element={<Feed />} />
           <Route path="/leaderboard" element={<Leaderboard />} />
           <Route path="/faq" element={<FAQ />} />
@@ -55,13 +86,16 @@ export default function App() {
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/admin/login" element={<AdminLogin />} />
+          <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+          <Route path="/privacy" element={<PrivacyPolicy />} />
+          <Route path="/terms" element={<Terms />} />
 
           {/* User Protected Routes */}
           <Route
             path="/submit"
             element={
               <ProtectedRoute>
-                <Submit />
+                <SubmitOpportunity />
               </ProtectedRoute>
             }
           />
@@ -95,10 +129,11 @@ export default function App() {
               </AdminRoute>
             }
           />
-
-          {/* 404 Fallback Route */}
-          <Route path="*" element={<NotFound />} />
         </Route>
+
+        {/* Dedicated 404 & Global Fallback Routes outside Layout shell */}
+        <Route path="/404" element={<NotFound />} />
+        <Route path="*" element={<NotFound />} />
       </Routes>
     </ErrorBoundary>
   );

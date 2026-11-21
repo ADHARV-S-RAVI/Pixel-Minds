@@ -13,7 +13,7 @@ import {
   AlertCircle,
   User,
   Mail
-} from 'lucide-react';
+} from '@/components/Icons';
 import type { Opportunity } from '../types';
 import { parseOpportunityImages } from '../services/storage';
 
@@ -239,27 +239,41 @@ export const SubmissionDetailModal: React.FC<SubmissionDetailModalProps> = ({
           </div>
 
           {/* Official Link */}
-          {submission.officialUrl && (
-            <div className="p-4 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-between gap-3 text-xs">
-              <div className="min-w-0 flex-1">
-                <p className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider">
-                  Official Application Link
-                </p>
-                <p className="text-xs text-white truncate font-mono mt-0.5">
-                  {submission.officialUrl}
-                </p>
+          {submission.officialUrl && (() => {
+            let isValidProtocol = false;
+            try {
+              const parsed = new URL(submission.officialUrl);
+              isValidProtocol = parsed.protocol === 'http:' || parsed.protocol === 'https:';
+            } catch {
+              isValidProtocol = false;
+            }
+
+            return (
+              <div className="p-4 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-between gap-3 text-xs">
+                <div className="min-w-0 flex-1">
+                  <p className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider">
+                    Official Application Link
+                  </p>
+                  <p className="text-xs text-white truncate font-mono mt-0.5">
+                    {submission.officialUrl}
+                  </p>
+                </div>
+                {isValidProtocol ? (
+                  <a
+                    href={submission.officialUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white font-semibold transition shrink-0"
+                  >
+                    <span>Visit Link</span>
+                    <ExternalLink size={12} />
+                  </a>
+                ) : (
+                  <span className="text-xs text-amber-400 font-mono shrink-0">Invalid URL</span>
+                )}
               </div>
-              <a
-                href={submission.officialUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white font-semibold transition shrink-0"
-              >
-                <span>Visit Link</span>
-                <ExternalLink size={12} />
-              </a>
-            </div>
-          )}
+            );
+          })()}
 
           {/* Description */}
           <div>

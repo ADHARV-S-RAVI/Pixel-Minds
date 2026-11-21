@@ -12,7 +12,7 @@ import {
   Award,
   ShieldCheck,
   X,
-} from 'lucide-react';
+} from '@/components/Icons';
 import { useAuth } from '../contexts/AuthContext';
 
 export interface AccountMenuContentProps {
@@ -25,8 +25,8 @@ export const AccountMenuContent: React.FC<AccountMenuContentProps> = ({
   showCloseButton = false,
 }) => {
   const { user, userProfile, logout } = useAuth();
-  const displayName = userProfile?.displayName || user?.displayName || 'Pixel Builder';
-  const isAdmin = userProfile?.role === 'admin' || user?.email === 'admin@pixelminds.org';
+  const displayName = userProfile?.displayName || user?.displayName || 'Pixel Member';
+  const isAdmin = userProfile?.role === 'admin';
 
   return (
     <div className="w-full">

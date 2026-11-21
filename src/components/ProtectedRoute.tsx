@@ -1,7 +1,7 @@
 import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { AlertTriangle } from 'lucide-react';
+import { AlertTriangle } from '@/components/Icons';
 
 export const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { currentUser, userProfile, loading } = useAuth();
@@ -20,8 +20,8 @@ export const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ childr
     return <Navigate to={`/login?redirect=${encodeURIComponent(redirectUrl)}&msg=${encodeURIComponent('Please sign up or log in to continue.')}`} state={{ from: location }} replace />;
   }
 
-  // Handle suspended user account
-  if (userProfile?.status === 'suspended') {
+  // Handle suspended user account (checks both status field and boolean flag)
+  if (userProfile?.status === 'suspended' || userProfile?.is_suspended === true) {
     return (
       <div className="min-h-[70vh] flex items-center justify-center p-4 bg-slate-50">
         <div className="bg-white border border-rose-200 p-8 rounded-2xl max-w-md text-center shadow-sm">
