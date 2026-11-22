@@ -46,7 +46,7 @@ BEGIN
     RETURN FALSE;
   END IF;
 
-  SELECT (COALESCE(is_suspended, false) OR COALESCE(status, '') = 'suspended')
+  SELECT COALESCE(is_suspended, false)
   INTO v_suspended
   FROM public.profiles
   WHERE id = v_uid;

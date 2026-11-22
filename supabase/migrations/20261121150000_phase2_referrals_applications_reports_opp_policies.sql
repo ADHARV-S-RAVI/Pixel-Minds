@@ -189,7 +189,7 @@ $$;
 
 REVOKE ALL ON FUNCTION public.claim_referral_code(TEXT, TEXT) FROM PUBLIC;
 REVOKE ALL ON FUNCTION public.claim_referral_code(TEXT, TEXT) FROM anon;
-GRANT EXECUTE ON FUNCTION public.claim_referral_code(TEXT, TEXT) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.claim_referral_code(TEXT, TEXT) TO authenticated, service_role;
 
 -- ==============================================================================
 -- 3. APPLICATION DEDUPLICATION — SAFE ROW_NUMBER() APPROACH

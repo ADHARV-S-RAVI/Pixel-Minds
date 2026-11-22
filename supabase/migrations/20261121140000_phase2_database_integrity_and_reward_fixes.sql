@@ -165,7 +165,7 @@ END;
 $$;
 
 REVOKE ALL ON FUNCTION public.claim_referral_code(TEXT, TEXT) FROM PUBLIC, anon;
-GRANT EXECUTE ON FUNCTION public.claim_referral_code(TEXT, TEXT) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.claim_referral_code(TEXT, TEXT) TO authenticated, service_role;
 
 
 -- ==============================================================================
@@ -312,6 +312,7 @@ WITH CHECK (
 
 -- Users can view their own applications, admins can view all
 DROP POLICY IF EXISTS "Users can view own applications" ON public.user_applications;
+DROP POLICY IF EXISTS "Users can read own applications" ON public.user_applications;
 CREATE POLICY "Users can view own applications"
 ON public.user_applications FOR SELECT
 TO authenticated
@@ -381,6 +382,7 @@ ALTER TABLE public.reports ADD CONSTRAINT reports_target_type_check CHECK (targe
 ALTER TABLE public.reports ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS "Users can insert reports" ON public.reports;
+DROP POLICY IF EXISTS "Authenticated users can create reports" ON public.reports;
 CREATE POLICY "Users can insert reports"
 ON public.reports FOR INSERT
 TO authenticated
@@ -389,6 +391,7 @@ WITH CHECK (
 );
 
 DROP POLICY IF EXISTS "Users and admins can view reports" ON public.reports;
+DROP POLICY IF EXISTS "Users can view own reports or admins view all" ON public.reports;
 CREATE POLICY "Users and admins can view reports"
 ON public.reports FOR SELECT
 TO authenticated
