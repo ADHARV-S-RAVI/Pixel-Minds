@@ -21,6 +21,7 @@ export interface ClickStackProps {
   onIndexChange?: (index: number) => void;
   onSwipeRight?: (index: number) => void;
   onCardClick?: (index: number) => void;
+  onDesktopCardClick?: (index: number) => void;
   enableSwipeRight?: boolean;
 }
 
@@ -44,6 +45,7 @@ export const ClickStack: React.FC<ClickStackProps> = ({
   onIndexChange,
   onSwipeRight,
   onCardClick,
+  onDesktopCardClick,
   enableSwipeRight = true,
 }) => {
   const [internalIndex, setInternalIndex] = useState(0);
@@ -54,7 +56,6 @@ export const ClickStack: React.FC<ClickStackProps> = ({
   const cardRefs = useRef<(HTMLDivElement | null)[]>([]);
   const isAnimatingRef = useRef(false);
 
-  // Robust pointer tracking
   const activePointerIdRef = useRef<number | null>(null);
   const dragTargetRef = useRef<HTMLDivElement | null>(null);
   const isDraggingRef = useRef(false);
@@ -73,7 +74,6 @@ export const ClickStack: React.FC<ClickStackProps> = ({
     [isControlled, items.length, onIndexChange]
   );
 
-  // Clean, reset all drag state and release pointer capture
   const resetDragState = useCallback(() => {
     if (dragTargetRef.current && activePointerIdRef.current !== null) {
       try {
@@ -81,7 +81,7 @@ export const ClickStack: React.FC<ClickStackProps> = ({
           dragTargetRef.current.releasePointerCapture(activePointerIdRef.current);
         }
       } catch {
-        // Safe to ignore if capture was already released
+        // Ignore if already released
       }
     }
 
@@ -153,9 +153,6 @@ export const ClickStack: React.FC<ClickStackProps> = ({
     });
   }, [activeIndex, items.length, duration, ease, updateIndex, resetDragState]);
 
-  // Whenever activeIndex or stack props change:
-  // 1. Reset lingering drag state
-  // 2. Position every card in the stack with GSAP, strictly resetting rotation to 0 and overwriting previous tweens
   useEffect(() => {
     resetDragState();
 
@@ -171,7 +168,7 @@ export const ClickStack: React.FC<ClickStackProps> = ({
       gsap.to(card, {
         x: targetX,
         y: targetY,
-        rotation: 0, // Enforce 0 rotation on all cards so no residual tilt remains
+        rotation: 0,
         scale: targetScale,
         opacity: targetOpacity,
         zIndex: targetZIndex,
@@ -192,28 +189,20 @@ export const ClickStack: React.FC<ClickStackProps> = ({
     resetDragState,
   ]);
 
-  // Unified Pointer Event Handlers using Directional Touch Disambiguation
   const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
-    // Only respond to primary pointer (left mouse button or first touch finger)
     if (!e.isPrimary || e.button !== 0 || isAnimatingRef.current) return;
 
-    // Only prevent dragging when clicking explicitly marked non-drag action elements (like bookmark/share) or links
     const targetEl = e.target as HTMLElement;
-    if (
-      targetEl.closest('[data-no-drag="true"]') ||
-      targetEl.closest('a')
-    ) {
+    if (targetEl.closest('[data-no-drag="true"]') || targetEl.closest('a')) {
       return;
     }
 
-    // Only allow starting drag if no drag is already active
     if (isDraggingRef.current) {
       resetDragState();
     }
 
     const cardEl = e.currentTarget;
 
-    // For mouse, prevent native image drag and capture pointer immediately
     if (e.pointerType === 'mouse') {
       e.preventDefault();
       try {
@@ -237,14 +226,11 @@ export const ClickStack: React.FC<ClickStackProps> = ({
     const dx = e.clientX - dragStartRef.current.x;
     const dy = e.clientY - dragStartRef.current.y;
 
-    // Check gesture direction if not locked yet
     if (gestureLockRef.current === 'none') {
       const absX = Math.abs(dx);
       const absY = Math.abs(dy);
       if (Math.hypot(dx, dy) > 8) {
         if (absY >= absX) {
-          // Vertical movement dominates -> user intends to scroll the page vertically!
-          // Release drag immediately so mobile browser page scrolling is completely natural and unhindered
           gestureLockRef.current = 'vertical';
           isDraggingRef.current = false;
           gsap.to(dragTargetRef.current, {
@@ -255,7 +241,6 @@ export const ClickStack: React.FC<ClickStackProps> = ({
           });
           return;
         } else {
-          // Horizontal movement dominates -> user intends to swipe card!
           gestureLockRef.current = 'horizontal';
           try {
             dragTargetRef.current.setPointerCapture(e.pointerId);
@@ -264,7 +249,6 @@ export const ClickStack: React.FC<ClickStackProps> = ({
       }
     }
 
-    // If locked to horizontal swipe, apply responsive dampened card translation
     if (gestureLockRef.current === 'horizontal' || e.pointerType === 'mouse') {
       dragDeltaRef.current = { x: dx, y: dy };
       const dampenedX = dx * 0.48;
@@ -285,12 +269,10 @@ export const ClickStack: React.FC<ClickStackProps> = ({
     const delta = dragDeltaRef.current;
     const locked = gestureLockRef.current;
 
-    // Reset drag refs and release pointer capture immediately
     resetDragState();
 
     if (!targetEl || !start) return;
 
-    // If user was scrolling vertically, ensure card snaps to rest and do not navigate
     if (locked === 'vertical') {
       gsap.to(targetEl, {
         x: 0,
@@ -301,7 +283,6 @@ export const ClickStack: React.FC<ClickStackProps> = ({
       return;
     }
 
-    // Calculate true delta at the moment pointer is lifted:
     const dx = e.clientX ? e.clientX - start.x : delta.x;
     const dy = e.clientY ? e.clientY - start.y : delta.y;
     const elapsed = Math.max(Date.now() - start.time, 1);
@@ -310,14 +291,13 @@ export const ClickStack: React.FC<ClickStackProps> = ({
     const isHorizontal = absDx > absDy * 1.05;
     const velocityX = absDx / elapsed;
 
-    // 1. Swipe Right Detected -> open full details view
+    // 1. Swipe Right -> open full details view
     const isSwipeRight =
       enableSwipeRight &&
       isHorizontal &&
       (dx > 32 || (dx > 18 && velocityX > 0.15));
 
     if (isSwipeRight) {
-      // Smoothly return target card to center position with 0 rotation
       gsap.to(targetEl, {
         x: 0,
         rotation: 0,
@@ -329,7 +309,7 @@ export const ClickStack: React.FC<ClickStackProps> = ({
       return;
     }
 
-    // 2. Swipe Left Detected -> advance to next card
+    // 2. Swipe Left -> dismiss / advance to next card
     const isSwipeLeft =
       isHorizontal &&
       (dx < -32 || (dx < -18 && velocityX > 0.15));
@@ -340,9 +320,8 @@ export const ClickStack: React.FC<ClickStackProps> = ({
       return;
     }
 
-    // 3. Clean Click / Tap Detected (Short duration and small movement)
+    // 3. Clean Click / Tap Detected
     if (elapsed < 380 && Math.hypot(dx, dy) < 14) {
-      // Reset card position
       gsap.to(targetEl, {
         x: 0,
         rotation: 0,
@@ -351,7 +330,15 @@ export const ClickStack: React.FC<ClickStackProps> = ({
         overwrite: 'auto',
       });
 
-      // Click to see next opportunity
+      const isDesktopPointer =
+        e.pointerType === 'mouse' ||
+        (typeof window !== 'undefined' && window.innerWidth >= 1024);
+
+      if (isDesktopPointer && onDesktopCardClick) {
+        onDesktopCardClick(activeIndex);
+        return;
+      }
+
       if (activeIndex < items.length - 1) {
         goNext();
       } else {
@@ -360,7 +347,6 @@ export const ClickStack: React.FC<ClickStackProps> = ({
       return;
     }
 
-    // Drag cancelled / insufficient distance: smoothly spring back to origin
     gsap.to(targetEl, {
       x: 0,
       rotation: 0,
@@ -379,7 +365,6 @@ export const ClickStack: React.FC<ClickStackProps> = ({
 
     if (!targetEl) return;
 
-    // If pointer was cancelled (e.g. OS gesture) after an already valid swipe right, still honor it!
     if (start) {
       const dx = e.clientX ? e.clientX - start.x : 0;
       const dy = e.clientY ? e.clientY - start.y : 0;
@@ -407,10 +392,8 @@ export const ClickStack: React.FC<ClickStackProps> = ({
     });
   };
 
-  // Keyboard navigation
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Don't intercept if user is typing in an input or textarea
       if (
         document.activeElement?.tagName === 'INPUT' ||
         document.activeElement?.tagName === 'TEXTAREA'
@@ -418,12 +401,12 @@ export const ClickStack: React.FC<ClickStackProps> = ({
         return;
       }
 
-      if (e.key === 'ArrowRight' || e.key === ' ') {
+      if (e.key === 'ArrowRight') {
+        e.preventDefault();
+        onSwipeRight?.(activeIndex);
+      } else if (e.key === 'ArrowLeft' || e.key === ' ') {
         e.preventDefault();
         goNext();
-      } else if (e.key === 'ArrowLeft') {
-        e.preventDefault();
-        goPrev();
       } else if (e.key === 'Enter' || e.key === 'ArrowUp') {
         e.preventDefault();
         onSwipeRight?.(activeIndex);
@@ -434,13 +417,9 @@ export const ClickStack: React.FC<ClickStackProps> = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [goNext, goPrev, onSwipeRight, activeIndex]);
 
-  // Visible subset of cards
   const visibleItems = items.slice(activeIndex, activeIndex + visibleCount);
-
-  // Synchronize cardRefs array size with visible items
   cardRefs.current = cardRefs.current.slice(0, visibleItems.length);
 
-  // Responsive dimensions for mobile viewports
   const isMobile = typeof window !== 'undefined' && window.innerWidth < 640;
   const responsiveWidth =
     typeof cardWidth === 'number' && isMobile
@@ -480,7 +459,7 @@ export const ClickStack: React.FC<ClickStackProps> = ({
             }}
             className={`absolute inset-0 overflow-hidden ${
               isTop
-                ? 'cursor-grab active:cursor-grabbing pointer-events-auto select-none'
+                ? 'cursor-pointer lg:cursor-pointer active:cursor-grabbing pointer-events-auto select-none'
                 : 'pointer-events-none select-none'
             }`}
             aria-hidden={!isTop}
