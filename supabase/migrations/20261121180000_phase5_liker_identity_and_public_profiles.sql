@@ -38,7 +38,10 @@ ALTER VIEW public.public_profiles OWNER TO postgres;
 COMMENT ON VIEW public.public_profiles IS
 'Publicly readable user profile information. Excludes sensitive private fields (email, phone, role, is_suspended, referral_id).';
 
-GRANT SELECT ON public.public_profiles TO anon, authenticated, service_role;
+REVOKE ALL ON TABLE public.public_profiles FROM PUBLIC;
+REVOKE ALL ON TABLE public.public_profiles FROM anon;
+REVOKE ALL ON TABLE public.public_profiles FROM authenticated;
+GRANT SELECT ON TABLE public.public_profiles TO anon, authenticated, service_role;
 
 -- 2. DEDICATED RPC: get_post_likers(p_post_id UUID)
 CREATE OR REPLACE FUNCTION public.get_post_likers(p_post_id UUID)

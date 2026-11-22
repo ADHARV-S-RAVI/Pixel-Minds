@@ -73,7 +73,7 @@ DROP POLICY IF EXISTS "Users can update or delete own post images"        ON sto
 -- 3.1  PUBLIC VIEW — consolidated single SELECT policy across all public buckets
 CREATE POLICY "Public can view public bucket images"
 ON storage.objects FOR SELECT
-USING (bucket_id IN ('avatars','opportunity-banners','post-images','announcement-images'));
+USING (bucket_id IN ('avatars','opportunity-banners','post-images','announcement-images','opportunities'));
 
 -- 3.2  AVATARS — INSERT: uid as first path segment
 CREATE POLICY "Users can upload own avatar"
@@ -81,22 +81,59 @@ ON storage.objects FOR INSERT
 TO authenticated
 WITH CHECK (
   bucket_id = 'avatars'
-  AND (storage.foldername(name))[1] = auth.uid()::text
+  AND (
+    (storage.foldername(name))[1] = auth.uid()::text
+    OR (
+      (storage.foldername(name))[1] = 'avatars'
+      AND (storage.foldername(name))[2] = auth.uid()::text
+    )
+  )
 );
 
--- 3.3  AVATARS — DELETE: uid must appear as first segment; admins can remove any
+-- 3.3  AVATARS — UPDATE: symmetric with INSERT / DELETE
+CREATE POLICY "Users can update own avatar"
+ON storage.objects FOR UPDATE
+TO authenticated
+USING (
+  bucket_id = 'avatars'
+  AND (
+    public.is_admin()
+    OR (storage.foldername(name))[1] = auth.uid()::text
+    OR (
+      (storage.foldername(name))[1] = 'avatars'
+      AND (storage.foldername(name))[2] = auth.uid()::text
+    )
+  )
+)
+WITH CHECK (
+  bucket_id = 'avatars'
+  AND (
+    public.is_admin()
+    OR (storage.foldername(name))[1] = auth.uid()::text
+    OR (
+      (storage.foldername(name))[1] = 'avatars'
+      AND (storage.foldername(name))[2] = auth.uid()::text
+    )
+  )
+);
+
+-- 3.4  AVATARS — DELETE: uid must appear as first segment; admins can remove any
 CREATE POLICY "Users can delete own avatar"
 ON storage.objects FOR DELETE
 TO authenticated
 USING (
   bucket_id = 'avatars'
   AND (
-    (storage.foldername(name))[1] = auth.uid()::text
-    OR public.is_admin()
+    public.is_admin()
+    OR (storage.foldername(name))[1] = auth.uid()::text
+    OR (
+      (storage.foldername(name))[1] = 'avatars'
+      AND (storage.foldername(name))[2] = auth.uid()::text
+    )
   )
 );
 
--- 3.4  OPPORTUNITY BANNERS — INSERT
+-- 3.5  OPPORTUNITY BANNERS — INSERT
 --      Enforced path: banners/<user_id>/... OR users/<user_id>/...
 --      The unrestricted shared "banners" root namespace is removed.
 CREATE POLICY "Users and admins can upload opportunity banners"
@@ -114,10 +151,46 @@ WITH CHECK (
       (storage.foldername(name))[1] = 'users'
       AND (storage.foldername(name))[2] = auth.uid()::text
     )
+    OR (storage.foldername(name))[1] = auth.uid()::text
   )
 );
 
--- 3.5  OPPORTUNITY BANNERS — DELETE
+-- 3.6  OPPORTUNITY BANNERS — UPDATE
+CREATE POLICY "Users and admins can update opportunity banners"
+ON storage.objects FOR UPDATE
+TO authenticated
+USING (
+  bucket_id = 'opportunity-banners'
+  AND (
+    public.is_admin()
+    OR (
+      (storage.foldername(name))[1] = 'banners'
+      AND (storage.foldername(name))[2] = auth.uid()::text
+    )
+    OR (
+      (storage.foldername(name))[1] = 'users'
+      AND (storage.foldername(name))[2] = auth.uid()::text
+    )
+    OR (storage.foldername(name))[1] = auth.uid()::text
+  )
+)
+WITH CHECK (
+  bucket_id = 'opportunity-banners'
+  AND (
+    public.is_admin()
+    OR (
+      (storage.foldername(name))[1] = 'banners'
+      AND (storage.foldername(name))[2] = auth.uid()::text
+    )
+    OR (
+      (storage.foldername(name))[1] = 'users'
+      AND (storage.foldername(name))[2] = auth.uid()::text
+    )
+    OR (storage.foldername(name))[1] = auth.uid()::text
+  )
+);
+
+-- 3.7  OPPORTUNITY BANNERS — DELETE
 --      Must own the file (uid in position 2 under banners/ or users/) or be admin.
 CREATE POLICY "Users and admins can delete opportunity banners"
 ON storage.objects FOR DELETE
@@ -134,10 +207,11 @@ USING (
       (storage.foldername(name))[1] = 'users'
       AND (storage.foldername(name))[2] = auth.uid()::text
     )
+    OR (storage.foldername(name))[1] = auth.uid()::text
   )
 );
 
--- 3.6  POST IMAGES — INSERT (symmetric with DELETE)
+-- 3.8  POST IMAGES — INSERT (symmetric with DELETE)
 --      Required path structure: posts/<user_id>/...
 --      Admins may also upload directly to <user_id>/... root.
 CREATE POLICY "Users can upload own post images"
@@ -151,10 +225,38 @@ WITH CHECK (
       (storage.foldername(name))[1] = 'posts'
       AND (storage.foldername(name))[2] = auth.uid()::text
     )
+    OR (storage.foldername(name))[1] = auth.uid()::text
   )
 );
 
--- 3.7  POST IMAGES — DELETE (symmetric with INSERT)
+-- 3.9  POST IMAGES — UPDATE
+CREATE POLICY "Users can update own post images"
+ON storage.objects FOR UPDATE
+TO authenticated
+USING (
+  bucket_id = 'post-images'
+  AND (
+    public.is_admin()
+    OR (
+      (storage.foldername(name))[1] = 'posts'
+      AND (storage.foldername(name))[2] = auth.uid()::text
+    )
+    OR (storage.foldername(name))[1] = auth.uid()::text
+  )
+)
+WITH CHECK (
+  bucket_id = 'post-images'
+  AND (
+    public.is_admin()
+    OR (
+      (storage.foldername(name))[1] = 'posts'
+      AND (storage.foldername(name))[2] = auth.uid()::text
+    )
+    OR (storage.foldername(name))[1] = auth.uid()::text
+  )
+);
+
+-- 3.10 POST IMAGES — DELETE (symmetric with INSERT)
 CREATE POLICY "Users can delete own post images"
 ON storage.objects FOR DELETE
 TO authenticated
@@ -166,6 +268,7 @@ USING (
       (storage.foldername(name))[1] = 'posts'
       AND (storage.foldername(name))[2] = auth.uid()::text
     )
+    OR (storage.foldername(name))[1] = auth.uid()::text
   )
 );
 
