@@ -836,7 +836,7 @@ export function Explore() {
                     <div
                       onPointerDown={handleStep1PointerDown}
                       onPointerUp={handleStep1PointerUp}
-                      style={{ touchAction: 'none' }}
+                      style={{ touchAction: 'pan-y' }}
                       className="absolute inset-0 z-30 rounded-[28px] bg-slate-950/75 backdrop-blur-[2px] flex flex-col items-center justify-between py-12 px-6 select-none"
                     >
                       <div className="h-4" />
@@ -969,10 +969,12 @@ export function Explore() {
       {/* ============================================================ */}
       {showGestureGuide && guideStep === 'mobile-explore' && isMobileView && (
         <div
-          onClick={handleStep2Tap}
-          className="fixed inset-0 z-50 lg:hidden bg-slate-950/80 backdrop-blur-[2px] flex flex-col items-center justify-center pb-24 px-6 text-center select-none"
+          className="fixed inset-0 z-50 lg:hidden bg-slate-950/75 backdrop-blur-[2px] flex flex-col items-center justify-center pb-24 px-6 text-center select-none pointer-events-none"
         >
-          <div className="flex flex-col items-center gap-2.5">
+          <div
+            onClick={handleStep2Tap}
+            className="flex flex-col items-center gap-2.5 pointer-events-auto"
+          >
             <span className="text-lg font-extrabold tracking-wide text-sky-300">
               Double-tap Explore
             </span>
@@ -998,7 +1000,7 @@ export function Explore() {
               e.stopPropagation();
               dismissGestureGuide();
             }}
-            className="fixed bottom-[calc(6px+env(safe-area-inset-bottom,0px))] cursor-pointer"
+            className="fixed bottom-[calc(6px+env(safe-area-inset-bottom,0px))] cursor-pointer pointer-events-auto"
             style={{ left: '30%', transform: 'translateX(-50%)' }}
           >
             <div className="relative w-14 h-12 rounded-2xl bg-sky-500/20 border border-sky-400/80 shadow-[0_0_14px_rgba(56,189,248,0.45)] flex flex-col items-center justify-center text-white">
