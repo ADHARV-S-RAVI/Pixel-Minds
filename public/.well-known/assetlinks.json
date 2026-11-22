@@ -1,0 +1,14 @@
+[
+  {
+    "relation": [
+      "delegate_permission/common.handle_all_urls"
+    ],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "tech.pixelminds.pixelminds",
+      "sha256_cert_fingerprints": [
+        "14:8A:BC:FB:03:5F:80:D6:AA:BB:EE:5D:BA:BB:67:52:B6:17:D3:BC:B2:06:EF:4F:43:D5:94:8C:7E:0B:FD:AE"
+      ]
+    }
+  }
+]

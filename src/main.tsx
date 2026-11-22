@@ -9,13 +9,13 @@ import { AppProvider } from './store';
 
 console.log('[Pixel Minds] Running updated build with standalone 404 matrix');
 
-// Ensure any stale service workers from prior architectures are cleanly unregistered
+// Register Service Worker for PWA installation & offline caching
 if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
-  navigator.serviceWorker.getRegistrations().then((registrations) => {
-    for (const reg of registrations) {
-      reg.unregister();
-    }
-  }).catch(() => {});
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').catch((err) => {
+      console.warn('[PWA] Service Worker registration failed:', err);
+    });
+  });
 }
 
 createRoot(document.getElementById('root')!).render(

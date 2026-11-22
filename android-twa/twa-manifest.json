@@ -1,0 +1,40 @@
+{
+  "packageId": "tech.pixelminds.pixelminds",
+  "host": "www.pixel-minds.tech",
+  "name": "Pixel Minds",
+  "launcherName": "Pixel Minds",
+  "themeColor": "#07101f",
+  "navigationColor": "#07101f",
+  "backgroundColor": "#07101f",
+  "enableNotifications": false,
+  "startUrl": "/",
+  "iconUrl": "https://www.pixel-minds.tech/icons/icon-512x512.png",
+  "maskableIconUrl": "https://www.pixel-minds.tech/icons/icon-512x512.png",
+  "appVersionName": "1.0.0",
+  "appVersionCode": 1,
+  "signingKey": {
+    "path": "./android.keystore",
+    "alias": "pixelminds"
+  },
+  "splashScreenFadeOutDuration": 300,
+  "enableSiteSettingsShortcut": false,
+  "shortcuts": [],
+  "generatorApp": "bubblewrap",
+  "webManifestUrl": "https://www.pixel-minds.tech/manifest.json",
+  "fallbackType": "customtabs",
+  "features": {
+    "locationDelegation": {
+      "enabled": false
+    },
+    "playBilling": {
+      "enabled": false
+    }
+  },
+  "alphaDependencies": {
+    "enabled": false
+  },
+  "additionalTrustedOrigins": [
+    "https://pixelmindss.vercel.app",
+    "https://pixel-minds.tech"
+  ]
+}
