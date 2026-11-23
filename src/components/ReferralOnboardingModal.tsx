@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Tag, Sparkles, CheckCircle2, AlertCircle, X } from '@/components/Icons';
+import { Tag, CheckCircle2, AlertCircle, X } from '@/components/Icons';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import { validateReferralCode, recordReferralSignup } from '../services/referrals';
@@ -154,7 +154,6 @@ export const ReferralOnboardingModal: React.FC = () => {
             </div>
             <div>
               <span className="inline-flex items-center gap-1 text-[11px] font-bold uppercase tracking-wider text-sky-400">
-                <Sparkles size={11} />
                 Welcome Builder
               </span>
               <h3 className="text-lg font-black tracking-tight text-white leading-snug">

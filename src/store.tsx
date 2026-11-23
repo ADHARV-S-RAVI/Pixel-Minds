@@ -125,6 +125,17 @@ export const AppProvider: FC<{ children: ReactNode }> = ({ children }) => {
   const [sh, setSh] = useState<{ title: string; path: string } | null>(null);
   const [ok, setOk] = useState(false);
 
+  // Close share modal on Escape key without triggering any share or copy
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && sh) {
+        setSh(null);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [sh]);
+
   const say = (m: string) => {
     setToast(m);
     setTimeout(() => setToast(''), 2500);
@@ -254,9 +265,17 @@ export const AppProvider: FC<{ children: ReactNode }> = ({ children }) => {
   const url = sh ? link(sh.path) : '';
   const txt = sh ? `Check this out on Pixel Minds: ${sh.title}` : '';
 
-  const other = () => {
+  const other = async () => {
     if (typeof navigator !== 'undefined' && (navigator as any).share) {
-      (navigator as any).share({ title: sh?.title, text: txt, url }).catch(() => {});
+      try {
+        await (navigator as any).share({ title: sh?.title, text: txt, url });
+        if (user?.uid && sh?.path.includes('/opportunities/')) {
+          const oppId = sh.path.split('/opportunities/')[1]?.split('?')[0];
+          if (oppId) recordOpportunityShare(user.uid, oppId);
+        }
+      } catch (err: any) {
+        // Cancelled or aborted share should not track share count
+      }
     } else {
       copy(url);
     }
@@ -270,6 +289,7 @@ export const AppProvider: FC<{ children: ReactNode }> = ({ children }) => {
       ]
     : [];
 
+  // Handle Escape key to close share modal without incrementing share count
   return (
     <Ctx.Provider
       value={{
@@ -286,10 +306,7 @@ export const AppProvider: FC<{ children: ReactNode }> = ({ children }) => {
         say,
         share: (title: string, path: string) => {
           setSh({ title, path });
-          if (user?.uid && path.includes('/opportunities/')) {
-            const oppId = path.split('/opportunities/')[1]?.split('?')[0];
-            if (oppId) recordOpportunityShare(user.uid, oppId);
-          }
+          // Note: Do not track share count on modal opening; only track when user actually performs successful copy or share
         }
       }}
     >

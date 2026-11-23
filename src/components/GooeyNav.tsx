@@ -317,7 +317,9 @@ export const SidebarGooeyNav: React.FC<{ collapsed?: boolean }> = ({ collapsed =
   const isDark = theme === 'dark';
 
   const indexRef = useRef(activeIndex);
-  indexRef.current = activeIndex;
+  useEffect(() => {
+    indexRef.current = activeIndex;
+  }, [activeIndex]);
 
   const pillColor = isDark ? '#2563EB' : '#0B1628';
   const pillRgb = useMemo(() => parse(pillColor), [pillColor]);

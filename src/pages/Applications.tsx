@@ -9,7 +9,7 @@ import {
   ExternalLink,
   Plus,
   Send,
-  Sparkles,
+  Coins,
   ArrowLeft
 } from '@/components/Icons';
 import { useAuth } from '../contexts/AuthContext';
@@ -234,7 +234,7 @@ export function Applications() {
             <div className="rounded-2xl pm-glass-card p-3.5">
               <p className="text-[10px] font-bold text-blue-600 dark:text-sky-400 uppercase tracking-wider">Pixels Claimed</p>
               <p className="font-extrabold text-blue-600 dark:text-sky-400 text-lg mt-0.5 flex items-center gap-1">
-                <Sparkles size={14} />
+                <Coins size={14} />
                 <span>+{userApplications.filter((a) => a.rewardClaimed).reduce((sum, a) => sum + (a.pixelsRewarded || 10), 0)}</span>
               </p>
             </div>

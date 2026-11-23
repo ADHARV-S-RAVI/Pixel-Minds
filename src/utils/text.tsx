@@ -150,8 +150,8 @@ export function renderWithHashtags(text: string | null | undefined): React.React
   // Regex matches:
   // 1. Email addresses (so they are preserved intact and not parsed as mentions)
   // 2. Hashtags (#tag)
-  // 3. Mentions (@username) with strict username format: 3-20 letters/numbers/underscore
-  const tokenRegex = /([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}|#[a-zA-Z0-9_-]{2,30}|@[a-zA-Z0-9_]{3,20}\b)/g;
+  // 3. Mentions (@username) with username format: letters/numbers/underscore
+  const tokenRegex = /([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}|#[a-zA-Z0-9_-]{2,30}|@[a-zA-Z0-9_]{1,30}\b)/g;
   const parts = safeText.split(tokenRegex);
 
   return parts.map((part, i) => {
@@ -161,17 +161,20 @@ export function renderWithHashtags(text: string | null | undefined): React.React
     }
 
     if (part.startsWith('#') && part.length > 1) {
+      const cleanTag = part.slice(1);
       return (
-        <span
+        <a
           key={i}
-          className="font-bold text-blue-600 dark:text-sky-400 select-text hover:underline cursor-pointer"
+          href={`/feed?tag=${encodeURIComponent(cleanTag)}`}
+          className="font-bold text-blue-600 dark:text-sky-400 select-text hover:underline cursor-pointer inline-flex items-center gap-0.5"
+          title={`Find posts tagged ${part}`}
         >
           {part}
-        </span>
+        </a>
       );
     }
 
-    if (part.startsWith('@') && /^[a-zA-Z0-9_]{3,20}$/.test(part.slice(1))) {
+    if (part.startsWith('@') && /^[a-zA-Z0-9_]{1,30}$/.test(part.slice(1))) {
       const mentionName = part.slice(1).toLowerCase();
       return (
         <a

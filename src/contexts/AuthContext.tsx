@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase';
 import type { User } from '../types';
 import { getUserProfile, createUserProfile, updateUserProfile, generateUniqueUsername } from '../services/users';
 import { recordReferralSignup } from '../services/referrals';
+import { notifyPixelChange } from '../services/notifications';
 
 // User interface bridging Supabase Auth User with legacy uid/id properties
 export interface AuthUser extends SupabaseAuthUser {
@@ -567,6 +568,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           const updatedRow = payload?.new;
           if (updatedRow && updatedRow.id === currentUser.id) {
             setUserData((prev) => {
+              if (prev && typeof updatedRow.pixels === 'number' && typeof prev.pixels === 'number') {
+                const diff = updatedRow.pixels - prev.pixels;
+                if (diff !== 0) {
+                  notifyPixelChange({
+                    userId: currentUser.id,
+                    amount: diff,
+                    actionName: diff > 0 ? 'Pixel Activity' : 'Pixel Deduction'
+                  }).catch(() => {});
+                }
+              }
               if (!prev) {
                 return {
                   id: updatedRow.id,
@@ -623,8 +634,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
   }, [currentUser?.id]);
 
-  const incrementPixels = (delta: number, _actionName?: string, _reasonText?: string, idempotencyKey?: string) => {
+  const incrementPixels = (delta: number, actionName?: string, reasonText?: string, idempotencyKey?: string) => {
     if (!currentUser?.id) return;
+
+    // Trigger instant notification popup and bell notification
+    if (delta !== 0) {
+      notifyPixelChange({
+        userId: currentUser.id,
+        amount: delta,
+        actionName: actionName || (delta > 0 ? 'Pixel Reward' : 'Pixel Adjustment'),
+        reason: reasonText
+      }).catch(() => {});
+    }
 
     // Apply optimistic UI increment for immediate responsiveness
     setUserData((prev) => {

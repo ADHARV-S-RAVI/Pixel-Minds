@@ -63,6 +63,18 @@ export const createReport = async (payload: {
     throw new Error('Authentication required: You must be signed in with a valid account to submit a report.');
   }
 
+  // Validate targetType and targetId
+  if (!['opportunity', 'post', 'comment', 'user'].includes(payload.targetType)) {
+    throw new Error('Invalid report target type.');
+  }
+  if (!payload.targetId || !UUID_REGEX.test(payload.targetId)) {
+    throw new Error('Invalid report target ID format.');
+  }
+
+  // Ensure authenticated session matches reporterId when session exists
+  const { data: authData } = await supabase.auth.getUser();
+  const actualUserId = authData?.user?.id || payload.reporterId;
+
   const fullReason = payload.details && payload.details.trim()
     ? `${payload.reason} - Details: ${payload.details.trim()}`
     : payload.reason;
@@ -75,12 +87,12 @@ export const createReport = async (payload: {
   const { data, error } = await supabase
     .from('reports')
     .insert({
-      reporter_id: payload.reporterId,
+      reporter_id: actualUserId,
       target_type: payload.targetType,
       target_id: payload.targetId,
       target_title: payload.targetTitle || null,
       target_snippet: payload.targetContent || null,
-      reporter_email: payload.reporterEmail || null,
+      reporter_email: authData?.user?.email || payload.reporterEmail || null,
       reason: formattedReason,
       details: payload.details || null,
       status: 'pending'
@@ -92,6 +104,9 @@ export const createReport = async (payload: {
     console.error('[createReport] Supabase error:', error);
     if (error.code === '42501') {
       throw new Error('Permission denied: You must be signed in with your Pixel Minds account to submit reports.');
+    }
+    if (error.message?.includes('Rate limit') || error.code === 'P0001') {
+      throw new Error('You have submitted too many reports recently. Please wait before submitting another report.');
     }
     throw new Error(error.message || 'Failed to submit report. Please try again.');
   }

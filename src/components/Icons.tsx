@@ -7,8 +7,9 @@ export interface IconProps extends React.SVGProps<SVGSVGElement> {
   className?: string;
 }
 
-export type LucideIcon = React.FC<IconProps>;
-export type Icon = React.FC<IconProps>;
+export type SvgIcon = React.FC<IconProps>;
+export type LucideIcon = SvgIcon; // Kept for backwards compatibility if referenced
+export type Icon = SvgIcon;
 
 function createSvgIcon(
   displayName: string,
@@ -640,18 +641,7 @@ export const Sliders = createSvgIcon('Sliders', [
     ["path", { d: "M5 10V3", key: "cb8scm" }],
     ["path", { d: "M5 21v-7", key: "1w1uti" }]
   ]);
-export const Sparkles = createSvgIcon('Sparkles', [
-    [
-      "path",
-      {
-        d: "M11.017 2.814a1 1 0 0 1 1.966 0l1.051 5.558a2 2 0 0 0 1.594 1.594l5.558 1.051a1 1 0 0 1 0 1.966l-5.558 1.051a2 2 0 0 0-1.594 1.594l-1.051 5.558a1 1 0 0 1-1.966 0l-1.051-5.558a2 2 0 0 0-1.594-1.594l-5.558-1.051a1 1 0 0 1 0-1.966l5.558-1.051a2 2 0 0 0 1.594-1.594z",
-        key: "1s2grr"
-      }
-    ],
-    ["path", { d: "M20 2v4", key: "1rf3ol" }],
-    ["path", { d: "M22 4h-4", key: "gwowj6" }],
-    ["circle", { cx: "4", cy: "20", r: "2", key: "6kqj1y" }]
-  ]);
+// Deprecated icons removed
 export const Sun = createSvgIcon('Sun', [
     ["circle", { cx: "12", cy: "12", r: "4", key: "4exip2" }],
     ["path", { d: "M12 2v2", key: "tus03m" }],
@@ -727,12 +717,4 @@ export const XCircle = createSvgIcon('XCircle', [
     ["path", { d: "m15 9-6 6", key: "1uzhvr" }],
     ["path", { d: "m9 9 6 6", key: "z0biqf" }]
   ]);
-export const Zap = createSvgIcon('Zap', [
-    [
-      "path",
-      {
-        d: "M15.914 4a1.5 1.5 0 00-2.474-1.561l-9 9A1.5 1.5 0 005.5 14h4.002a.5.5 0 01.471.666L8.086 20a1.5 1.5 0 002.475 1.56l9-9A1.5 1.5 0 0018.5 10h-3.997a.5.5 0 01-.472-.667z",
-        key: "1v7up4"
-      }
-    ]
-  ]);
+

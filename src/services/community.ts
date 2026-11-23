@@ -1,6 +1,7 @@
 import { supabase } from '../lib/supabase';
 import type { CommunityPost } from '../types';
-import { sanitizeInput, safeUrl } from '../utils/text';
+import { sanitizeInput, safeUrl, validateMessageSafety, validateUrlSafety } from '../utils/text';
+import { VERIFIED_OPPORTUNITIES } from '../data/verifiedOpportunities';
 import { 
   logFailedPost, 
   logFeedError, 
@@ -49,7 +50,8 @@ export const mapPostRow = (row: any, profileMap?: Map<string, any>): CommunityPo
   const prof = profileMap?.get(row.user_id);
   const rawAuthor = prof?.full_name?.trim();
   const hasRealAuthor = rawAuthor && rawAuthor.toLowerCase() !== 'pixel builder';
-  const cleanUsername = prof?.username ? (prof.username.startsWith('@') ? prof.username : `@${prof.username}`) : undefined;
+  const rawUsername = prof?.username?.trim();
+  const cleanUsername = rawUsername ? (rawUsername.startsWith('@') ? rawUsername : `@${rawUsername}`) : undefined;
   const rowAuthor = row.author_name && row.author_name.toLowerCase() !== 'pixel builder' ? row.author_name : undefined;
 
   const resolvedAuthor =
@@ -59,6 +61,19 @@ export const mapPostRow = (row: any, profileMap?: Map<string, any>): CommunityPo
     (row.source === 'admin' ? 'Pixel Minds Team' : 'Pixel Member');
 
   const resolvedAvatar = prof?.avatar_url || row.author_avatar || undefined;
+
+  // Inspect if this post is a repost attribution
+  let isRepost = false;
+  let originalAuthorUsername: string | undefined = undefined;
+  let originalAuthorName: string | undefined = undefined;
+  let originalPostId: string | undefined = undefined;
+
+  const repostMatch = (row.title || '').match(/^Repost from @([a-zA-Z0-9_]{3,20})/i) ||
+                      (row.text || '').match(/^Reposted from @([a-zA-Z0-9_]{3,20}):/i);
+  if (repostMatch) {
+    isRepost = true;
+    originalAuthorUsername = `@${repostMatch[1]}`;
+  }
 
   return {
     id: row.id,
@@ -85,7 +100,12 @@ export const mapPostRow = (row: any, profileMap?: Map<string, any>): CommunityPo
     isEdited,
     updatedAt: row.updated_at ? new Date(row.updated_at).getTime() : undefined,
     createdAt: new Date(row.created_at).getTime(),
-    likerIds
+    likerIds,
+    authorUsername: cleanUsername,
+    isRepost,
+    originalAuthorUsername,
+    originalAuthorName,
+    originalPostId
   };
 };
 
@@ -241,17 +261,42 @@ export const createCommunityPost = async (
     throw new Error('You must be signed in to create a post. Please sign in and try again.');
   }
 
-  // 2. Validate opportunity_id if provided (ensure it exists in opportunities table to avoid FK error)
+  // 2. Validate opportunity_id if provided (ensure it exists and is published to prevent invalid/unpublished attachments)
   let validOppId: string | null = null;
-  const oppIdStr = postData.opp ? String(postData.opp) : null;
-  if (oppIdStr && UUID_REGEX.test(oppIdStr)) {
-    const { data: existingOpp } = await supabase
-      .from('opportunities')
-      .select('id')
-      .eq('id', oppIdStr)
-      .maybeSingle();
-    if (existingOpp) {
-      validOppId = existingOpp.id;
+  const oppIdStr = postData.opp !== undefined && postData.opp !== null && postData.opp !== 0 && postData.opp !== '0'
+    ? String(postData.opp).trim()
+    : null;
+
+  if (oppIdStr) {
+    if (UUID_REGEX.test(oppIdStr)) {
+      const { data: existingOpp, error: oppErr } = await supabase
+        .from('opportunities')
+        .select('id, status')
+        .eq('id', oppIdStr)
+        .maybeSingle();
+
+      if (oppErr) {
+        console.warn('[createCommunityPost] Opportunity query warning:', oppErr.message);
+      }
+
+      if (existingOpp) {
+        if (existingOpp.status !== 'published') {
+          throw new Error('Cannot attach an unpublished or invalid opportunity.');
+        }
+        validOppId = existingOpp.id;
+      } else {
+        const verifiedMatch = VERIFIED_OPPORTUNITIES.find((v) => v.id === oppIdStr);
+        if (!verifiedMatch) {
+          throw new Error('Selected opportunity does not exist or is invalid.');
+        }
+        validOppId = verifiedMatch.id;
+      }
+    } else {
+      const verifiedMatch = VERIFIED_OPPORTUNITIES.find((v) => String(v.id) === oppIdStr);
+      if (!verifiedMatch) {
+        throw new Error('Selected opportunity does not exist or is invalid.');
+      }
+      validOppId = String(verifiedMatch.id);
     }
   }
 
@@ -395,39 +440,184 @@ export const createAdminCommunityPost = async (
 
 /**
  * Update an existing community post.
- * User can update own post; Admin can moderate any post (enforced by RLS).
+ * Allows verified Admins to edit any post; Ordinary users can only edit their own posts.
+ * Strictly preserves immutable fields: user_id, author identity, interaction counters, created_at.
+ * Ordinary users cannot update admin-controlled fields (status, featured, source).
  */
 export const updateCommunityPost = async (
   id: string,
-  updates: Partial<CommunityPost> & { title?: string; description?: string }
+  updates: Partial<CommunityPost> & { title?: string; description?: string },
+  authOverride?: { uid: string; role?: string } | string
 ): Promise<void> => {
+  // 1. Identify authenticated user
+  const { data: authData } = await supabase.auth.getUser();
+  const authUser = authData?.user;
+  const currentUserId = typeof authOverride === 'object' ? authOverride?.uid : (authOverride || authUser?.id);
+  const overrideRole = typeof authOverride === 'object' ? authOverride?.role : undefined;
+
+  if (!currentUserId) {
+    throw new Error('You must be signed in to edit a community post.');
+  }
+
   if (!id || !UUID_REGEX.test(id)) {
     throw new Error('Invalid post ID format.');
   }
 
+  // 2. Fetch existing post to check creator and current metadata
+  const { data: existingPost, error: fetchErr } = await supabase
+    .from('community_posts')
+    .select('id, user_id, author_name, author_role, source, likes, comments, reposts, shares, bookmarks_count, status, featured, opportunity_id, text, title, description, category, link, image_url, created_at')
+    .eq('id', id)
+    .maybeSingle();
+
+  if (fetchErr || !existingPost) {
+    throw new Error('Community post not found.');
+  }
+
+  // 3. Determine if current user is an admin
+  let isAdmin = false;
+  if (overrideRole && String(overrideRole).toLowerCase() === 'admin') {
+    isAdmin = true;
+  } else {
+    const metadataRole = authUser?.user_metadata?.role || authUser?.app_metadata?.role;
+    if (metadataRole && String(metadataRole).toLowerCase() === 'admin') {
+      isAdmin = true;
+    } else {
+      try {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', currentUserId)
+          .maybeSingle();
+        if (profile?.role && String(profile.role).toLowerCase() === 'admin') {
+          isAdmin = true;
+        }
+      } catch {}
+    }
+  }
+
+  // 4. Authorization enforcement: ONLY the original author can edit their own post.
+  // Admins cannot edit community posts (admins can delete, but cannot edit).
+  if (String(existingPost.user_id) !== String(currentUserId)) {
+    logUnauthorizedAttempt(currentUserId, 'updateCommunityPost', id);
+    throw new Error('You are not authorized to edit this post. Only the original author can edit their own post.');
+  }
+
+  // Admin-only fields guard
+  if (!isAdmin && (updates.status !== undefined || (updates as any).featured !== undefined)) {
+    throw new Error('Only administrators can modify post status or featured state.');
+  }
+
+  // 5. Build validated payload strictly excluding immutable fields
+  const previousText = existingPost.text || '';
   const payload: any = {};
+  let newFullText = '';
+
+  let postTitle = updates.title !== undefined ? sanitizeInput(updates.title).trim() : (existingPost.title || '');
+  let postDesc = updates.description !== undefined ? sanitizeInput(updates.description).trim() : (existingPost.description || '');
+
   if (updates.text !== undefined) {
     const cleanText = sanitizeInput(updates.text).trim();
     if (!cleanText) throw new Error('Post content cannot be empty.');
     if (cleanText.length > 5000) throw new Error('Post content exceeds 5000 characters limit.');
     payload.text = cleanText;
-  } else if (updates.title !== undefined || updates.description !== undefined) {
-    const title = sanitizeInput(updates.title || '').trim();
-    const desc = sanitizeInput(updates.description || '').trim();
-    if (!title) throw new Error('Post title cannot be empty.');
-    if (title.length > 150) throw new Error('Post title exceeds 150 characters limit.');
-    if (desc.length > 5000) throw new Error('Post description exceeds 5000 characters limit.');
-    payload.title = title;
-    payload.description = desc;
-    payload.text = title + (desc ? '\n\n' + desc : '');
+    newFullText = cleanText;
+    if (updates.title === undefined) {
+      const firstLine = cleanText.split('\n')[0].trim();
+      postTitle = firstLine.length > 80 ? firstLine.substring(0, 77) + '...' : firstLine;
+    }
+    if (updates.description === undefined) {
+      postDesc = cleanText.includes('\n') ? cleanText.substring(cleanText.indexOf('\n')).trim() : cleanText;
+    }
   }
-  if (updates.category !== undefined) payload.category = updates.category;
-  if (updates.link !== undefined) payload.link = updates.link ? safeUrl(updates.link) : null;
-  if (updates.imageUrl !== undefined) payload.image_url = updates.imageUrl ? safeUrl(updates.imageUrl) : null;
-  if (updates.status !== undefined) payload.status = updates.status;
-  if (updates.featured !== undefined) payload.featured = updates.featured;
 
+  if (!postTitle) throw new Error('Post title cannot be empty.');
+  if (postTitle.length > 150) throw new Error('Post title exceeds 150 characters limit.');
+  if (!postDesc) throw new Error('Post description cannot be empty.');
+  if (postDesc.length > 5000) throw new Error('Post description exceeds 5000 characters limit.');
+
+  const titleSafety = validateMessageSafety(postTitle);
+  if (!titleSafety.safe) throw new Error(titleSafety.error || 'Post title contains unsafe script or HTML injection.');
+  const descSafety = validateMessageSafety(postDesc);
+  if (!descSafety.safe) throw new Error(descSafety.error || 'Post description contains unsafe script or HTML injection.');
+
+  payload.title = postTitle;
+  payload.description = postDesc;
+  if (updates.text === undefined) {
+    payload.text = postTitle + (postDesc ? '\n\n' + postDesc : '');
+    newFullText = payload.text;
+  }
+
+  if (updates.category !== undefined) {
+    payload.category = updates.category ? sanitizeInput(updates.category).trim() : 'General';
+  }
+
+  if (updates.link !== undefined) {
+    if (updates.link && updates.link.trim()) {
+      const urlCheck = validateUrlSafety(updates.link.trim());
+      if (!urlCheck.safe) {
+        throw new Error(urlCheck.error || 'Invalid link URL. Must use HTTP or HTTPS.');
+      }
+      payload.link = safeUrl(updates.link.trim());
+    } else {
+      payload.link = null;
+    }
+  }
+
+  if (updates.opp !== undefined) {
+    const oppIdStr = updates.opp !== null && updates.opp !== 0 && updates.opp !== '0'
+      ? String(updates.opp).trim()
+      : null;
+
+    if (oppIdStr) {
+      if (UUID_REGEX.test(oppIdStr)) {
+        const { data: oppRecord } = await supabase
+          .from('opportunities')
+          .select('id, status')
+          .eq('id', oppIdStr)
+          .maybeSingle();
+
+        if (oppRecord) {
+          if (oppRecord.status !== 'published') {
+            throw new Error('Attached opportunity was not found or is not published.');
+          }
+          payload.opportunity_id = oppRecord.id;
+        } else {
+          const verified = VERIFIED_OPPORTUNITIES.find((v) => v.id === oppIdStr);
+          if (!verified) {
+            throw new Error('Attached opportunity was not found or is not published.');
+          }
+          payload.opportunity_id = verified.id;
+        }
+      } else {
+        const verified = VERIFIED_OPPORTUNITIES.find((v) => String(v.id) === oppIdStr);
+        if (!verified) {
+          throw new Error('Attached opportunity was not found or is not published.');
+        }
+        payload.opportunity_id = String(verified.id);
+      }
+    } else {
+      payload.opportunity_id = null;
+    }
+  }
+
+  if (updates.imageUrl !== undefined) {
+    payload.image_url = updates.imageUrl ? safeUrl(updates.imageUrl) : null;
+  }
+
+  // Status or featured cannot be altered via edit
+  delete (payload as any).status;
+  delete (payload as any).featured;
+
+  payload.is_edited = true;
   payload.updated_at = new Date().toISOString();
+
+  // Strict defense-in-depth: permanently strip immutable fields from payload
+  delete (payload as any).user_id;
+  delete (payload as any).author_name;
+  delete (payload as any).likes_count;
+  delete (payload as any).comments_count;
+  delete (payload as any).created_at;
 
   const { error } = await supabase
     .from('community_posts')
@@ -438,6 +628,11 @@ export const updateCommunityPost = async (
     console.error('Failed to update community post:', error.message);
     logFeedError(error, 'updateCommunityPost');
     throw new Error('Failed to update community post: ' + error.message);
+  }
+
+  // Dispatch differential mention notifications
+  if (newFullText && newFullText !== previousText) {
+    handleContentMentions(newFullText, id, updates.user || existingPost.author_name || 'A builder', 'post', currentUserId, previousText).catch(() => {});
   }
 };
 
@@ -602,7 +797,9 @@ export const getPostLikes = async (postId: string): Promise<Array<{ id: string; 
 export const updatePostComment = async (
   commentId: string,
   newText: string,
-  userId: string
+  userId: string,
+  postId?: string,
+  authorName?: string
 ): Promise<void> => {
   if (!userId) {
     throw new Error('Authentication required to edit comment.');
@@ -615,8 +812,23 @@ export const updatePostComment = async (
     throw new Error('Comment text exceeds maximum allowed length of 2000 characters.');
   }
 
-  // Update in Supabase only if commentId is a valid UUID
+  // Fetch previous comment content for differential mention notifications
+  let previousText = '';
   if (UUID_REGEX.test(commentId)) {
+    try {
+      const { data: prevComment } = await supabase
+        .from('community_comments')
+        .select('text, post_id')
+        .eq('id', commentId)
+        .maybeSingle();
+      if (prevComment) {
+        previousText = prevComment.text || '';
+        if (!postId && prevComment.post_id) {
+          postId = prevComment.post_id;
+        }
+      }
+    } catch {}
+
     const { error } = await supabase
       .from('community_comments')
       .update({ text: clean })
@@ -625,6 +837,10 @@ export const updatePostComment = async (
     if (error) {
       console.error('Failed to update comment:', error.message);
       throw new Error('Failed to update comment: ' + error.message);
+    }
+
+    if (postId && clean !== previousText) {
+      handleContentMentions(clean, postId, authorName || 'A builder', 'comment', userId, previousText).catch(() => {});
     }
   }
 };
@@ -1065,7 +1281,7 @@ export const recordPostInteraction = async (
   postId: string,
   userId: string,
   type: 'repost' | 'share'
-): Promise<{ success: boolean; count: number }> => {
+): Promise<{ success: boolean; count: number; alreadyReposted?: boolean; error?: string }> => {
   if (!userId) {
     throw new Error('Authentication required for post interaction.');
   }
@@ -1076,27 +1292,106 @@ export const recordPostInteraction = async (
       p_post_id: postId,
       p_type: type
     });
-    if (!error && data?.success) {
-      return {
-        success: true,
-        count: Number(data.count ?? 0)
-      };
+    if (!error) {
+      if (data?.success) {
+        if (type === 'repost') {
+          // Explicitly ensure repost notification is dispatched to original author
+          (supabase.rpc as any)('dispatch_repost_notification', { p_post_id: postId }).catch(() => {});
+        }
+        return {
+          success: true,
+          count: Number(data.count ?? 0)
+        };
+      }
+      if (data?.already_reposted) {
+        return {
+          success: false,
+          alreadyReposted: true,
+          count: Number(data.count ?? 0),
+          error: data.error || 'You have already reposted this post.'
+        };
+      }
+      if (data?.error) {
+        throw new Error(data.error);
+      }
     }
-  } catch (rpcErr) {
+    if (error) {
+      if (error.message?.includes('own post') || error.message?.includes('already reposted')) {
+        throw new Error(error.message);
+      }
+      console.warn('[recordPostInteraction] RPC error notice:', error.message);
+    }
+  } catch (rpcErr: any) {
+    if (rpcErr?.message?.includes('own post') || rpcErr?.message?.includes('already reposted')) {
+      throw rpcErr;
+    }
     console.warn('[recordPostInteraction] RPC notice, falling back to direct table update:', rpcErr);
   }
 
-  // 2. Direct table fallback on community_posts
+  // 2. Direct table fallback on community_posts & community_interactions
   try {
     const colName = type === 'repost' ? 'reposts' : 'shares';
+    
+    // Check if post exists and user is owner (prevent self-repost)
     const { data: postRow } = await supabase
       .from('community_posts')
-      .select('reposts, shares')
+      .select('id, user_id, reposts, shares, title, text')
       .eq('id', postId)
       .single();
 
-    const currentCount = Number(postRow?.[colName] ?? 0);
-    const newCount = currentCount + 1;
+    if (!postRow) {
+      throw new Error('Post not found');
+    }
+
+    if (type === 'repost' && postRow.user_id === userId) {
+      throw new Error('You cannot repost your own post.');
+    }
+
+    // Repost uniqueness enforcement
+    if (type === 'repost') {
+      const { data: existingInteraction } = await supabase
+        .from('community_interactions')
+        .select('id')
+        .eq('post_id', postId)
+        .eq('user_id', userId)
+        .eq('interaction_type', 'repost')
+        .maybeSingle();
+
+      if (existingInteraction) {
+        return {
+          success: false,
+          alreadyReposted: true,
+          count: Number(postRow.reposts ?? 0),
+          error: 'You have already reposted this post.'
+        };
+      }
+
+      await supabase
+        .from('community_interactions')
+        .insert({
+          post_id: postId,
+          user_id: userId,
+          interaction_type: 'repost'
+        });
+    } else if (type === 'share') {
+      // Record share interaction idempotently
+      await supabase
+        .from('community_interactions')
+        .insert({
+          post_id: postId,
+          user_id: userId,
+          interaction_type: 'share'
+        });
+    }
+
+    // Count actual interactions in community_interactions
+    const { count: actualCount } = await supabase
+      .from('community_interactions')
+      .select('*', { count: 'exact', head: true })
+      .eq('post_id', postId)
+      .eq('interaction_type', type);
+
+    const newCount = actualCount ?? (Number(postRow?.[colName] ?? 0) + 1);
 
     const updatePayload = type === 'repost' ? { reposts: newCount } : { shares: newCount };
     await supabase
@@ -1104,13 +1399,71 @@ export const recordPostInteraction = async (
       .update(updatePayload)
       .eq('id', postId);
 
+    // Fallback notification for repost to original author
+    if (type === 'repost' && postRow.user_id && postRow.user_id !== userId) {
+      try {
+        await (supabase.rpc as any)('dispatch_repost_notification', { p_post_id: postId });
+      } catch (rpcNotifErr) {
+        console.warn('[recordPostInteraction] dispatch_repost_notification fallback error:', rpcNotifErr);
+      }
+    }
+
     return {
       success: true,
       count: newCount
     };
-  } catch (fallbackErr) {
+  } catch (fallbackErr: any) {
+    if (fallbackErr?.message?.includes('own post') || fallbackErr?.message?.includes('already reposted')) {
+      throw fallbackErr;
+    }
     console.warn('[recordPostInteraction] Fallback notice:', fallbackErr);
     return { success: true, count: 1 };
+  }
+};
+
+/**
+ * Remove a post interaction (undo repost)
+ */
+export const removePostInteraction = async (
+  postId: string,
+  userId: string,
+  type: 'repost' | 'share'
+): Promise<{ success: boolean; count: number }> => {
+  if (!userId) {
+    throw new Error('Authentication required for post interaction.');
+  }
+
+  try {
+    const colName = type === 'repost' ? 'reposts' : 'shares';
+
+    // 1. Delete from community_interactions (this automatically triggers tr_sync_community_post_interactions_counter)
+    const { error: delErr } = await supabase
+      .from('community_interactions')
+      .delete()
+      .eq('post_id', postId)
+      .eq('user_id', userId)
+      .eq('interaction_type', type);
+
+    if (delErr) {
+      console.warn('[removePostInteraction] Delete error:', delErr.message);
+    }
+
+    // 2. Fetch updated post row to get the trigger-synchronized count
+    const { data: postRow } = await supabase
+      .from('community_posts')
+      .select('id, reposts, shares')
+      .eq('id', postId)
+      .maybeSingle();
+
+    let newCount = postRow && typeof postRow[colName] === 'number' ? Number(postRow[colName]) : 0;
+
+    return {
+      success: true,
+      count: newCount
+    };
+  } catch (err: any) {
+    console.warn('[removePostInteraction] Notice:', err);
+    return { success: true, count: 0 };
   }
 };
 
@@ -1300,49 +1653,80 @@ export const getUserBookmarks = async (userId: string): Promise<string[]> => {
 /**
  * Detect mentions in content and dispatch notifications to mentioned users.
  * Strictly uses unique usernames, ignores email addresses, and prevents self-notifications.
+ * If previousContent is provided, only dispatches notifications to newly added mentions.
  */
 export const handleContentMentions = async (
   content: string,
   postId: string,
   actorName: string,
   contextType: 'post' | 'comment' = 'post',
-  actorId?: string
+  actorId?: string,
+  previousContent?: string
 ): Promise<void> => {
   if (!content || !postId) return;
 
   // Protect against parsing email addresses as mentions
   // Extract tokens that look like emails or mentions
   const tokenRegex = /([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}|@[a-zA-Z0-9_]{3,20}\b)/g;
-  const matches = content.match(tokenRegex);
-  if (!matches || matches.length === 0) return;
 
-  // Filter for valid mentions only (excluding emails)
-  const validUsernames: string[] = [];
-  for (const token of matches) {
-    if (token.startsWith('@') && !token.includes('.')) {
-      const u = token.slice(1).trim().toLowerCase();
-      if (/^[a-zA-Z0-9_]{3,20}$/.test(u)) {
-        validUsernames.push(u);
+  const extractValidUsernames = (text: string): string[] => {
+    const matches = text.match(tokenRegex);
+    if (!matches) return [];
+    const result: string[] = [];
+    for (const token of matches) {
+      if (token.startsWith('@') && !token.includes('.')) {
+        const u = token.slice(1).trim().toLowerCase();
+        if (/^[a-zA-Z0-9_]{3,20}$/.test(u)) {
+          result.push(u);
+        }
       }
     }
-  }
+    return Array.from(new Set(result));
+  };
 
-  const uniqueUsernames = Array.from(new Set(validUsernames));
-  if (uniqueUsernames.length === 0) return;
+  const currentMentions = extractValidUsernames(content);
+  if (currentMentions.length === 0) return;
 
-  for (const username of uniqueUsernames) {
+  const prevMentions = previousContent ? extractValidUsernames(previousContent) : [];
+  // Only notify newly added mentions
+  const newMentions = currentMentions.filter((u) => !prevMentions.includes(u));
+  if (newMentions.length === 0) return;
+
+  for (const username of newMentions) {
     try {
-      // Find matching active user profile by unique username via public_profiles
-      const { data: matchedProfiles } = await (supabase as any)
-        .from('public_profiles')
-        .select('id, username, full_name')
-        .ilike('username', username)
-        .limit(1);
+      // Find matching active user profile by unique username via public_profiles or search fallback
+      let targetUser: { id: string } | null = null;
+      try {
+        const { data: matchedProfiles } = await (supabase as any)
+          .from('public_profiles')
+          .select('id, username, full_name')
+          .ilike('username', username)
+          .limit(1);
+        if (matchedProfiles && matchedProfiles.length > 0) {
+          targetUser = matchedProfiles[0];
+        }
+      } catch (profErr) {
+        console.warn(`[handleContentMentions] Error querying public_profiles for @${username}:`, profErr);
+      }
 
-      const targetUser = matchedProfiles?.[0];
+      // Fallback via search_usernames_for_mention if public_profiles didn't resolve
+      if (!targetUser) {
+        try {
+          const { data: searchResults } = await (supabase.rpc as any)('search_usernames_for_mention', {
+            p_prefix: username,
+            p_limit: 5
+          });
+          const exact = (searchResults || []).find((r: any) => r.username?.toLowerCase() === username.toLowerCase());
+          if (exact) {
+            targetUser = { id: exact.id };
+          }
+        } catch (searchRpcErr) {
+          console.warn('[handleContentMentions] search_usernames_for_mention fallback error:', searchRpcErr);
+        }
+      }
       // Do not notify self or missing accounts
       if (targetUser && targetUser.id && targetUser.id !== actorId) {
-        // Try RPC first
+        // Dispatch mention notification securely via verified RPC
         try {
           await (supabase.rpc as any)('dispatch_mention_notification', {
             p_target_user_id: targetUser.id,
@@ -1351,27 +1735,8 @@ export const handleContentMentions = async (
             p_snippet: content.substring(0, 100),
             p_context_type: contextType
           });
-        } catch {
-          // Fallback direct notification
-          const { data: notif } = await supabase
-            .from('notifications')
-            .insert({
-              title: `${actorName} mentioned you in a ${contextType}`,
-              message: `"${content.substring(0, 100)}"`,
-              type: 'community',
-              link: `/feed#${postId}`
-            })
-            .select()
-            .maybeSingle();
-
-          if (notif?.id) {
-            await supabase
-              .from('user_notifications')
-              .insert({
-                user_id: targetUser.id,
-                notification_id: notif.id
-              });
-          }
+        } catch (rpcErr) {
+          console.warn('[handleContentMentions] RPC dispatch notice:', rpcErr);
         }
       }
     } catch (mentionErr) {

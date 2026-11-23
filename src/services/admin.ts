@@ -1,8 +1,8 @@
 import { supabase } from '../lib/supabase';
 import {
   createAdminCommunityPost as createSupabaseAdminPost,
-  updateCommunityPost as updateSupabasePost,
-  deleteCommunityPost as deleteSupabasePost
+  deleteCommunityPost as deleteSupabasePost,
+  updateCommunityPost as updateSupabasePost
 } from './community';
 import type { 
   AuditLog, 
@@ -113,12 +113,13 @@ export const createAdminCommunityPost = async (
   return post;
 };
 
+
 export const updateCommunityPost = async (
   adminUser: { uid: string; email: string },
   id: string,
-  updates: Partial<CommunityPost>
+  updates: any
 ): Promise<void> => {
-  await updateSupabasePost(id, updates);
+  await updateSupabasePost(id, updates as any, { uid: adminUser.uid, role: 'admin' });
 
   try {
     await recordAuditLog({
@@ -126,11 +127,10 @@ export const updateCommunityPost = async (
       adminEmail: adminUser.email,
       action: 'Updated Community Post',
       targetType: 'post',
-      targetId: id,
-      newValue: updates
+      targetId: id
     });
   } catch (err) {
-    console.warn('Failed to record audit log for community post:', err);
+    console.warn('Failed to record audit log for updated community post:', err);
   }
 };
 

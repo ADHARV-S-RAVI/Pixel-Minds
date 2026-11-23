@@ -9,7 +9,7 @@ import {
   Rocket,
   Mic,
   Award,
-  Sparkles
+  Globe
 } from '@/components/Icons';
 import type { LucideIcon } from '@/components/Icons';
 
@@ -31,7 +31,7 @@ export const meta: Record<string, CategoryMeta> = {
   'Startup Programs': { Icon: Rocket, a: '#2E2228', b: '#1E1418', accent: '#F87171' },
   Conferences: { Icon: Mic, a: '#162E3B', b: '#0E1F29', accent: '#22D3EE' },
   Fellowships: { Icon: Award, a: '#222340', b: '#14152B', accent: '#C084FC' },
-  Other: { Icon: Sparkles, a: '#162B45', b: '#0B1628', accent: '#38BDF8' }
+  Other: { Icon: Globe, a: '#162B45', b: '#0B1628', accent: '#38BDF8' }
 };
 
 export const getCategoryMeta = (category: string): CategoryMeta => {

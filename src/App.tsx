@@ -23,6 +23,7 @@ const Applications = lazy(() => import('./pages/Applications').then(m => ({ defa
 const Notifications = lazy(() => import('./pages/Notifications').then(m => ({ default: m.Notifications })));
 const SubmitOpportunity = lazy(() => import('./pages/SubmitOpportunity').then(m => ({ default: m.SubmitOpportunity })));
 const NotFound = lazy(() => import('./pages/NotFound').then(m => ({ default: m.NotFound })));
+const ErrorPage = lazy(() => import('./pages/ErrorPage').then(m => ({ default: m.ErrorPage })));
 const PrivacyPolicy = lazy(() => import('./pages/PrivacyPolicy').then(m => ({ default: m.PrivacyPolicy })));
 const Terms = lazy(() => import('./pages/Terms').then(m => ({ default: m.Terms })));
 
@@ -143,8 +144,10 @@ export default function App() {
             />
           </Route>
 
-          {/* Dedicated 404 & Global Fallback Routes outside Layout shell */}
+          {/* Dedicated 404, 500 & Global Fallback Routes outside Layout shell */}
           <Route path="/404" element={<NotFound />} />
+          <Route path="/500" element={<ErrorPage />} />
+          <Route path="/error" element={<ErrorPage />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </Suspense>

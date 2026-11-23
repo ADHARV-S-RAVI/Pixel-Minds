@@ -48,7 +48,8 @@ import {
   deletePostComment,
   updateCommunityPost,
   updatePostComment,
-  recordPostInteraction
+  recordPostInteraction,
+  removePostInteraction
 } from './services/community';
 import { searchUsernamesForMention } from './services/users';
 import { renderWithHashtags, validateMessageSafety, sanitizeInput, safeUrl, validateUrlSafety } from './utils/text';
@@ -71,9 +72,20 @@ import {
   IconTrash,
   IconPen,
   IconBriefcase,
-  IconLink
+  IconLink,
+  IconPhoto
 } from './components/FeedIcons';
 import { SearchAutocomplete } from './components/SearchAutocomplete';
+import { SearchableOpportunitySelector, type OpportunityAttachmentItem } from './components/SearchableOpportunitySelector';
+import {
+  ALLOWED_IMAGE_TYPES,
+  MAX_IMAGE_SIZE_BYTES,
+  validateImageMagicBytes,
+  uploadPostImage,
+  deleteStorageFile
+} from './services/storage';
+import { getOpportunityById } from './services/opportunities';
+import { supabase } from './lib/supabase';
 
 const cls = (v: string, c = '') =>
   `inline-flex items-center justify-center gap-2 min-h-10 rounded-full px-5 py-2.5 text-xs font-bold transition cursor-pointer select-none ${
@@ -488,10 +500,17 @@ export const Composer: FC<{ onPostCreated?: (p: any) => void; isModal?: boolean 
   const [postTitle, setPostTitle] = useState('');
   const [t, setT] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<'Experience' | 'Achievement' | 'Idea' | 'Learning' | 'General'>('Experience');
-  const [pick, setPick] = useState('');
+  const [pick, setPick] = useState<'opp' | 'event' | ''>('');
   const [oid, setOid] = useState<number | string>(0);
+  const [, setAttachedItem] = useState<OpportunityAttachmentItem | null>(null);
   const [lnk, setLnk] = useState('');
   const [showL, setShowL] = useState(false);
+
+  // Image upload state
+  const [postImage, setPostImage] = useState<File | null>(null);
+  const [postImagePreview, setPostImagePreview] = useState<string | null>(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Mention autocomplete state
   const [mentionSuggestions, setMentionSuggestions] = useState<any[]>([]);
@@ -508,7 +527,6 @@ export const Composer: FC<{ onPostCreated?: (p: any) => void; isModal?: boolean 
   const [posting, setPosting] = useState(false);
 
   const userName = userProfile?.displayName || user?.displayName || 'Community Builder';
-  const list = pick === 'event' ? opps.filter((o) => ['Events', 'Workshops', 'Conferences'].includes(o.cat)) : opps;
 
   const categories = [
     { id: 'Experience', label: 'Experience', icon: IconCompass },
@@ -517,6 +535,43 @@ export const Composer: FC<{ onPostCreated?: (p: any) => void; isModal?: boolean 
     { id: 'Learning', label: 'Learning', icon: IconBook },
     { id: 'General', label: 'General', icon: IconMessage }
   ] as const;
+
+  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
+      say('Invalid image format. Allowed formats: JPEG, PNG, WebP, GIF.');
+      e.target.value = '';
+      return;
+    }
+
+    if (file.size > MAX_IMAGE_SIZE_BYTES) {
+      say('Image size exceeds 2 MB limit.');
+      e.target.value = '';
+      return;
+    }
+
+    const isRealImage = await validateImageMagicBytes(file);
+    if (!isRealImage) {
+      say('File content does not match allowed image formats.');
+      e.target.value = '';
+      return;
+    }
+
+    setPostImage(file);
+    const previewUrl = URL.createObjectURL(file);
+    setPostImagePreview(previewUrl);
+    e.target.value = '';
+  };
+
+  const handleRemoveImage = () => {
+    if (postImagePreview) {
+      URL.revokeObjectURL(postImagePreview);
+    }
+    setPostImage(null);
+    setPostImagePreview(null);
+  };
 
   // Search people for @mentions as the user types using unique usernames
   const handleTextChange = async (val: string, cursorPos: number) => {
@@ -550,6 +605,7 @@ export const Composer: FC<{ onPostCreated?: (p: any) => void; isModal?: boolean 
   };
 
   const postStandard = async () => {
+    if (posting) return;
     if (!postTitle.trim()) {
       say('Please enter a post title');
       return;
@@ -578,7 +634,13 @@ export const Composer: FC<{ onPostCreated?: (p: any) => void; isModal?: boolean 
     }
 
     setPosting(true);
+    let uploadedImageUrl: string | undefined = undefined;
     try {
+      if (postImage) {
+        setUploadingImage(true);
+        uploadedImageUrl = await uploadPostImage(postImage, user.uid);
+      }
+
       const cleanTitle = sanitizeInput(postTitle.trim());
       const cleanDesc = sanitizeInput(t.trim());
       const combinedText = `${cleanTitle}\n\n${cleanDesc}`;
@@ -596,6 +658,7 @@ export const Composer: FC<{ onPostCreated?: (p: any) => void; isModal?: boolean 
           category: selectedCategory,
           opp: oid || undefined,
           link: lnk.trim() || undefined,
+          imageUrl: uploadedImageUrl,
           status: 'published'
         }
       );
@@ -610,8 +673,10 @@ export const Composer: FC<{ onPostCreated?: (p: any) => void; isModal?: boolean 
       setT('');
       setPick('');
       setOid(0);
+      setAttachedItem(null);
       setLnk('');
       setShowL(false);
+      handleRemoveImage();
       incrementPixels?.(
         10,
         'Created Post (+10 Pixels)',
@@ -621,13 +686,18 @@ export const Composer: FC<{ onPostCreated?: (p: any) => void; isModal?: boolean 
       say(`Shared ${selectedCategory.toLowerCase()} with community (+10 Pixels)`);
     } catch (err: any) {
       console.error('Failed to create post:', err);
+      if (uploadedImageUrl) {
+        deleteStorageFile(uploadedImageUrl).catch(() => {});
+      }
       say(err?.message || 'Failed to post. Please try again.');
     } finally {
       setPosting(false);
+      setUploadingImage(false);
     }
   };
 
   const postHackathon = async () => {
+    if (posting) return;
     if (!hName.trim() || !hDate.trim() || !hLoc.trim() || !hLink.trim()) {
       say('Please fill in hackathon name, date, location, and registration link');
       return;
@@ -658,7 +728,9 @@ export const Composer: FC<{ onPostCreated?: (p: any) => void; isModal?: boolean 
       const cleanDesc = sanitizeInput(hDesc.trim());
 
       const hackTitle = `Upcoming Hackathon: ${cleanName}`;
-      const hackDesc = `Dates: ${cleanDate}\nLocation: ${cleanLoc}\nRegistration: ${cleanLink}\n\n${cleanDesc || 'Upcoming hackathon shared by the Pixel Minds community. Check the registration link for full participation guidelines and tracks!'}`;
+      // Do not repeat registration link in description since link is saved in the dedicated link field
+      const descBody = cleanDesc || 'Upcoming hackathon shared by the Pixel Minds community. Check the registration link for full participation guidelines and tracks!';
+      const hackDesc = `Dates: ${cleanDate}\nLocation: ${cleanLoc}\n\n${descBody}`;
       const formattedText = `${hackTitle}\n\n${hackDesc}`;
 
       const newPost = await createCommunityPost(
@@ -705,13 +777,48 @@ export const Composer: FC<{ onPostCreated?: (p: any) => void; isModal?: boolean 
   };
 
   const tools: [any, string, () => void, boolean][] = [
-    [IconBriefcase, 'Attach Opportunity', () => { setPick(pick === 'opp' ? '' : 'opp'); setOid(0); }, pick === 'opp'],
-    [IconCalendar, 'Attach Event', () => { setPick(pick === 'event' ? '' : 'event'); setOid(0); }, pick === 'event'],
-    [IconLink, 'Add Link', () => setShowL(!showL), showL]
+    [
+      IconBriefcase,
+      'Attach Opportunity',
+      () => {
+        const next = pick === 'opp' ? '' : 'opp';
+        setPick(next);
+        if (next === '') {
+          setOid(0);
+          setAttachedItem(null);
+        }
+      },
+      pick === 'opp'
+    ],
+    [
+      IconCalendar,
+      'Attach Event',
+      () => {
+        const next = pick === 'event' ? '' : 'event';
+        setPick(next);
+        if (next === '') {
+          setOid(0);
+          setAttachedItem(null);
+        }
+      },
+      pick === 'event'
+    ],
+    [IconLink, 'Add Link', () => setShowL(!showL), showL],
+    [IconPhoto, 'Add Image', () => fileInputRef.current?.click(), Boolean(postImagePreview)]
   ];
 
   return (
     <div className={isModal ? "text-[#0e1b33] dark:text-white" : "mt-8 pt-5 pb-2 text-[#0e1b33] dark:text-white border-t border-slate-300/40 dark:border-slate-700/40"}>
+      {/* Hidden image file input */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/jpeg,image/png,image/webp,image/gif"
+        onChange={handleImageChange}
+        className="hidden"
+        aria-label="Upload post image"
+      />
+
       {/* Mode Selector Tabs */}
       <div className="flex pb-3 mb-4 gap-2 overflow-x-auto">
         <button
@@ -813,6 +920,7 @@ export const Composer: FC<{ onPostCreated?: (p: any) => void; isModal?: boolean 
           <div className="flex items-center justify-between pt-2 border-t border-slate-200/50 dark:border-slate-800/50">
             <span className="text-[11px] text-slate-500">Strictly text-only · No uploads needed</span>
             <button
+              type="button"
               disabled={!hName.trim() || !hDate.trim() || !hLoc.trim() || !hLink.trim() || posting}
               onClick={postHackathon}
               className="inline-flex items-center gap-1.5 rounded-full bg-[#112240] hover:bg-[#1a335e] px-5 py-2 text-xs font-bold text-white shadow-sm disabled:opacity-40 transition active:scale-[0.98] cursor-pointer"
@@ -825,9 +933,9 @@ export const Composer: FC<{ onPostCreated?: (p: any) => void; isModal?: boolean 
       ) : (
         /* ================= Standard Experience / Update Form ================= */
         <div className="space-y-3.5">
-          {/* Category Tag Selection */}
-          <div className="flex flex-wrap items-center gap-1.5">
-            <span className="text-[11px] font-bold text-slate-600 dark:text-slate-300 mr-1">Topic:</span>
+          {/* Category Tag Selection - Horizontally scrollable row with hidden scrollbars on mobile */}
+          <div className="flex items-center gap-1.5 overflow-x-auto pm-scrollbar pb-1.5 pt-0.5 max-w-full">
+            <span className="text-[11px] font-bold text-slate-600 dark:text-slate-300 mr-0.5 shrink-0">Topic:</span>
             {categories.map((c) => {
               const IconComp = c.icon;
               const isSelected = selectedCategory === c.id;
@@ -836,7 +944,7 @@ export const Composer: FC<{ onPostCreated?: (p: any) => void; isModal?: boolean 
                   key={c.id}
                   type="button"
                   onClick={() => setSelectedCategory(c.id)}
-                  className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold transition cursor-pointer ${
+                  className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold transition cursor-pointer shrink-0 outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${
                     isSelected
                       ? 'bg-blue-600 text-white shadow-xs'
                       : 'bg-white/60 dark:bg-slate-800/60 text-slate-600 dark:text-slate-300 border border-white/80 dark:border-slate-700 hover:text-[#0e1b33] hover:bg-white'
@@ -909,21 +1017,26 @@ export const Composer: FC<{ onPostCreated?: (p: any) => void; isModal?: boolean 
             </div>
           </div>
 
+          {/* Searchable Opportunity/Event Attachment Selector */}
           {pick && (
-            <select
-              value={oid}
-              onChange={(e) => setOid(e.target.value)}
-              className="w-full rounded-xl bg-white/70 dark:bg-slate-800/70 border border-white/80 dark:border-slate-700 px-3 py-2 text-xs text-[#0e1b33] dark:text-white outline-none focus:border-blue-500"
-            >
-              <option value={0} className="bg-white text-slate-700">Attach {pick === 'event' ? 'an event' : 'an opportunity'}…</option>
-              {list.map((o) => (
-                <option key={o.id} value={o.id} className="bg-white text-[#0e1b33]">
-                  {o.title} ({o.org})
-                </option>
-              ))}
-            </select>
+            <div className="mt-2">
+              <SearchableOpportunitySelector
+                mode={pick as 'opp' | 'event'}
+                selectedId={oid || undefined}
+                onSelect={(item) => {
+                  setAttachedItem(item);
+                  setOid(item ? item.id : 0);
+                }}
+                onClose={() => {
+                  setPick('');
+                  setAttachedItem(null);
+                  setOid(0);
+                }}
+              />
+            </div>
           )}
 
+          {/* Optional External Link Input */}
           {showL && (
             <input
               value={lnk}
@@ -934,11 +1047,35 @@ export const Composer: FC<{ onPostCreated?: (p: any) => void; isModal?: boolean 
             />
           )}
 
+          {/* Uploaded Post Image Preview */}
+          {postImagePreview && (
+            <div className="relative inline-block mt-2">
+              <div className="relative rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-700 max-w-xs shadow-xs">
+                <img src={postImagePreview} alt="Image Preview" className="h-28 w-auto object-cover rounded-2xl" />
+                <button
+                  type="button"
+                  onClick={handleRemoveImage}
+                  className="absolute top-2 right-2 p-1 rounded-full bg-slate-900/70 hover:bg-slate-900 text-white transition cursor-pointer"
+                  title="Remove image"
+                  aria-label="Remove image"
+                >
+                  <X size={14} />
+                </button>
+              </div>
+              {uploadingImage && (
+                <div className="absolute inset-0 bg-white/70 dark:bg-slate-900/70 backdrop-blur-xs flex items-center justify-center rounded-2xl">
+                  <span className="text-xs font-bold text-blue-600">Uploading...</span>
+                </div>
+              )}
+            </div>
+          )}
+
           <div className="flex items-center justify-between border-t border-slate-200/50 dark:border-slate-800/50 pt-3">
             <div className="flex gap-1.5 text-slate-500">
               {tools.map(([I, l, f, a]) => (
                 <button
                   key={l}
+                  type="button"
                   onClick={f}
                   className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition cursor-pointer ${
                     a
@@ -952,6 +1089,7 @@ export const Composer: FC<{ onPostCreated?: (p: any) => void; isModal?: boolean 
               ))}
             </div>
             <button
+              type="button"
               disabled={!t.trim() || posting}
               onClick={postStandard}
               className="inline-flex items-center gap-1.5 rounded-full bg-[#112240] hover:bg-[#1a335e] px-5 py-2 text-xs font-bold text-white shadow-sm disabled:opacity-40 transition active:scale-[0.98] cursor-pointer"
@@ -988,12 +1126,41 @@ export const PostCard: FC<{ p: any; onPostDeleted?: (id: string) => void; onPost
   const [reposting, setReposting] = useState(false);
   const [repostsCount, setRepostsCount] = useState<number>(p.reposts || 0);
   const [sharesCount, setSharesCount] = useState<number>(p.shares || 0);
-  const o = opps.find((x) => String(x.id) === String(p.opp));
+  const [attachedOpp, setAttachedOpp] = useState<any>(() => opps.find((x) => String(x.id) === String(p.opp)) || null);
+
+  useEffect(() => {
+    if (p.opp) {
+      const match = opps.find((x) => String(x.id) === String(p.opp));
+      if (match) {
+        setAttachedOpp(match);
+      } else {
+        let isMounted = true;
+        getOpportunityById(String(p.opp)).then((res: any) => {
+          if (isMounted && res) {
+            setAttachedOpp({
+              id: res.id,
+              title: res.title,
+              org: res.organizer,
+              cat: res.category,
+              mode: res.mode ? res.mode.charAt(0).toUpperCase() + res.mode.slice(1) : '',
+              deadline: typeof res.deadline === 'number' ? new Date(res.deadline).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : res.deadline,
+              officialUrl: res.officialUrl
+            });
+          }
+        });
+        return () => {
+          isMounted = false;
+        };
+      }
+    } else {
+      setAttachedOpp(null);
+    }
+  }, [p.opp]);
 
   // Sync reposts & shares count if p changes
   useEffect(() => {
-    if (typeof p.reposts === 'number' && p.reposts > repostsCount) setRepostsCount(p.reposts);
-    if (typeof p.shares === 'number' && p.shares > sharesCount) setSharesCount(p.shares);
+    if (typeof p.reposts === 'number') setRepostsCount(p.reposts);
+    if (typeof p.shares === 'number') setSharesCount(p.shares);
   }, [p.reposts, p.shares]);
 
   // Local state for post content to avoid mutating props directly
@@ -1164,6 +1331,11 @@ export const PostCard: FC<{ p: any; onPostDeleted?: (id: string) => void; onPost
   const [isEditingPost, setIsEditingPost] = useState(false);
   const [editPostTitle, setEditPostTitle] = useState(postTitle);
   const [editPostDesc, setEditPostDesc] = useState(postDesc || postText);
+  const [editCategory, setEditCategory] = useState<string>(p.category || 'General');
+  const [editLink, setEditLink] = useState<string>(p.link || '');
+  const [editOppId, setEditOppId] = useState<string | number | null>(p.opp || null);
+  const [showEditLinkInput, setShowEditLinkInput] = useState<boolean>(Boolean(p.link));
+  const [showEditOppSelector, setShowEditOppSelector] = useState<boolean>(Boolean(p.opp));
   const [savingPostEdit, setSavingPostEdit] = useState(false);
 
   // Edit Comment state
@@ -1175,7 +1347,7 @@ export const PostCard: FC<{ p: any; onPostDeleted?: (id: string) => void; onPost
   const savedCount = (p.bookmarksCount ?? p.savesCount ?? 0) + (isSaved ? 1 : 0);
   const currentUserName = userProfile?.displayName || user?.displayName || 'Community Member';
   const canDelete = user && (user.uid === p.userId || userProfile?.role === 'admin');
-  const canEdit = user && (user.uid === p.userId || userProfile?.role === 'admin');
+  const canEdit = Boolean(user?.uid && p.userId && user.uid === p.userId);
 
   // Handle Like toggle with strict authentication check
   const handleLike = async () => {
@@ -1411,24 +1583,57 @@ export const PostCard: FC<{ p: any; onPostDeleted?: (id: string) => void; onPost
       return;
     }
 
+    if (editLink.trim()) {
+      const urlCheck = validateUrlSafety(editLink.trim());
+      if (!urlCheck.safe) {
+        say(urlCheck.error || 'Invalid link URL. Must use HTTP or HTTPS.');
+        return;
+      }
+    }
+
     const cleanTitle = sanitizeInput(rawTitle);
     const cleanDesc = sanitizeInput(rawDesc);
-    const updatedText = `${cleanTitle}\n\n${cleanDesc}`;
+    const cleanCategory = editCategory || 'General';
+    const cleanLink = editLink.trim() ? sanitizeInput(editLink.trim()) : undefined;
+    const cleanOpp = editOppId ? (Number(editOppId) || editOppId) : null;
+
+    let updatedText = `${cleanTitle}\n\n${cleanDesc}`;
+    if (cleanCategory === 'Upcoming Hackathon' || cleanCategory === 'Hackathon') {
+      const hDate = parsedDetails?.date || '';
+      const hLoc = parsedDetails?.location || '';
+      const headerLines = [`🚀 Upcoming Hackathon: ${cleanTitle}`];
+      if (hDate) headerLines.push(`📅 Dates: ${hDate}`);
+      if (hLoc) headerLines.push(`📍 Location: ${hLoc}`);
+      if (cleanLink) headerLines.push(`🔗 Registration: ${cleanLink}`);
+      headerLines.push('');
+      headerLines.push(cleanDesc);
+      updatedText = headerLines.join('\n');
+    }
 
     setSavingPostEdit(true);
     try {
       await updateCommunityPost(String(p.id), {
         title: cleanTitle,
         description: cleanDesc,
-        text: updatedText
+        text: updatedText,
+        category: cleanCategory,
+        link: cleanLink,
+        opp: cleanOpp ?? undefined
       });
       setPostTitle(cleanTitle);
       setPostDesc(cleanDesc);
       setPostText(updatedText);
+      p.title = cleanTitle;
+      p.description = cleanDesc;
+      p.text = updatedText;
+      p.category = cleanCategory;
+      p.link = cleanLink;
+      p.opp = cleanOpp ? Number(cleanOpp) || cleanOpp : undefined;
       setIsEdited(true);
       setIsEditingPost(false);
       say('Post updated successfully');
     } catch (err: any) {
+      console.error('Failed to update post:', err);
       say(err?.message || 'Failed to update post');
     } finally {
       setSavingPostEdit(false);
@@ -1476,19 +1681,117 @@ export const PostCard: FC<{ p: any; onPostDeleted?: (id: string) => void; onPost
     }
   };
 
-  // Handle Repost with database persistence
+  const isOwnPost = Boolean(user?.uid && p.userId && user.uid === p.userId);
+  const [hasReposted, setHasReposted] = useState<boolean>(() => {
+    if (!user?.uid) return false;
+    try {
+      const key = `pm_user_reposted_${p.id}_${user.uid}`;
+      return localStorage.getItem(key) === 'true';
+    } catch {
+      return false;
+    }
+  });
+
+  // Handle Repost / Undo Repost with database persistence
   const handleRepost = async () => {
     if (!user) {
       setAuthActionText('repost community content');
       setShowAuthModal(true);
       return;
     }
+
+    if (isOwnPost) {
+      say('You cannot repost your own post.');
+      return;
+    }
+
     if (reposting) return;
     setReposting(true);
+
+    // If already reposted, clicking again UNDOES the repost
+    if (hasReposted) {
+      try {
+        const res = await removePostInteraction(String(p.id), user.uid, 'repost');
+        const nextCount = typeof res.count === 'number' && res.count >= 0 
+          ? res.count 
+          : Math.max(0, (p.reposts || repostsCount || 1) - 1);
+        p.reposts = nextCount;
+        setRepostsCount(nextCount);
+        setHasReposted(false);
+
+        // Delete the repost post created by this user
+        const repostPostKey = `pm_repost_post_id_${p.id}_${user.uid}`;
+        let createdRepostPostId = localStorage.getItem(repostPostKey);
+
+        if (!createdRepostPostId) {
+          try {
+            // Find user's repost post corresponding to this original post
+            const { data: matchedPosts } = await supabase
+              .from('community_posts')
+              .select('id')
+              .eq('user_id', user.uid)
+              .ilike('title', 'Repost%')
+              .order('created_at', { ascending: false })
+              .limit(5);
+
+            if (matchedPosts && matchedPosts.length > 0) {
+              createdRepostPostId = matchedPosts[0].id;
+            }
+          } catch {}
+        }
+
+        if (createdRepostPostId) {
+          try {
+            await deleteCommunityPost(createdRepostPostId);
+            if (onPostDeleted) {
+              onPostDeleted(createdRepostPostId);
+            }
+          } catch (delPostErr) {
+            console.warn('[handleRepost] Error deleting cloned repost post:', delPostErr);
+          }
+        }
+
+        try {
+          localStorage.removeItem(`pm_user_reposted_${p.id}_${user.uid}`);
+          localStorage.removeItem(`pm_post_reposted_${p.id}_${user.uid}`);
+          localStorage.removeItem(repostPostKey);
+        } catch {}
+        say('Repost undone');
+      } catch (err: any) {
+        console.error('Failed to undo repost:', err);
+        say(err?.message || 'Failed to undo repost');
+      } finally {
+        setReposting(false);
+      }
+      return;
+    }
+
     try {
-      const originalAuthor = p.user || 'Community Builder';
-      const repostTitle = `Repost from @${originalAuthor}`;
-      const repostText = `Reposted from @${originalAuthor}:\n\n${p.text || ''}`;
+      // Fetch or resolve actual @username for original post owner (never full name)
+      let originalHandle = p.authorUsername || (p.user && p.user.startsWith('@') ? p.user : null);
+
+      if (!originalHandle && p.userId) {
+        try {
+          const { data: prof } = await supabase
+            .from('profiles')
+            .select('username')
+            .eq('id', p.userId)
+            .maybeSingle();
+          if (prof?.username) {
+            originalHandle = prof.username.startsWith('@') ? prof.username : `@${prof.username}`;
+          }
+        } catch {}
+      }
+
+      // If no valid username exists, format clean fallback without full names
+      const repostTitle = originalHandle ? `Repost from ${originalHandle}` : `Repost of Community Update`;
+      const repostText = originalHandle
+        ? `Reposted from ${originalHandle}:\n\n${p.text || ''}`
+        : `Reposted update:\n\n${p.text || ''}`;
+
+      // 1. Record interaction in database ledger atomically
+      const res = await recordPostInteraction(String(p.id), user.uid, 'repost');
+
       const newPost = await createCommunityPost(
         {
           id: user.uid,
@@ -1502,20 +1805,23 @@ export const PostCard: FC<{ p: any; onPostDeleted?: (id: string) => void; onPost
           category: p.category || 'General',
           opp: p.opp || undefined,
           link: p.link || undefined,
+          imageUrl: p.imageUrl || undefined,
           status: 'published'
         }
       );
 
-      const nextCount = (p.reposts || repostsCount || 0) + 1;
+      const nextCount = (typeof res.count === 'number' && res.count > 0)
+        ? res.count
+        : (p.reposts || repostsCount || 0) + 1;
+
       p.reposts = nextCount;
       setRepostsCount(nextCount);
-
-      // Record interaction in database ledger
+      setHasReposted(true);
       try {
-        const res = await recordPostInteraction(String(p.id), user.uid, 'repost');
-        if (res.success && typeof res.count === 'number') {
-          p.reposts = res.count;
-          setRepostsCount(res.count);
+        localStorage.setItem(`pm_user_reposted_${p.id}_${user.uid}`, 'true');
+        localStorage.setItem(`pm_post_reposted_${p.id}_${user.uid}`, 'true');
+        if (newPost?.id) {
+          localStorage.setItem(`pm_repost_post_id_${p.id}_${user.uid}`, String(newPost.id));
         }
       } catch {}
 
@@ -1540,21 +1846,6 @@ export const PostCard: FC<{ p: any; onPostDeleted?: (id: string) => void; onPost
       return;
     }
 
-    if (user?.uid) {
-      try {
-        const res = await recordPostInteraction(String(p.id), user.uid, 'share');
-        if (res.success && typeof res.count === 'number') {
-          setSharesCount(res.count);
-        } else {
-          setSharesCount((c) => c + 1);
-        }
-      } catch {
-        setSharesCount((c) => c + 1);
-      }
-    } else {
-      setSharesCount((c) => c + 1);
-    }
-
     // Determine production / current domain cleanly
     let baseOrigin = 'https://pixelmindss.vercel.app';
     if (typeof window !== 'undefined' && window.location?.origin) {
@@ -1576,14 +1867,29 @@ export const PostCard: FC<{ p: any; onPostDeleted?: (id: string) => void; onPost
       url: shareUrl
     };
 
+    const trackSuccessfulShare = async () => {
+      if (user?.uid) {
+        try {
+          const res = await recordPostInteraction(String(p.id), user.uid, 'share');
+          if (res.success && typeof res.count === 'number') {
+            setSharesCount(res.count);
+          }
+        } catch (trackErr) {
+          console.warn('[handleShare] Share recording notice:', trackErr);
+        }
+      }
+    };
+
     // 1. Try Web Share API (native mobile share sheet)
     if (typeof navigator !== 'undefined' && navigator.share) {
       try {
         await navigator.share(shareData);
+        await trackSuccessfulShare();
         say('Post shared successfully!');
         return;
       } catch (err: any) {
         if (err.name === 'AbortError') {
+          // User cancelled native share sheet; do NOT increment share count
           return;
         }
         console.warn('[handleShare] Web Share API notice, attempting clipboard fallback:', err);
@@ -1594,6 +1900,7 @@ export const PostCard: FC<{ p: any; onPostDeleted?: (id: string) => void; onPost
     try {
       if (navigator.clipboard && navigator.clipboard.writeText) {
         await navigator.clipboard.writeText(shareUrl);
+        await trackSuccessfulShare();
         say('Post link copied to clipboard!');
         return;
       }
@@ -1609,6 +1916,7 @@ export const PostCard: FC<{ p: any; onPostDeleted?: (id: string) => void; onPost
       const success = document.execCommand('copy');
       document.body.removeChild(textArea);
       if (success) {
+        await trackSuccessfulShare();
         say('Post link copied to clipboard!');
       } else {
         throw new Error('Fallback copy command failed.');
@@ -1649,15 +1957,31 @@ export const PostCard: FC<{ p: any; onPostDeleted?: (id: string) => void; onPost
         const dateMatch = text.match(/Dates?:\s*([^\n]+)/i);
         const locMatch = text.match(/Location:\s*([^\n]+)/i);
         const linkMatch = text.match(/Registration:\s*([^\n]+)/i);
-        const parts = text.split(/\n\s*\n/);
-        const desc = parts.length > 1 ? parts.slice(1).join('\n\n') : '';
+        const rawLink = p.link || (linkMatch ? linkMatch[1].replace(/^\*\*|\*\*$/g, '').trim() : '');
+
+        // Clean description: strip any repeated registration link, dates, or location line from description
+        let desc = text
+          .replace(/^[^\n]*Upcoming Hackathon:[^\n]*\n?/i, '')
+          .replace(/Dates?:[^\n]*\n?/i, '')
+          .replace(/Location:[^\n]*\n?/i, '')
+          .replace(/Registration:[^\n]*\n?/i, '')
+          .trim();
+
+        // If description has any isolated line repeating the registration link, remove it
+        if (rawLink) {
+          desc = desc
+            .split('\n')
+            .filter((line: string) => line.trim() !== rawLink.trim())
+            .join('\n')
+            .trim();
+        }
 
         return {
-          name: nameMatch ? nameMatch[1].replace(/^\*\*|\*\*$/g, '').trim() : 'Upcoming Hackathon',
+          name: nameMatch ? nameMatch[1].replace(/^\*\*|\*\*$/g, '').trim() : (p.title || 'Upcoming Hackathon'),
           date: dateMatch ? dateMatch[1].replace(/^\*\*|\*\*$/g, '').trim() : '',
           location: locMatch ? locMatch[1].replace(/^\*\*|\*\*$/g, '').trim() : '',
-          link: p.link || (linkMatch ? linkMatch[1].replace(/^\*\*|\*\*$/g, '').trim() : ''),
-          description: desc.trim()
+          link: rawLink,
+          description: desc
         };
       })()
     : null;
@@ -1691,8 +2015,13 @@ export const PostCard: FC<{ p: any; onPostDeleted?: (id: string) => void; onPost
             <button
               type="button"
               onClick={() => {
-                setEditPostTitle(postTitle);
-                setEditPostDesc(postDesc || postText);
+                setEditPostTitle(isHackathon && parsedDetails ? (parsedDetails.name || postTitle) : postTitle);
+                setEditPostDesc(isHackathon && parsedDetails ? (parsedDetails.description || postDesc || postText) : (postDesc || postText));
+                setEditCategory(p.category || (isHackathon ? 'Upcoming Hackathon' : 'General'));
+                setEditLink(isHackathon && parsedDetails ? (parsedDetails.link || p.link || '') : (p.link || ''));
+                setEditOppId(p.opp || null);
+                setShowEditLinkInput(Boolean(p.link || (isHackathon && parsedDetails?.link)));
+                setShowEditOppSelector(Boolean(p.opp));
                 setIsEditingPost(true);
               }}
               title="Edit Post"
@@ -1722,7 +2051,165 @@ export const PostCard: FC<{ p: any; onPostDeleted?: (id: string) => void; onPost
       </div>
 
       {/* Post Content */}
-      {isHackathon && parsedDetails ? (
+      {isEditingPost ? (
+        <div className="mt-3.5 space-y-3 bg-white/70 dark:bg-slate-800/70 p-4 rounded-2xl border border-blue-200 dark:border-blue-900 shadow-sm">
+          <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-slate-200/60 dark:border-slate-700/60">
+            <span className="text-xs font-bold text-[#0e1b33] dark:text-white">
+              Edit Post
+            </span>
+            <div className="flex items-center gap-1.5 overflow-x-auto pm-scrollbar py-0.5 max-w-full">
+              {['General', 'Experience', 'Achievement', 'Idea', 'Learning', 'Upcoming Hackathon', 'Announcement'].map((cat) => {
+                const isSelected = editCategory === cat;
+                return (
+                  <button
+                    key={cat}
+                    type="button"
+                    onClick={() => setEditCategory(cat)}
+                    className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold transition cursor-pointer shrink-0 ${
+                      isSelected
+                        ? 'bg-blue-600 text-white shadow-xs'
+                        : 'bg-white/80 dark:bg-slate-900/80 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:text-blue-600'
+                    }`}
+                  >
+                    {cat}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div>
+            <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300 block mb-1">
+              Post Title <span className="text-blue-600">*</span>
+            </label>
+            <input
+              type="text"
+              value={editPostTitle}
+              onChange={(e) => setEditPostTitle(e.target.value)}
+              maxLength={100}
+              className="w-full rounded-xl bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 px-3 py-2 text-xs font-bold text-[#0e1b33] dark:text-white outline-none focus:border-blue-500 transition"
+            />
+          </div>
+
+          <div>
+            <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300 block mb-1">
+              Post Description <span className="text-blue-600">*</span>
+            </label>
+            <textarea
+              rows={4}
+              value={editPostDesc}
+              onChange={(e) => setEditPostDesc(e.target.value)}
+              maxLength={1200}
+              className="w-full rounded-xl bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 px-3 py-2 text-xs text-[#0e1b33] dark:text-white outline-none focus:border-blue-500 resize-none leading-relaxed transition"
+            />
+          </div>
+
+          {/* Resource / Registration Link */}
+          <div>
+            <div className="flex items-center justify-between mb-1">
+              <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300">
+                Resource or Registration Link
+              </label>
+              {!showEditLinkInput && (
+                <button
+                  type="button"
+                  onClick={() => setShowEditLinkInput(true)}
+                  className="text-[10px] font-semibold text-blue-600 hover:underline cursor-pointer"
+                >
+                  + Add URL
+                </button>
+              )}
+            </div>
+            {showEditLinkInput && (
+              <div className="flex items-center gap-2">
+                <input
+                  type="url"
+                  value={editLink}
+                  onChange={(e) => setEditLink(e.target.value)}
+                  placeholder="https://example.com/link-or-register"
+                  className="flex-1 rounded-xl bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 px-3 py-1.5 text-xs text-[#0e1b33] dark:text-white outline-none focus:border-blue-500 transition"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEditLink('');
+                    setShowEditLinkInput(false);
+                  }}
+                  className="p-1 rounded text-slate-400 hover:text-rose-500 text-xs cursor-pointer"
+                  title="Remove Link"
+                >
+                  <X size={14} />
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Attached Opportunity / Event */}
+          <div>
+            <div className="flex items-center justify-between mb-1">
+              <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300">
+                Attached Opportunity / Event
+              </label>
+              {editOppId ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEditOppId(null);
+                    setShowEditOppSelector(false);
+                  }}
+                  className="text-[10px] font-semibold text-rose-500 hover:underline cursor-pointer"
+                >
+                  Remove Attachment
+                </button>
+              ) : !showEditOppSelector ? (
+                <button
+                  type="button"
+                  onClick={() => setShowEditOppSelector(true)}
+                  className="text-[10px] font-semibold text-blue-600 hover:underline cursor-pointer"
+                >
+                  + Attach Item
+                </button>
+              ) : null}
+            </div>
+
+            {showEditOppSelector && (
+              <div className="pt-1">
+                <SearchableOpportunitySelector
+                  mode="opp"
+                  selectedId={editOppId || undefined}
+                  onSelect={(item) => {
+                    if (item) {
+                      setEditOppId(item.id);
+                    } else {
+                      setEditOppId(null);
+                    }
+                  }}
+                  onClose={() => setShowEditOppSelector(false)}
+                />
+              </div>
+            )}
+          </div>
+
+          <div className="flex justify-end gap-2 pt-2 border-t border-slate-200/60 dark:border-slate-700/60">
+            <button
+              type="button"
+              disabled={savingPostEdit}
+              onClick={() => setIsEditingPost(false)}
+              className="px-3.5 py-1.5 rounded-full text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition cursor-pointer"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              disabled={savingPostEdit || !editPostTitle.trim() || !editPostDesc.trim()}
+              onClick={handleSavePostEdit}
+              className="px-4 py-1.5 rounded-full text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white shadow-xs transition disabled:opacity-50 cursor-pointer"
+            >
+              {savingPostEdit ? 'Saving...' : 'Save Changes'}
+            </button>
+          </div>
+        </div>
+      ) : isHackathon && parsedDetails ? (
         /* Hackathon Post - clean streamlined layout, no boxed inner card */
         <div className="mt-3.5 space-y-3">
           <div className="flex flex-wrap items-center justify-between gap-2">
@@ -1730,17 +2217,6 @@ export const PostCard: FC<{ p: any; onPostDeleted?: (id: string) => void; onPost
               <IconRocket size={12} />
               Upcoming Hackathon
             </span>
-            {safeUrl(parsedDetails.link) && (
-              <a
-                href={safeUrl(parsedDetails.link)!}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 text-xs font-semibold text-blue-600 dark:text-sky-400 hover:underline"
-              >
-                <span>Registration Link</span>
-                <IconExternalLink size={12} />
-              </a>
-            )}
           </div>
 
           <div>
@@ -1763,20 +2239,33 @@ export const PostCard: FC<{ p: any; onPostDeleted?: (id: string) => void; onPost
             </div>
           </div>
 
-          {/* Description moved down naturally into feed flow */}
+          {/* Description moved down naturally into feed flow without duplicate registration link */}
           {parsedDetails.description && (
             <p className="pt-1 text-xs sm:text-sm leading-relaxed text-[#0e1b33] dark:text-slate-100 font-normal whitespace-pre-wrap">
               {renderWithHashtags(parsedDetails.description)}
             </p>
           )}
 
+          {safeUrl(p.imageUrl) && (
+            <div className="mt-2.5 overflow-hidden rounded-2xl border border-slate-200/60 dark:border-slate-700/60 max-h-96 bg-slate-100 dark:bg-slate-800">
+              <img
+                src={safeUrl(p.imageUrl)!}
+                alt={parsedDetails.name || 'Hackathon banner'}
+                className="w-full h-auto object-cover max-h-96"
+                loading="lazy"
+              />
+            </div>
+          )}
+
+          {/* One clear primary registration action */}
           {safeUrl(parsedDetails.link) && (
-            <div className="pt-1">
+            <div className="pt-2">
               <a
                 href={safeUrl(parsedDetails.link)!}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center justify-center gap-2 w-full sm:w-auto rounded-xl bg-[#112240] hover:bg-[#1a335e] px-5 py-2.5 text-xs font-bold text-white shadow-sm active:scale-[0.98] transition cursor-pointer"
+                aria-label={`Register for ${parsedDetails.name}`}
               >
                 <span>Register for Hackathon</span>
                 <IconExternalLink size={13} />
@@ -1787,124 +2276,97 @@ export const PostCard: FC<{ p: any; onPostDeleted?: (id: string) => void; onPost
       ) : (
         /* Regular Text Post */
         <div className="mt-3.5 space-y-2.5">
-          {isEditingPost ? (
-            <div className="space-y-3 bg-white/70 dark:bg-slate-800/70 p-4 rounded-2xl border border-blue-200 dark:border-blue-900 shadow-sm">
-              <div>
-                <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300 block mb-1">
-                  Post Title
-                </label>
-                <input
-                  type="text"
-                  value={editPostTitle}
-                  onChange={(e) => setEditPostTitle(e.target.value)}
-                  maxLength={100}
-                  className="w-full rounded-xl bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 px-3 py-2 text-xs font-bold text-[#0e1b33] dark:text-white outline-none focus:border-blue-500"
-                />
-              </div>
-              <div>
-                <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300 block mb-1">
-                  Post Description
-                </label>
-                <textarea
-                  rows={3}
-                  value={editPostDesc}
-                  onChange={(e) => setEditPostDesc(e.target.value)}
-                  maxLength={1200}
-                  className="w-full rounded-xl bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 px-3 py-2 text-xs text-[#0e1b33] dark:text-white outline-none focus:border-blue-500 resize-none leading-relaxed"
-                />
-              </div>
-              <div className="flex justify-end gap-2 pt-1">
-                <button
-                  type="button"
-                  onClick={() => setIsEditingPost(false)}
-                  className="px-3.5 py-1.5 rounded-full text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  disabled={savingPostEdit}
-                  onClick={handleSavePostEdit}
-                  className="px-4 py-1.5 rounded-full text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white shadow-xs transition disabled:opacity-50"
-                >
-                  {savingPostEdit ? 'Saving...' : 'Save Changes'}
-                </button>
-              </div>
+          {p.category && (
+            <div className="flex items-center gap-2">
+              <span
+                className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold border ${
+                  p.category === 'Achievement'
+                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800'
+                    : p.category === 'Idea'
+                    ? 'bg-sky-50 text-sky-700 border-sky-200 dark:bg-sky-950/40 dark:text-sky-300 dark:border-sky-800'
+                    : p.category === 'Learning'
+                    ? 'bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950/40 dark:text-purple-300 dark:border-purple-800'
+                    : p.category === 'Experience'
+                    ? 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800'
+                    : 'bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700'
+                }`}
+              >
+                {p.category === 'Achievement' && <IconTrophy size={11} />}
+                {p.category === 'Idea' && <IconLightbulb size={11} />}
+                {p.category === 'Learning' && <IconBook size={11} />}
+                {p.category === 'Experience' && <IconCompass size={11} />}
+                <span>{p.category}</span>
+              </span>
             </div>
-          ) : (
-            <>
-              {p.category && (
-                <div className="flex items-center gap-2">
-                  <span
-                    className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold border ${
-                      p.category === 'Achievement'
-                        ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800'
-                        : p.category === 'Idea'
-                        ? 'bg-sky-50 text-sky-700 border-sky-200 dark:bg-sky-950/40 dark:text-sky-300 dark:border-sky-800'
-                        : p.category === 'Learning'
-                        ? 'bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950/40 dark:text-purple-300 dark:border-purple-800'
-                        : p.category === 'Experience'
-                        ? 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800'
-                        : 'bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700'
-                    }`}
-                  >
-                    {p.category === 'Achievement' && <IconTrophy size={11} />}
-                    {p.category === 'Idea' && <IconLightbulb size={11} />}
-                    {p.category === 'Learning' && <IconBook size={11} />}
-                    {p.category === 'Experience' && <IconCompass size={11} />}
-                    <span>{p.category}</span>
-                  </span>
-                </div>
-              )}
+          )}
 
-              {/* Post Title */}
-              {postTitle && (
-                <h4 className="font-['Outfit',sans-serif] text-sm sm:text-base font-bold text-[#0e1b33] dark:text-white">
-                  {postTitle}
-                </h4>
-              )}
+          {/* Post Title */}
+          {postTitle && (
+            <h4 className="font-['Outfit',sans-serif] text-sm sm:text-base font-bold text-[#0e1b33] dark:text-white">
+              {renderWithHashtags(postTitle)}
+            </h4>
+          )}
 
-              {/* Post message/description moved down cleanly */}
-              <p className="text-xs sm:text-sm leading-relaxed text-[#0e1b33] dark:text-slate-100 font-normal whitespace-pre-wrap">
-                {renderWithHashtags(postDesc || postText)}
-              </p>
+          {/* Post message/description moved down cleanly */}
+          <p className="text-xs sm:text-sm leading-relaxed text-[#0e1b33] dark:text-slate-100 font-normal whitespace-pre-wrap">
+            {renderWithHashtags(postDesc || postText)}
+          </p>
 
-              {safeUrl(p.link) && (
-                <a
-                  href={safeUrl(p.link)!}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="mt-2.5 inline-flex items-center gap-1.5 truncate text-xs font-semibold text-blue-600 dark:text-sky-400 hover:underline"
-                >
-                  <IconExternalLink size={13} />
-                  <span>{safeUrl(p.link)}</span>
-                </a>
-              )}
-            </>
+          {safeUrl(p.imageUrl) && (
+            <div className="mt-2.5 overflow-hidden rounded-2xl border border-slate-200/60 dark:border-slate-700/60 max-h-96 bg-slate-100 dark:bg-slate-800">
+              <img
+                src={safeUrl(p.imageUrl)!}
+                alt={postTitle || 'Attached image'}
+                className="w-full h-auto object-cover max-h-96"
+                loading="lazy"
+              />
+            </div>
+          )}
+
+          {safeUrl(p.link) && (!attachedOpp || safeUrl(p.link) !== safeUrl(attachedOpp.officialUrl)) && (
+            <a
+              href={safeUrl(p.link)!}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-2.5 inline-flex items-center gap-1.5 truncate text-xs font-semibold text-blue-600 dark:text-sky-400 hover:underline"
+            >
+              <IconExternalLink size={13} />
+              <span>{safeUrl(p.link)}</span>
+            </a>
           )}
         </div>
       )}
 
       {/* Attached Opportunity Preview (if linked) */}
-      {o && (
+      {attachedOpp && (
         <div className="mt-3.5 flex items-center gap-3 rounded-2xl border border-white/60 dark:border-white/10 bg-white/60 dark:bg-slate-800/60 p-3">
           <div
-            style={{ background: grad(o.cat) }}
+            style={{ background: attachedOpp.cat ? grad(attachedOpp.cat) : '#2563eb' }}
             className="grid h-12 w-12 shrink-0 place-items-center rounded-xl text-white shadow-xs border border-white/10"
           >
             {(() => {
-              const Ic = getCategoryMeta(o.cat).Icon;
+              const Ic = attachedOpp.cat ? getCategoryMeta(attachedOpp.cat).Icon : Briefcase;
               return <Ic size={20} className="text-white" />;
             })()}
           </div>
           <div className="min-w-0 flex-1">
-            <p className="truncate text-xs font-bold text-[#0e1b33] dark:text-white">{o.title}</p>
-            <p className="text-[11px] text-slate-500 dark:text-slate-400">
-              {o.org} · {o.deadline} · {o.mode}
-            </p>
+            <p className="truncate text-xs font-bold text-[#0e1b33] dark:text-white">{attachedOpp.title}</p>
+            {(() => {
+              const details = [
+                attachedOpp.org,
+                attachedOpp.deadline ? `Deadline: ${attachedOpp.deadline}` : null,
+                attachedOpp.mode
+              ].filter(Boolean).join(' · ');
+              return details ? (
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 truncate">
+                  {details}
+                </p>
+              ) : null;
+            })()}
           </div>
           <Link
-            to={'/opportunities/' + o.id}
+            to={'/opportunities/' + attachedOpp.id}
+            aria-label={`View ${attachedOpp.title}`}
             className="rounded-lg bg-white dark:bg-slate-700 hover:bg-slate-50 dark:hover:bg-slate-600 text-[#0e1b33] dark:text-white px-3 py-1.5 text-xs font-semibold border border-slate-200 dark:border-slate-600 shadow-2xs"
           >
             View
@@ -1958,16 +2420,28 @@ export const PostCard: FC<{ p: any; onPostDeleted?: (id: string) => void; onPost
         <div className="flex flex-col items-center">
           <button
             onClick={handleRepost}
-            disabled={reposting}
-            className="flex flex-col items-center justify-center p-1.5 rounded-full hover:bg-white/80 dark:hover:bg-slate-800 transition cursor-pointer font-medium text-[#0e1b33] dark:text-slate-100 disabled:opacity-50"
-            title="Repost to community"
+            disabled={reposting || isOwnPost}
+            className={`flex flex-col items-center justify-center p-1.5 rounded-full transition cursor-pointer font-medium disabled:opacity-50 ${
+              hasReposted
+                ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40'
+                : 'text-[#0e1b33] dark:text-slate-100 hover:bg-white/80 dark:hover:bg-slate-800'
+            }`}
+            title={
+              isOwnPost
+                ? 'You cannot repost your own post'
+                : hasReposted
+                ? 'Click to undo repost'
+                : 'Repost to community'
+            }
           >
             <div className="flex items-center gap-1">
               <IconRepeat size={16} className={reposting ? 'animate-spin' : ''} />
               <span className="text-[11px]">{repostsCount}</span>
             </div>
           </button>
-          <span className="text-[10px] font-medium text-slate-500 dark:text-slate-400 mt-0.5">Repost</span>
+          <span className="text-[10px] font-medium text-slate-500 dark:text-slate-400 mt-0.5">
+            {hasReposted ? 'Reposted' : 'Repost'}
+          </span>
         </div>
 
         <div className="flex flex-col items-center">
