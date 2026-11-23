@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import {
   FileText,
@@ -41,15 +41,15 @@ export function Applications() {
   const [selectedSubForModal, setSelectedSubForModal] = useState<Opportunity | null>(null);
 
   // Live timer tick so countdown runs smoothly
-  const [, setClockTick] = useState(0);
+  const [nowMs, setNowMs] = useState(() => Date.now());
   useEffect(() => {
     if (activeTab === 'applications') {
-      const interval = setInterval(() => setClockTick((c) => c + 1), 1000);
+      const interval = setInterval(() => setNowMs(Date.now()), 1000);
       return () => clearInterval(interval);
     }
   }, [activeTab]);
 
-  const loadApplications = () => {
+  const loadApplications = useCallback(() => {
     if (user?.uid) {
       setLoadingApps(true);
       getUserApplications(user.uid)
@@ -59,9 +59,9 @@ export function Applications() {
     } else {
       setLoadingApps(false);
     }
-  };
+  }, [user]);
 
-  const loadSubmissions = () => {
+  const loadSubmissions = useCallback(() => {
     if (user?.uid) {
       setLoadingSubs(true);
       getUserSubmissions(user.uid)
@@ -71,12 +71,15 @@ export function Applications() {
     } else {
       setLoadingSubs(false);
     }
-  };
+  }, [user]);
 
   useEffect(() => {
-    loadApplications();
-    loadSubmissions();
-  }, [user?.uid]);
+    const timer = setTimeout(() => {
+      loadApplications();
+      loadSubmissions();
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [loadApplications, loadSubmissions]);
 
   const handleTabChange = (tab: 'applications' | 'submissions') => {
     setActiveTab(tab);
@@ -266,7 +269,7 @@ export function Applications() {
           ) : (
             <div className="space-y-3">
               {userApplications.map((app) => {
-                const elapsedMs = Date.now() - app.appliedAt;
+                const elapsedMs = nowMs - app.appliedAt;
                 const THREE_MINS_MS = 3 * 60 * 1000;
                 const remainingSecs = Math.max(0, Math.ceil((THREE_MINS_MS - elapsedMs) / 1000));
                 const isReadyToConfirm = app.status === 'pending_confirmation' && remainingSecs === 0;

@@ -1437,7 +1437,7 @@ export function Feed() {
     if (user?.uid && refreshProfile) {
       refreshProfile();
     }
-  }, [user?.uid]);
+  }, [user?.uid]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadFeed = async () => {
     setRefreshing(true);
@@ -1489,7 +1489,7 @@ export function Feed() {
     { id: 'Learnings', label: 'Learnings' }
   ];
 
-  const UserProfileWidget = () => (
+  const userProfileWidget = (
     <Card className="overflow-hidden pm-glass-card bg-white/45 backdrop-blur-2xl border border-white/60 shadow-[0_12px_36px_rgba(14,50,120,0.08)] text-[#0e1b33]">
       <div className="h-18 bg-gradient-to-r from-blue-600 to-indigo-600 relative overflow-hidden">
         <div className="absolute inset-0 bg-white/10" />
@@ -1532,7 +1532,7 @@ export function Feed() {
     </Card>
   );
 
-  const QuickNavWidget = () => (
+  const quickNavWidget = (
     <Card className="p-2 text-xs font-bold text-[#0e1b33] pm-glass-card bg-white/45 backdrop-blur-2xl border border-white/60 shadow-[0_8px_30px_rgba(14,50,120,0.06)]">
       <Link to="/opportunities" className="block rounded-xl px-3.5 py-2.5 hover:bg-blue-50/70 hover:text-blue-600 transition">
         Explore Opportunities
@@ -1551,8 +1551,8 @@ export function Feed() {
       <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_280px] xl:grid-cols-[240px_minmax(0,1fr)_290px] gap-5 items-start">
         {/* Left Sidebar: User Card (Visible on XL displays, stays sticky) */}
         <aside className="hidden xl:block space-y-4 sticky top-6">
-          <UserProfileWidget />
-          <QuickNavWidget />
+          {userProfileWidget}
+          {quickNavWidget}
         </aside>
 
         {/* Center Main Feed Column (min-w-0 guarantees responsiveness and prevents blowouts) */}
@@ -1636,8 +1636,8 @@ export function Feed() {
         <aside className="hidden lg:block space-y-4 sticky top-6">
           {/* On LG displays (when left column is hidden), show User Profile here so it is never lost */}
           <div className="xl:hidden space-y-4">
-            <UserProfileWidget />
-            <QuickNavWidget />
+            {userProfileWidget}
+            {quickNavWidget}
           </div>
 
           <Card className="p-4 sm:p-5 pm-glass-card bg-white/45 backdrop-blur-2xl border border-white/60 shadow-[0_12px_36px_rgba(14,50,120,0.08)] text-[#0e1b33]">
@@ -1734,21 +1734,15 @@ export function Profile() {
     if (user?.uid && refreshProfile) {
       refreshProfile();
     }
-  }, [user?.uid]);
+  }, [user?.uid]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const [userApplications, setUserApplications] = useState<UserApplication[]>([]);
 
-  const loadApplications = () => {
+  useEffect(() => {
     if (user?.uid) {
       getUserApplications(user.uid).then(setUserApplications).catch(() => {});
     }
-  };
-
-  useEffect(() => {
-    if (user?.uid) {
-      loadApplications();
-    }
-  }, [user]);
+  }, [user?.uid]);
 
   // URL query parameter tab syncing (e.g. from notification links or sidebar)
   useEffect(() => {
@@ -2845,6 +2839,7 @@ const AdminOpportunityForm = ({ opp, onBack }: any) => {
   const [additionalInfo, setAdditionalInfo] = useState(opp?.additionalInfo || '');
   const [uploadingImage, setUploadingImage] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [previewNow] = useState(() => Date.now());
 
   const handleImagesUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files ? Array.from(e.target.files) : [];
@@ -3053,7 +3048,7 @@ const AdminOpportunityForm = ({ opp, onBack }: any) => {
       cat: category,
       mode: mode.charAt(0).toUpperCase() + mode.slice(1),
       deadline: deadline ? new Date(deadline).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'TBD',
-      days: deadline ? Math.max(1, Math.ceil((new Date(deadline).getTime() - Date.now()) / 86400000)) : 0,
+      days: deadline ? Math.max(1, Math.ceil((new Date(deadline).getTime() - previewNow) / 86400000)) : 0,
       prize: prize || 'Recognition',
       skills: skills.split(',').map((s: string) => s.trim()).filter(Boolean) || ['Tech'],
       description,

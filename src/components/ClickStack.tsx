@@ -438,7 +438,9 @@ export const ClickStack: React.FC<ClickStackProps> = ({
   const visibleItems = items.slice(activeIndex, activeIndex + visibleCount);
 
   // Synchronize cardRefs array size with visible items
-  cardRefs.current = cardRefs.current.slice(0, visibleItems.length);
+  useEffect(() => {
+    cardRefs.current = cardRefs.current.slice(0, visibleItems.length);
+  }, [visibleItems.length]);
 
   // Responsive dimensions for mobile viewports
   const isMobile = typeof window !== 'undefined' && window.innerWidth < 640;

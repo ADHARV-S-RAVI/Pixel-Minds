@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Bell,
@@ -32,26 +32,40 @@ export const NotificationBell: React.FC<{ className?: string }> = ({ className =
   const [popupNotification, setPopupNotification] = useState<AppNotification | null>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   const popupTimeoutRef = useRef<any>(null);
+  const [renderNow, setRenderNow] = useState(() => Date.now());
 
-  const fetchNotifications = async () => {
-    if (!user?.uid) return;
+  // Trigger popup when new unread notification is detected
+  const triggerNotificationPopup = useCallback((n: AppNotification) => {
+    setPopupNotification(n);
+    setShowPopup(true);
+    if (popupTimeoutRef.current) clearTimeout(popupTimeoutRef.current);
+    popupTimeoutRef.current = setTimeout(() => {
+      setShowPopup(false);
+    }, 6000);
+  }, []);
+
+  const fetchNotifications = useCallback(async () => {
+    const uid = user?.uid;
+    if (!uid) return;
     try {
-      const data = await getUserNotifications(user.uid);
+      const data = await getUserNotifications(uid);
+      setRenderNow(Date.now());
 
       // If user has zero notifications in database, provide a friendly welcome notification
       if (data.length === 0) {
-        const welcomeKey = `pm_notif_read_welcome_${user.uid}`;
+        const welcomeKey = `pm_notif_read_welcome_${uid}`;
         const isWelcomeRead = localStorage.getItem(welcomeKey) === 'true';
+        const now = Date.now();
         const welcomeNotif: AppNotification = {
-          id: `welcome_${user.uid}`,
+          id: `welcome_${uid}`,
           notificationId: 'welcome',
           title: 'Welcome to Pixel Minds!',
           message: 'Explore hackathons, earn Pixels, and climb the global builder leaderboard.',
           type: 'pixel',
           link: '/opportunities',
           isRead: isWelcomeRead,
-          readAt: isWelcomeRead ? Date.now() : null,
-          createdAt: Date.now()
+          readAt: isWelcomeRead ? now : null,
+          createdAt: now
         };
         setNotifications([welcomeNotif]);
       } else {
@@ -62,19 +76,23 @@ export const NotificationBell: React.FC<{ className?: string }> = ({ className =
       console.error('[NotificationBell] Failed to fetch notifications:', err);
       setFetchError(err?.message || 'Failed to fetch notifications');
     }
-  };
+  }, [user]);
 
   useEffect(() => {
     if (!user?.uid) {
-      setNotifications([]);
-      setFetchError(null);
-      setShowPopup(false);
-      setPopupNotification(null);
-      return;
+      const resetTimer = setTimeout(() => {
+        setNotifications([]);
+        setFetchError(null);
+        setShowPopup(false);
+        setPopupNotification(null);
+      }, 0);
+      return () => clearTimeout(resetTimer);
     }
 
     // Initial fetch
-    fetchNotifications();
+    const initialTimer = setTimeout(() => {
+      void fetchNotifications();
+    }, 0);
 
     // 1. Supabase Realtime subscription with safe UUID check & collision prevention
     let channel: any = null;
@@ -128,6 +146,7 @@ export const NotificationBell: React.FC<{ className?: string }> = ({ className =
     window.addEventListener('pm:new-notification', handleNewNotificationEvent);
 
     return () => {
+      clearTimeout(initialTimer);
       clearInterval(interval);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('focus', handleWindowFocus);
@@ -142,17 +161,7 @@ export const NotificationBell: React.FC<{ className?: string }> = ({ className =
         }
       }
     };
-  }, [user?.uid]);
-
-  // Trigger popup when new unread notification is detected
-  const triggerNotificationPopup = (n: AppNotification) => {
-    setPopupNotification(n);
-    setShowPopup(true);
-    if (popupTimeoutRef.current) clearTimeout(popupTimeoutRef.current);
-    popupTimeoutRef.current = setTimeout(() => {
-      setShowPopup(false);
-    }, 6000);
-  };
+  }, [user?.uid, fetchNotifications, triggerNotificationPopup]);
 
   // Check unread notifications and show popup banner if not shown in current session
   useEffect(() => {
@@ -163,10 +172,11 @@ export const NotificationBell: React.FC<{ className?: string }> = ({ className =
       const sessionKey = `pm_notif_popup_seen_${latest.id}`;
       if (!sessionStorage.getItem(sessionKey)) {
         sessionStorage.setItem(sessionKey, 'true');
-        triggerNotificationPopup(latest);
+        const timer = setTimeout(() => triggerNotificationPopup(latest), 0);
+        return () => clearTimeout(timer);
       }
     }
-  }, [notifications, user?.uid]);
+  }, [notifications, user?.uid, triggerNotificationPopup]);
 
   // Handle clicking outside to close the dropdown
   useEffect(() => {
@@ -256,7 +266,7 @@ export const NotificationBell: React.FC<{ className?: string }> = ({ className =
   if (!user) return null;
 
   const formatTimeAgo = (timestamp: number) => {
-    const diff = Date.now() - timestamp;
+    const diff = renderNow - timestamp;
     const mins = Math.floor(diff / 60000);
     if (mins < 1) return 'Just now';
     if (mins < 60) return `${mins}m ago`;

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import type { FC } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Megaphone, ExternalLink, X } from 'lucide-react';
@@ -45,7 +45,7 @@ export const AnnouncementModal: FC = () => {
     };
   }, []);
 
-  const handleDismiss = () => {
+  const handleDismiss = useCallback(() => {
     if (announcement) {
       try {
         localStorage.setItem(`pm_dismissed_ann_${announcement.id}`, 'true');
@@ -54,7 +54,7 @@ export const AnnouncementModal: FC = () => {
       }
     }
     setIsOpen(false);
-  };
+  }, [announcement]);
 
   // Close on Escape key press
   useEffect(() => {
@@ -65,7 +65,7 @@ export const AnnouncementModal: FC = () => {
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, announcement]);
+  }, [isOpen, handleDismiss]);
 
   if (!isOpen || !announcement) {
     return null;

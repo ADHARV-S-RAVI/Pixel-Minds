@@ -19,6 +19,7 @@ export function OpportunityDetails() {
   const [error, setError] = useState('');
   const [selectedImgIdx, setSelectedImgIdx] = useState(0);
   const [showReport, setShowReport] = useState(false);
+  const [renderNow, setRenderNow] = useState(() => Date.now());
 
   useEffect(() => {
     const fetchOpp = async () => {
@@ -27,6 +28,7 @@ export function OpportunityDetails() {
         setLoading(true);
         const opp = await getOpportunityById(id);
         if (opp && opp.status === 'published') {
+          setRenderNow(Date.now());
           setOpportunity(opp);
           await incrementOpportunityViews(id);
         } else {
@@ -132,7 +134,7 @@ export function OpportunityDetails() {
     );
   }
 
-  const daysLeft = Math.ceil((opportunity.deadline - Date.now()) / (1000 * 60 * 60 * 24));
+  const daysLeft = Math.ceil((opportunity.deadline - renderNow) / (1000 * 60 * 60 * 24));
 
   return (
     <div className="bg-white min-h-screen">

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { getAllOpportunities, getPendingSubmissions, updateOpportunityAdmin, deleteOpportunityAdmin } from '../services/opportunities';
 import type { Opportunity } from '../types';
 import { LayoutDashboard, FileText, Inbox, Users, BarChart3, Settings, Search, Trash2, Check, X, Eye } from 'lucide-react';
@@ -31,7 +31,7 @@ export function Admin() {
     onConfirm: () => {}
   });
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     setLoading(true);
     try {
       if (activeTab === 'opportunities') {
@@ -46,11 +46,14 @@ export function Admin() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [activeTab]);
 
   useEffect(() => {
-    fetchData();
-  }, [activeTab]);
+    const timer = setTimeout(() => {
+      void fetchData();
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [fetchData]);
 
   const handleApprove = async (id: string) => {
     try {

@@ -13,9 +13,10 @@ import { NotFound } from './pages/NotFound';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { AdminRoute } from './components/AdminRoute';
 import { ErrorBoundary } from './components/ErrorBoundary';
-import { Analytics } from '@vercel/analytics/react';
 import { ReferralOnboardingModal } from './components/ReferralOnboardingModal';
 import { useAuth } from './contexts/AuthContext';
+
+const Analytics = () => null;
 
 export default function App() {
   const { user } = useAuth();

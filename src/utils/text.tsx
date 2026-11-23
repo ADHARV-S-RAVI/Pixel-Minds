@@ -57,7 +57,7 @@ export function renderWithHashtags(text: string | null | undefined): React.React
   // 1. Email addresses (so they are preserved intact and not parsed as mentions)
   // 2. Hashtags (#tag)
   // 3. Mentions (@username) with strict username format: 3-20 letters/numbers/underscore
-  const tokenRegex = /([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}|#[a-zA-Z0-9_\-]{2,30}|@[a-zA-Z0-9_]{3,20}\b)/g;
+  const tokenRegex = /([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}|#[a-zA-Z0-9_-]{2,30}|@[a-zA-Z0-9_]{3,20}\b)/g;
   const parts = safeText.split(tokenRegex);
 
   return parts.map((part, i) => {

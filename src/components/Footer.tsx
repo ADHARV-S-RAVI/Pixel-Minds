@@ -1,5 +1,7 @@
 import { Link } from 'react-router-dom';
 
+const CURRENT_YEAR = new Date().getFullYear();
+
 export function Footer() {
   return (
     <footer className="bg-white border-t border-slate-200 mt-auto">
@@ -8,7 +10,7 @@ export function Footer() {
           <div className="flex items-center space-x-2.5">
             <img src="/logo.png" alt="Pixel Minds" className="h-6 w-auto object-contain" />
             <span className="text-slate-900 font-semibold text-sm">Pixel Minds</span>
-            <span className="text-slate-400 text-sm">&copy; {new Date().getFullYear()}</span>
+            <span className="text-slate-400 text-sm">&copy; {CURRENT_YEAR}</span>
           </div>
           <div className="flex space-x-6">
             <Link to="/opportunities" className="text-sm text-slate-500 hover:text-sky-600 transition-colors">Opportunities</Link>

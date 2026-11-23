@@ -76,7 +76,7 @@ export const ReferralOnboardingModal: React.FC = () => {
     return () => {
       mounted = false;
     };
-  }, [user?.uid, authLoading]);
+  }, [user?.uid, user?.user_metadata, authLoading]);
 
   const markOnboarded = async () => {
     if (!user?.uid) return;

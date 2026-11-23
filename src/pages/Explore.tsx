@@ -46,6 +46,7 @@ export function Explore() {
   const [opportunities, setOpportunities] = useState<Opportunity[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [renderNow, setRenderNow] = useState(() => Date.now());
 
   // Filters
   const [selectedCategory, setSelectedCategory] = useState<CategoryFilter>('All');
@@ -134,6 +135,7 @@ export function Explore() {
             return a.deadline - b.deadline;
           });
 
+          setRenderNow(now);
           setOpportunities(sorted);
         }
       } catch (err) {
@@ -151,11 +153,9 @@ export function Explore() {
 
   // Filter opportunities based on category, mode, and search query
   const filteredOpportunities = useMemo(() => {
-    const now = Date.now();
-
     return opportunities.filter((opp) => {
       // 1. Hide expired opportunities (deadline was > 7 days ago) to keep feed fresh
-      const isExpired = opp.deadline < now - 7 * 86400000;
+      const isExpired = opp.deadline < renderNow - 7 * 86400000;
       if (isExpired) return false;
 
       // 2. Category Filter
@@ -186,14 +186,16 @@ export function Explore() {
 
       return true;
     });
-  }, [opportunities, selectedCategory, selectedMode, searchQuery]);
+  }, [opportunities, selectedCategory, selectedMode, searchQuery, renderNow]);
 
-  // Reset index when filters change so user starts at the first card of the new filter
+  // Clamp index if filtered results shrink
+  const safeIndex = filteredOpportunities.length > 0 ? Math.min(currentIndex, filteredOpportunities.length - 1) : 0;
   useEffect(() => {
-    setCurrentIndex(0);
+    const timer = setTimeout(() => setCurrentIndex(0), 0);
+    return () => clearTimeout(timer);
   }, [selectedCategory, selectedMode, searchQuery]);
 
-  const activeOpp = filteredOpportunities[currentIndex] || null;
+  const activeOpp = filteredOpportunities[safeIndex] || null;
 
   // Handle register / apply click
   const handleApplyClick = (opp: Opportunity) => {
@@ -212,7 +214,7 @@ export function Explore() {
 
   // Calculate days remaining to deadline
   const getDaysLeft = (deadline: number) => {
-    const diff = deadline - Date.now();
+    const diff = deadline - renderNow;
     const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
     return days;
   };

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { getPublishedOpportunities } from '../services/opportunities';
 import { getPrimaryImageUrl } from '../services/storage';
@@ -16,8 +16,9 @@ export function Opportunities() {
   const [lastDoc, setLastDoc] = useState<number | undefined>(undefined);
   const [hasMore, setHasMore] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [renderNow, setRenderNow] = useState(() => Date.now());
 
-  const fetchOpportunities = async (isLoadMore = false) => {
+  const fetchOpportunities = useCallback(async (isLoadMore = false) => {
     try {
       if (isLoadMore) {
         setLoadingMore(true);
@@ -32,6 +33,7 @@ export function Opportunities() {
         category,
         search
       );
+      setRenderNow(Date.now());
 
       if (isLoadMore) {
         setOpportunities(prev => [...prev, ...res.opportunities]);
@@ -48,14 +50,17 @@ export function Opportunities() {
       setLoading(false);
       setLoadingMore(false);
     }
-  };
+  }, [lastDoc, category, search]);
 
   useEffect(() => {
-    fetchOpportunities();
-  }, [category, search]);
+    const timer = setTimeout(() => {
+      void fetchOpportunities();
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [category, search]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const getDeadlineColor = (deadline: number) => {
-    const daysLeft = Math.ceil((deadline - Date.now()) / (1000 * 60 * 60 * 24));
+    const daysLeft = Math.ceil((deadline - renderNow) / (1000 * 60 * 60 * 24));
     if (daysLeft <= 3) return 'text-red-500';
     if (daysLeft <= 7) return 'text-amber-500';
     return 'text-slate-500';

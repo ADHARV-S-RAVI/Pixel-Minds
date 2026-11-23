@@ -217,8 +217,6 @@ function buildSubmissionHtml(data: SubmissionData): string {
   const title = escapeHtml(data.opportunityTitle || 'Opportunity');
   const organizer = escapeHtml(data.organizer || 'Community Contributor');
   const category = escapeHtml(data.category || 'Opportunities');
-  const mode = escapeHtml(data.mode || 'Online');
-  const deadline = escapeHtml(data.deadline || 'Closing Soon');
   const submissionReward = data.submissionPixels ?? 20;
   const approvalReward = data.approvalPixels ?? 50;
   const recipientEmail = escapeHtml(data.recipientEmail);

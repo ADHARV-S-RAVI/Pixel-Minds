@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Bell,
@@ -28,14 +28,17 @@ export function Notifications() {
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [filter, setFilter] = useState<'all' | 'unread' | 'read'>('all');
+  const [renderNow, setRenderNow] = useState(() => Date.now());
 
-  const fetchNotifications = async () => {
+  const fetchNotifications = useCallback(async () => {
     if (!user?.uid) {
       setLoading(false);
       return;
     }
     try {
       const data = await getUserNotifications(user.uid);
+      const now = Date.now();
+      setRenderNow(now);
       if (data.length === 0) {
         const welcomeKey = `pm_notif_read_welcome_${user.uid}`;
         const isWelcomeRead = localStorage.getItem(welcomeKey) === 'true';
@@ -47,8 +50,8 @@ export function Notifications() {
           type: 'pixel',
           link: '/opportunities',
           isRead: isWelcomeRead,
-          readAt: isWelcomeRead ? Date.now() : null,
-          createdAt: Date.now()
+          readAt: isWelcomeRead ? now : null,
+          createdAt: now
         };
         setNotifications([welcomeNotif]);
       } else {
@@ -61,11 +64,14 @@ export function Notifications() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user]);
 
   useEffect(() => {
-    fetchNotifications();
-  }, [user?.uid]);
+    const timer = setTimeout(() => {
+      void fetchNotifications();
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [fetchNotifications]);
 
   const unreadCount = notifications.filter((n) => !n.isRead).length;
 
@@ -140,7 +146,7 @@ export function Notifications() {
   };
 
   const formatTimeAgo = (timestamp: number) => {
-    const diff = Date.now() - timestamp;
+    const diff = renderNow - timestamp;
     const mins = Math.floor(diff / 60000);
     if (mins < 1) return 'Just now';
     if (mins < 60) return `${mins}m ago`;

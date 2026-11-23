@@ -621,7 +621,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       isSubscribed = false;
       supabase.removeChannel(channel);
     };
-  }, [currentUser?.id]);
+  }, [currentUser?.id, currentUser?.displayName, currentUser?.email, currentUser?.photoURL]);
 
   const incrementPixels = (delta: number, _actionName?: string, _reasonText?: string, idempotencyKey?: string) => {
     if (!currentUser?.id) return;
