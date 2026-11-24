@@ -1,23 +1,23 @@
-# Graph Report - Pixel Minds  (2026-11-22)
+# Graph Report - Pixel Minds  (2026-11-25)
 
 ## Corpus Check
-- 127 files · ~300,381 words
+- 137 files · ~326,293 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 845 nodes · 1769 edges · 53 communities (43 shown, 10 thin omitted)
-- Extraction: 99% EXTRACTED · 1% INFERRED · 0% AMBIGUOUS · INFERRED: 15 edges (avg confidence: 0.66)
+- 861 nodes · 1856 edges · 54 communities (43 shown, 11 thin omitted)
+- Extraction: 99% EXTRACTED · 1% INFERRED · 0% AMBIGUOUS · INFERRED: 16 edges (avg confidence: 0.67)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `3578a75d`
+- Built from commit: `11f25793`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
 ## Community Hubs (Navigation)
 - App.tsx
 - compilerOptions
-- storage.ts
+- AuthContext.tsx
 - components.json
 - compilerOptions
 - Pixel Minds
@@ -26,27 +26,29 @@
 - ui.tsx
 - tsconfig.json
 - opportunities.ts
-- Explore.tsx
+- data.ts
 - pixels.tsx
-- dateUtils.ts
+- Settings.tsx
 - rules/graphify.md
 - workflows/graphify.md
-- data.ts
-- SearchAutocomplete.tsx
+- react
+- notifications.ts
 - LevelUpOverlay.tsx
 - PixelProgressIllustration.tsx
 - pages.tsx
-- Leaderboard
+- NotFound.tsx
 - Icons.tsx
 - store.tsx
+- Footer.tsx
 - sign-artifacts.cjs
+- activity.ts
+- @types/node
 - vercel.json
 - devDependencies
 - GooeyNav.tsx
 - send-email.ts
 - scripts
 - manifest.json
-- SubmitOpportunity.tsx
 - verify-apk.cjs
 - ErrorBoundary
 - LauncherActivity
@@ -58,49 +60,48 @@
 - gradlew
 - tsx
 - typescript
-- vite
 - sw.js
 
 ## God Nodes (most connected - your core abstractions)
 1. `useAuth()` - 51 edges
-2. `react` - 47 edges
+2. `react` - 49 edges
 3. `Admin()` - 28 edges
-4. `useApp()` - 25 edges
-5. `PostCard` - 24 edges
-6. `supabase` - 22 edges
-7. `compilerOptions` - 19 edges
-8. `Composer()` - 17 edges
+4. `PostCard` - 27 edges
+5. `useApp()` - 25 edges
+6. `supabase` - 24 edges
+7. `Composer()` - 21 edges
+8. `compilerOptions` - 19 edges
 9. `recordAuditLog()` - 16 edges
 10. `Profile()` - 15 edges
 
 ## Surprising Connections (you probably didn't know these)
-- `Composer()` --indirect_call--> `IconMessage()`  [INFERRED]
-  src/ui.tsx → src/components/FeedIcons.tsx
-- `Composer()` --indirect_call--> `IconTrophy()`  [INFERRED]
-  src/ui.tsx → src/components/FeedIcons.tsx
-- `Composer()` --indirect_call--> `IconLightbulb()`  [INFERRED]
-  src/ui.tsx → src/components/FeedIcons.tsx
-- `Composer()` --indirect_call--> `IconBook()`  [INFERRED]
-  src/ui.tsx → src/components/FeedIcons.tsx
-- `Composer()` --indirect_call--> `IconCompass()`  [INFERRED]
-  src/ui.tsx → src/components/FeedIcons.tsx
+- `AuthContextType` --references--> `User`  [EXTRACTED]
+  src/contexts/AuthContext.tsx → src/types/index.ts
+- `ForgotPassword()` --calls--> `useAuth()`  [EXTRACTED]
+  src/pages/ForgotPassword.tsx → src/contexts/AuthContext.tsx
+- `ResetPassword()` --calls--> `useAuth()`  [EXTRACTED]
+  src/pages/ResetPassword.tsx → src/contexts/AuthContext.tsx
+- `initialOpps` --calls--> `getOpportunityDeadlineInfo()`  [EXTRACTED]
+  src/data.ts → src/utils/dateUtils.ts
+- `loadData()` --calls--> `getPublishedOpportunities()`  [EXTRACTED]
+  src/pages/Explore.tsx → src/services/opportunities.ts
 
 ## Import Cycles
 - 2-file cycle: `src/services/admin.ts -> src/services/announcements.ts -> src/services/admin.ts`
 
-## Communities (53 total, 10 thin omitted)
+## Communities (54 total, 11 thin omitted)
 
 ### Community 0 - "App.tsx"
-Cohesion: 0.05
-Nodes (68): react, AdminLogin, App(), ForgotPassword, Login, NotFound, Notifications, PrivacyPolicy (+60 more)
+Cohesion: 0.11
+Nodes (18): AdminLogin, App(), ErrorPage, Login, Notifications, PrivacyPolicy, Terms, AdminRoute() (+10 more)
 
 ### Community 1 - "compilerOptions"
 Cohesion: 0.07
 Nodes (26): DOM, src, src/tests, vite/client, compilerOptions, allowArbitraryExtensions, allowImportingTsExtensions, erasableSyntaxOnly (+18 more)
 
-### Community 2 - "storage.ts"
-Cohesion: 0.17
-Nodes (17): SubmissionDetailModal(), SubmissionDetailModalProps, uploadAnnouncementImage(), logFailedUpload(), ALLOWED_BANNER_TYPES, ALLOWED_IMAGE_TYPES, getPrimaryImageUrl(), MAX_IMAGE_SIZE_BYTES (+9 more)
+### Community 2 - "AuthContext.tsx"
+Cohesion: 0.23
+Nodes (16): ReferralOnboardingModal(), AuthContext, AuthContextType, AuthProvider(), AuthUser, isTestRunner, supabase, AdminLogin() (+8 more)
 
 ### Community 3 - "components.json"
 Cohesion: 0.09
@@ -124,31 +125,31 @@ Nodes (8): plugins, rules, react/only-export-components, react/rules-of-hooks, $
 
 ### Community 8 - "ui.tsx"
 Cohesion: 0.07
-Nodes (65): AuthPromptModal(), AuthPromptModalProps, ConfirmModal(), ConfirmModalProps, IconBook(), IconBookmark(), IconBriefcase(), IconCalendar() (+57 more)
+Nodes (73): AuthPromptModal(), AuthPromptModalProps, IconBook(), IconBookmark(), IconBriefcase(), IconCalendar(), IconCompass(), IconExternalLink() (+65 more)
 
 ### Community 10 - "opportunities.ts"
-Cohesion: 0.11
-Nodes (30): initialOpps, AdminCMS(), loadData(), Landing(), OppDetail(), Opportunities(), createReviewNotification(), addAdminDeletedOppId() (+22 more)
+Cohesion: 0.05
+Nodes (58): SubmitOpportunity, cats, AdminCMS(), AdminOpportunityForm(), Landing(), OppDetail(), Opportunities(), FormState (+50 more)
 
-### Community 15 - "Explore.tsx"
-Cohesion: 0.17
-Nodes (12): Explore, ClickStack(), ClickStackProps, CATEGORIES, CategoryFilter, Explore(), GuideStep, ModeFilter (+4 more)
+### Community 15 - "data.ts"
+Cohesion: 0.06
+Nodes (36): Explore, ClickStack(), ClickStackProps, EVENT_CATEGORIES, OpportunityAttachmentItem, SearchableOpportunitySelector(), SearchableOpportunitySelectorProps, POPULAR_KEYWORDS (+28 more)
 
 ### Community 16 - "pixels.tsx"
-Cohesion: 0.20
-Nodes (9): Count(), ReferralPanel(), steps, useCount(), getReferralStats(), getUserReferrals(), LeaderboardUserEntry, Referral (+1 more)
+Cohesion: 0.13
+Nodes (19): rankOf(), tierInfo(), tiers, Feed(), Mini(), Profile(), Count(), Leaderboard() (+11 more)
 
-### Community 17 - "dateUtils.ts"
-Cohesion: 0.25
-Nodes (12): AdminOpportunityForm(), submitOpportunity(), submitOpportunityAdmin(), DateValidationResult, formatDateToDDMMYYYY(), formatTimestampToDateInput(), getDaysInMonth(), isLeapYear() (+4 more)
+### Community 17 - "Settings.tsx"
+Cohesion: 0.22
+Nodes (12): Settings, Signup, BRANCH_MAP, COURSE_OPTIONS, CourseOption, getBranchesForCourse(), isPredefinedBranch(), Settings() (+4 more)
 
-### Community 20 - "data.ts"
-Cohesion: 0.16
-Nodes (12): cats, FeedPost, initialPosts, LeaderboardUser, moves, Opp, TierInfoResult, tiers (+4 more)
+### Community 20 - "react"
+Cohesion: 0.19
+Nodes (10): react, ForgotPassword, ResetPassword, Props, State, OtpInput(), OtpInputProps, PixelMark() (+2 more)
 
-### Community 21 - "SearchAutocomplete.tsx"
-Cohesion: 0.27
-Nodes (8): POPULAR_KEYWORDS, SearchAutocomplete(), SearchAutocompleteProps, SearchPrediction, opps, globalSearch, searchGlobal(), SearchResults
+### Community 21 - "notifications.ts"
+Cohesion: 0.56
+Nodes (7): NotificationBell(), Notifications(), deleteNotification(), getUserNotifications(), markAllNotificationsAsRead(), markNotificationAsRead(), AppNotification
 
 ### Community 22 - "LevelUpOverlay.tsx"
 Cohesion: 0.25
@@ -159,24 +160,32 @@ Cohesion: 0.29
 Nodes (6): ALL_LEVEL_TILES, LEVEL_ART_DATA, PixelProgressIllustration(), PixelProgressIllustrationProps, PixelTile, useSmoothProgress()
 
 ### Community 24 - "pages.tsx"
-Cohesion: 0.06
-Nodes (67): AnnouncementModal(), FAQ_DATA, FAQItem, FAQSection(), IconBadge(), IconClock(), OPPORTUNITY_REASONS, POST_REASONS (+59 more)
+Cohesion: 0.07
+Nodes (63): AnnouncementModal(), ConfirmModal(), ConfirmModalProps, FAQ_DATA, FAQItem, FAQSection(), IconBadge(), IconClock() (+55 more)
 
-### Community 25 - "Leaderboard"
-Cohesion: 0.38
-Nodes (7): rankOf(), tierInfo(), Feed(), Mini(), Leaderboard(), getLeaderboardUsers(), getUserGlobalRank()
+### Community 25 - "NotFound.tsx"
+Cohesion: 0.25
+Nodes (6): NotFound, BurstParticle, DEFAULT_PIXELS, EXPLOSION_COLORS, FLICKER_NODES, Shockwave
 
 ### Community 26 - "Icons.tsx"
 Cohesion: 0.02
-Nodes (93): Activity, AlertCircle, AlertTriangle, ArrowDown, ArrowLeft, ArrowRight, Award, BarChart2 (+85 more)
+Nodes (94): Activity, AlertCircle, AlertTriangle, ArrowDown, ArrowLeft, ArrowRight, Award, BarChart2 (+86 more)
 
 ### Community 27 - "store.tsx"
-Cohesion: 0.14
-Nodes (27): Applications, Applications(), confirmOpportunityRegistration(), getLocalStorageApplications(), getUserApplications(), parseEpochMs(), recordOpportunityApplication(), saveLocalStorageApplications() (+19 more)
+Cohesion: 0.13
+Nodes (27): Applications, OPPORTUNITY_REASONS, POST_REASONS, ReportModal(), ReportModalProps, Applications(), confirmOpportunityRegistration(), getLocalStorageApplications() (+19 more)
+
+### Community 28 - "Footer.tsx"
+Cohesion: 0.38
+Nodes (3): EXCLUDED_PATHS, Footer(), Navbar()
 
 ### Community 29 - "sign-artifacts.cjs"
 Cohesion: 0.12
 Nodes (15): aabStat, alignedApk, apksignerBat, apkStat, { execSync }, fs, keystore, path (+7 more)
+
+### Community 30 - "activity.ts"
+Cohesion: 0.60
+Nodes (4): formatRelativeTime(), getRecentPlatformActivities(), RecentActivityItem, sanitizeDisplayName()
 
 ### Community 32 - "vercel.json"
 Cohesion: 0.50
@@ -187,8 +196,8 @@ Cohesion: 0.11
 Nodes (19): autoprefixer, oxlint, devDependencies, autoprefixer, oxlint, @playwright/test, postcss, tailwindcss (+11 more)
 
 ### Community 34 - "GooeyNav.tsx"
-Cohesion: 0.09
-Nodes (30): bezier(), build(), clamp01(), compile(), DropState, getSidebarActiveIndex(), NavItemDef, parse() (+22 more)
+Cohesion: 0.08
+Nodes (32): AccountMenuContent(), AccountMenuContentProps, bezier(), build(), clamp01(), compile(), DropState, getSidebarActiveIndex() (+24 more)
 
 ### Community 35 - "send-email.ts"
 Cohesion: 0.22
@@ -202,17 +211,9 @@ Nodes (7): scripts, build, dev, lint, preview, test, test:integration
 Cohesion: 0.18
 Nodes (10): background_color, description, display, icons, name, orientation, scope, short_name (+2 more)
 
-### Community 41 - "SubmitOpportunity.tsx"
-Cohesion: 0.13
-Nodes (10): SubmitOpportunity, FormState, INITIAL_FORM, PRESET_TAGS, sanitizeDescription(), sanitizeMetadata(), stripExifAndProcessImage(), SubmitOpportunity() (+2 more)
-
 ### Community 44 - "verify-apk.cjs"
 Cohesion: 0.18
 Nodes (10): apkPath, checks, classesDexPath, dexdumpOutput, { execSync }, fs, path, rootDir (+2 more)
-
-### Community 45 - "ErrorBoundary"
-Cohesion: 0.20
-Nodes (3): ErrorBoundary, Props, State
 
 ### Community 47 - "LauncherActivity"
 Cohesion: 0.48
@@ -231,23 +232,23 @@ Cohesion: 0.83
 Nodes (3): gradlew script, die(), warn()
 
 ## Knowledge Gaps
-- **338 isolated node(s):** `$schema`, `typescript`, `oxc`, `react/rules-of-hooks`, `warn` (+333 more)
+- **340 isolated node(s):** `$schema`, `typescript`, `oxc`, `react/rules-of-hooks`, `warn` (+335 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **10 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **11 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `react` connect `App.tsx` to `GooeyNav.tsx`, `storage.ts`, `plugins`, `ui.tsx`, `SubmitOpportunity.tsx`, `ErrorBoundary`, `Explore.tsx`, `pixels.tsx`, `SearchAutocomplete.tsx`, `LevelUpOverlay.tsx`, `PixelProgressIllustration.tsx`, `pages.tsx`, `Icons.tsx`, `store.tsx`?**
-  _High betweenness centrality (0.204) - this node is a cross-community bridge._
-- **Why does `useAuth()` connect `App.tsx` to `ui.tsx`, `SubmitOpportunity.tsx`, `opportunities.ts`, `pixels.tsx`, `dateUtils.ts`, `pages.tsx`, `Leaderboard`, `store.tsx`?**
-  _High betweenness centrality (0.021) - this node is a cross-community bridge._
-- **Why does `plugins` connect `plugins` to `App.tsx`?**
+- **Why does `react` connect `react` to `App.tsx`, `GooeyNav.tsx`, `AuthContext.tsx`, `plugins`, `ui.tsx`, `opportunities.ts`, `data.ts`, `pixels.tsx`, `Settings.tsx`, `notifications.ts`, `LevelUpOverlay.tsx`, `PixelProgressIllustration.tsx`, `pages.tsx`, `NotFound.tsx`, `Icons.tsx`, `store.tsx`, `Footer.tsx`?**
+  _High betweenness centrality (0.202) - this node is a cross-community bridge._
+- **Why does `useAuth()` connect `App.tsx` to `GooeyNav.tsx`, `AuthContext.tsx`, `ui.tsx`, `opportunities.ts`, `pixels.tsx`, `Settings.tsx`, `react`, `notifications.ts`, `pages.tsx`, `store.tsx`, `Footer.tsx`?**
+  _High betweenness centrality (0.020) - this node is a cross-community bridge._
+- **Why does `plugins` connect `plugins` to `react`?**
   _High betweenness centrality (0.013) - this node is a cross-community bridge._
 - **What connects `$schema`, `typescript`, `oxc` to the rest of the system?**
-  _338 weakly-connected nodes found - possible documentation gaps or missing edges._
+  _340 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `App.tsx` be split into smaller, more focused modules?**
-  _Cohesion score 0.05207920792079208 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.10804597701149425 - nodes in this community are weakly interconnected._
 - **Should `compilerOptions` be split into smaller, more focused modules?**
   _Cohesion score 0.07407407407407407 - nodes in this community are weakly interconnected._
 - **Should `components.json` be split into smaller, more focused modules?**
