@@ -112,8 +112,8 @@ import {
   getPixelTransactions,
   getAllUsersAdmin,
   toggleUserSuspension,
-  createAdminCommunityPost,
   getCommunityPosts,
+  createAdminCommunityPost,
   deleteCommunityPost,
   createAnnouncement,
   getAnnouncements,
@@ -1419,6 +1419,7 @@ export function OppDetail() {
 // ==========================================
 export function Feed() {
   const { userProfile, user, refreshProfile } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [posts, setPosts] = useState<CommunityPost[]>([]);
   const [filterCategory, setFilterCategory] = useState<string>('All');
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -1426,6 +1427,20 @@ export function Feed() {
   const userName = userProfile?.displayName || user?.displayName || (user ? 'Pixel Member' : 'Guest Builder');
   const pixels = userProfile?.pixels ?? 0;
   const [globalRank, setGlobalRank] = useState<number | null>(null);
+
+  const hashtagQuery = searchParams.get('tag')?.trim().replace(/^#/, '') || '';
+  const [searchFilter, setSearchFilter] = useState<string>(hashtagQuery ? `#${hashtagQuery}` : '');
+
+  // Keep searchFilter in sync when URL search params change
+  useEffect(() => {
+    const tag = searchParams.get('tag')?.trim().replace(/^#/, '');
+    const q = searchParams.get('q')?.trim();
+    if (tag) {
+      setSearchFilter(`#${tag}`);
+    } else if (q) {
+      setSearchFilter(q);
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     let mounted = true;
@@ -1464,23 +1479,81 @@ export function Feed() {
 
   const allPosts = posts;
 
-  // Filter posts based on active category
+  // Filter posts based on active category and active hashtag/search filter
   const filteredPosts = allPosts.filter((p: any) => {
+    const rawText = (p.text || '').toLowerCase();
+    const rawTitle = (p.title || '').toLowerCase();
+    const rawDesc = (p.description || '').toLowerCase();
+
+    // 1. Hashtag / Keyword filter
+    if (searchFilter.trim()) {
+      const q = searchFilter.trim().toLowerCase();
+      if (q.startsWith('#')) {
+        const tagToken = q.slice(1);
+        // Match hashtag token accurately (e.g. #React must not match #ReactNative unless requested)
+        const hashtagRegex = new RegExp(`(^|\\s)#${tagToken}(\\b|[\\s.,!?])`, 'i');
+        const matchesHashtag =
+          hashtagRegex.test(rawText) ||
+          hashtagRegex.test(rawTitle) ||
+          hashtagRegex.test(rawDesc);
+        if (!matchesHashtag) return false;
+      } else {
+        const terms = q.split(/\s+/).filter(Boolean);
+        const corpus = `${rawTitle} ${rawDesc} ${rawText} ${(p.user || '').toLowerCase()} ${(p.category || '').toLowerCase()}`;
+        const matchesSearch = terms.every((t) => corpus.includes(t));
+        if (!matchesSearch) return false;
+      }
+    }
+
+    // 2. Category filter
     if (filterCategory !== 'All') {
+      const cat = (p.category || '').toLowerCase();
+      const txt = typeof p.text === 'string' ? p.text.toLowerCase() : '';
+
       if (filterCategory === 'Upcoming Hackathons') {
         const isHack =
-          p.category === 'Upcoming Hackathon' ||
-          p.category === 'Hackathon' ||
-          (typeof p.text === 'string' && (p.text.includes('Upcoming Hackathon:') || p.text.includes('🚀 Upcoming Hackathon:')));
+          cat === 'upcoming hackathon' ||
+          cat === 'hackathon' ||
+          cat === 'hackathons' ||
+          txt.includes('upcoming hackathon:') ||
+          txt.includes('🚀 upcoming hackathon:');
         if (!isHack) return false;
-      } else if (filterCategory === 'Experiences' && p.category !== 'Experience') {
+      } else if (filterCategory === 'Announcements') {
+        const isAnnouncement =
+          cat === 'announcement' ||
+          cat === 'announcements' ||
+          p.source === 'admin' ||
+          txt.includes('[announcement]') ||
+          txt.includes('announcement:');
+        if (!isAnnouncement) return false;
+      } else if (filterCategory === 'Events') {
+        const isEvent = cat === 'event' || cat === 'events';
+        if (!isEvent) return false;
+      } else if (filterCategory === 'Internships') {
+        const isInternship = cat === 'internship' || cat === 'internships';
+        if (!isInternship) return false;
+      } else if (filterCategory === 'Jobs') {
+        const isJob = cat === 'job' || cat === 'jobs';
+        if (!isJob) return false;
+      } else if (filterCategory === 'Workshops') {
+        const isWorkshop = cat === 'workshop' || cat === 'workshops';
+        if (!isWorkshop) return false;
+      } else if (filterCategory === 'Competitions') {
+        const isCompetition = cat === 'competition' || cat === 'competitions';
+        if (!isCompetition) return false;
+      } else if (filterCategory === 'Conferences') {
+        const isConference = cat === 'conference' || cat === 'conferences';
+        if (!isConference) return false;
+      } else if (filterCategory === 'Experiences' && cat !== 'experience' && cat !== 'experiences') {
         return false;
-      } else if (filterCategory === 'Achievements' && p.category !== 'Achievement') {
+      } else if (filterCategory === 'Achievements' && cat !== 'achievement' && cat !== 'achievements') {
         return false;
-      } else if (filterCategory === 'Ideas' && p.category !== 'Idea') {
+      } else if (filterCategory === 'Ideas' && cat !== 'idea' && cat !== 'ideas') {
         return false;
-      } else if (filterCategory === 'Learnings' && p.category !== 'Learning') {
+      } else if (filterCategory === 'Learnings' && cat !== 'learning' && cat !== 'learnings') {
         return false;
+      } else if (filterCategory === 'Other' && !['experience', 'achievement', 'idea', 'learning', 'upcoming hackathon', 'hackathon', 'announcement', 'event', 'internship', 'job', 'workshop', 'competition', 'conference'].includes(cat)) {
+        return true;
       }
     }
 
@@ -1489,7 +1562,12 @@ export function Feed() {
 
   const feedCategories = [
     { id: 'All', label: 'All Updates' },
+    { id: 'Announcements', label: 'Announcements' },
     { id: 'Upcoming Hackathons', label: 'Hackathons' },
+    { id: 'Events', label: 'Events' },
+    { id: 'Internships', label: 'Internships' },
+    { id: 'Jobs', label: 'Jobs' },
+    { id: 'Workshops', label: 'Workshops' },
     { id: 'Experiences', label: 'Experiences' },
     { id: 'Achievements', label: 'Achievements' },
     { id: 'Ideas', label: 'Ideas' },
@@ -1569,11 +1647,35 @@ export function Feed() {
             <div className="flex items-center justify-between gap-3">
               <div className="flex items-center gap-2 shrink-0">
                 <span className="font-['Outfit',sans-serif] font-bold text-sm text-[#0e1b33] dark:text-white">Community Feed</span>
+                
               </div>
+              {/* Active Search / Hashtag / Category Filter Badge */}
+              {(searchFilter || filterCategory !== 'All') && (
+                <div className="flex items-center gap-1.5 text-xs text-blue-600 dark:text-sky-400 bg-blue-50 dark:bg-sky-950/50 px-2.5 py-1 rounded-full border border-blue-200 dark:border-sky-800 font-bold truncate">
+                  <span>Filtering: {searchFilter || filterCategory}</span>
+                  <button
+                    onClick={() => {
+                      setSearchFilter('');
+                      setFilterCategory('All');
+                      setSearchParams((prev) => {
+                        const copy = new URLSearchParams(prev);
+                        copy.delete('tag');
+                        copy.delete('q');
+                        copy.delete('category');
+                        return copy;
+                      });
+                    }}
+                    className="hover:text-rose-500 cursor-pointer ml-1 font-bold text-sm leading-none"
+                    title="Clear filter"
+                  >
+                    ✕
+                  </button>
+                </div>
+              )}
             </div>
 
-            {/* Category Pills with clean scroll and no scrollbar */}
-            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 scrollbar-none no-scrollbar -mx-1 px-1 pt-1">
+            {/* Category Pills with clean desktop scrollbar */}
+            <div className="flex items-center gap-1.5 overflow-x-auto pb-2 -mx-1 px-1 pt-1 pm-scrollbar">
               {feedCategories.map((fc) => (
                 <button
                   key={fc.id}
@@ -1581,7 +1683,7 @@ export function Feed() {
                   className={`rounded-full px-3.5 py-1 text-xs font-semibold whitespace-nowrap transition cursor-pointer shrink-0 ${
                     filterCategory === fc.id
                       ? 'bg-blue-600 text-white shadow-sm font-bold'
-                      : 'bg-white/60 text-slate-600 hover:text-[#0e1b33] hover:bg-white/80 border border-white/70'
+                      : 'bg-white/60 dark:bg-slate-800/60 text-slate-600 dark:text-slate-300 hover:text-[#0e1b33] dark:hover:text-white hover:bg-white/80 dark:hover:bg-slate-800 border border-white/70 dark:border-slate-700'
                   }`}
                 >
                   {fc.label}
@@ -1686,8 +1788,17 @@ export function Feed() {
 
       {/* Create Post Dialog Modal */}
       {isCreateModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md animate-in fade-in duration-150">
-          <div className="relative w-full max-w-xl max-h-[90vh] overflow-y-auto rounded-3xl pm-glass-card bg-white/95 dark:bg-slate-900/95 p-5 sm:p-6 shadow-2xl border border-white/80 dark:border-slate-700">
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md animate-in fade-in duration-150"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setIsCreateModalOpen(false);
+          }}
+        >
+          <div 
+            role="dialog"
+            aria-modal="true"
+            className="relative w-full max-w-xl max-h-[90vh] overflow-y-auto rounded-3xl pm-glass-card bg-white/95 dark:bg-slate-900/95 p-5 sm:p-6 shadow-2xl border border-white/80 dark:border-slate-700 pm-scrollbar"
+          >
             <div className="flex items-center justify-between pb-3 mb-4 border-b border-slate-200/60 dark:border-slate-800/60">
               <h2 className="text-sm font-bold text-[#0e1b33] dark:text-white font-['Outfit',sans-serif]">
                 Create Community Post
@@ -3097,13 +3208,6 @@ export function Admin() {
   const [pixelReason, setPixelReason] = useState<string>('');
   const [adjustingPixel, setAdjustingPixel] = useState(false);
 
-  // New Post State
-  const [showCreatePost, setShowCreatePost] = useState(false);
-  const [postTitle, setPostTitle] = useState('');
-  const [postText, setPostText] = useState('');
-  const [postCategory, setPostCategory] = useState('Announcements');
-  const [postLink, setPostLink] = useState('');
-
   // New Announcement State
   const [showCreateAnnouncement, setShowCreateAnnouncement] = useState(false);
   const [annTitle, setAnnTitle] = useState('');
@@ -3112,6 +3216,13 @@ export function Admin() {
   const [annCtaLink, setAnnCtaLink] = useState('');
   const [annImageUrl, setAnnImageUrl] = useState('');
   const [uploadingAnnImage, setUploadingAnnImage] = useState(false);
+
+  // Admin Community Post State
+  const [showCreatePost, setShowCreatePost] = useState(false);
+  const [postTitle, setPostTitle] = useState('');
+  const [postText, setPostText] = useState('');
+  const [postCategory, setPostCategory] = useState('Announcements');
+  const [postLink, setPostLink] = useState('');
 
   // Dedicated Admin Notifications State
   const [adminNotifications, setAdminNotifications] = useState<AdminSentNotification[]>([]);
@@ -3267,39 +3378,6 @@ export function Admin() {
     });
   };
 
-  const handleCreatePost = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!postTitle.trim() || !postText.trim()) {
-      say('Title and description are required.');
-      return;
-    }
-    try {
-      await createAdminCommunityPost(
-        {
-          uid: user?.uid || 'admin',
-          email: user?.email || 'admin@pixelminds.org',
-          displayName: 'Pixel Minds Official'
-        },
-        {
-          title: postTitle.trim(),
-          description: postText.trim(),
-          text: `${postTitle.trim()}\n\n${postText.trim()}`,
-          category: postCategory,
-          link: postLink.trim() || undefined,
-          status: 'published'
-        }
-      );
-      say('Community post published to Feed successfully');
-      setPostTitle('');
-      setPostText('');
-      setPostLink('');
-      setShowCreatePost(false);
-      loadData();
-    } catch {
-      say('Failed to create community post');
-    }
-  };
-
   const handleDeletePost = async (postId: string) => {
     setConfirmDialog({
       isOpen: true,
@@ -3320,6 +3398,31 @@ export function Admin() {
         }
       }
     });
+  };
+
+  const handleCreatePost = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!postTitle.trim() || !postText.trim()) return;
+    try {
+      await createAdminCommunityPost(
+        { uid: user?.uid || 'admin', email: user?.email || 'admin@pixelminds.org', displayName: (user as any)?.displayName || 'Pixel Admin' },
+        {
+          title: postTitle.trim(),
+          text: postText.trim(),
+          category: postCategory,
+          link: postLink.trim() || undefined,
+          status: 'published'
+        }
+      );
+      say('Admin post published to feed');
+      setPostTitle('');
+      setPostText('');
+      setPostLink('');
+      setShowCreatePost(false);
+      loadData();
+    } catch {
+      say('Failed to create post');
+    }
   };
 
   const handleAnnImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -4009,7 +4112,13 @@ export function Admin() {
                           </span>
                         </td>
                         <td className="px-4 py-3.5 text-right">
-                          <Btn v="danger" onClick={() => handleDeletePost(p.id)} className="!py-1 !px-2.5 !text-[11px] !min-h-7">Delete</Btn>
+                          <Btn
+                            v="danger"
+                            onClick={() => handleDeletePost(p.id)}
+                            className="!py-1 !px-2.5 !text-[11px] !min-h-7"
+                          >
+                            Delete
+                          </Btn>
                         </td>
                       </tr>
                     ))}

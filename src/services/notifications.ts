@@ -402,6 +402,73 @@ export const deleteAdminNotification = async (notificationId: string): Promise<v
 };
 
 /**
+ * Dispatch a Pixel adjustment / reward notification for a user.
+ * Dispatches database record and fires immediate window events for local instant popup.
+ */
+export const notifyPixelChange = async ({
+  userId,
+  amount,
+  actionName,
+  reason
+}: {
+  userId: string;
+  amount: number;
+  actionName?: string;
+  reason?: string;
+}): Promise<void> => {
+  if (!userId || amount === 0) return;
+
+  const isPositive = amount > 0;
+  const title = isPositive ? `+${amount} Pixels Earned!` : `${Math.abs(amount)} Pixels Deducted`;
+  const message = reason || (isPositive
+    ? `You received +${amount} Pixels for ${actionName || 'contributions'}.`
+    : `${Math.abs(amount)} Pixels were deducted from your balance.`);
+
+  const notifPayload: AppNotification = {
+    id: `px_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+    notificationId: `px_${Date.now()}`,
+    title,
+    message,
+    type: 'pixel',
+    link: '/pixels',
+    isRead: false,
+    readAt: null,
+    createdAt: Date.now()
+  };
+
+  // Immediate UI popup and notification bell refresh event
+  window.dispatchEvent(new CustomEvent('pm:new-notification', { detail: notifPayload }));
+  window.dispatchEvent(new CustomEvent('pm:notification-update'));
+
+  // Persist to Supabase if session user matches
+  try {
+    const { data: notifData } = await supabase
+      .from('notifications')
+      .insert({
+        title,
+        message,
+        type: 'pixel',
+        link: '/pixels',
+        created_by: userId
+      })
+      .select('id')
+      .maybeSingle();
+
+    if (notifData?.id) {
+      await supabase
+        .from('user_notifications')
+        .insert({
+          user_id: userId,
+          notification_id: notifData.id
+        });
+      window.dispatchEvent(new CustomEvent('pm:notification-update'));
+    }
+  } catch (err) {
+    console.warn('[notifyPixelChange] Notice inserting notification to database:', err);
+  }
+};
+
+/**
  * Delete a user notification record by user_notifications id.
  */
 export const deleteNotification = async (userNotificationId: string): Promise<void> => {
@@ -419,5 +486,7 @@ export const deleteNotification = async (userNotificationId: string): Promise<vo
 
   window.dispatchEvent(new CustomEvent('pm:notification-update'));
 };
+
+
 
 

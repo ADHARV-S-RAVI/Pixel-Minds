@@ -9,9 +9,9 @@ import {
   RotateCw,
   Eye,
   EyeOff,
-  Sparkles,
   X
 } from '@/components/Icons';
+import { IconLightbulb } from '../components/FeedIcons';
 import { Card, Btn } from '../ui';
 import { useAuth } from '../contexts/AuthContext';
 import { useApp } from '../store';
@@ -346,7 +346,7 @@ export function Settings() {
           {showUsernameSuggestion && (
             <div className="mb-4 rounded-xl border border-sky-200/80 bg-sky-50/80 p-3 text-xs text-sky-950 flex items-start justify-between gap-3 shadow-2xs">
               <div className="flex items-start gap-2.5">
-                <Sparkles size={16} className="text-sky-600 shrink-0 mt-0.5" />
+                <IconLightbulb size={16} className="text-sky-600 shrink-0 mt-0.5" />
                 <div className="leading-relaxed">
                   <span className="font-bold text-sky-900">Profile Tip:</span> Your public handle is{' '}
                   <span className="font-bold text-[#C5A059]">@{usernameInput || userProfile?.username || 'handle'}</span>.

@@ -5,7 +5,7 @@ import {
   Check,
   CheckCheck,
   ExternalLink,
-  Sparkles,
+  Award,
   Inbox,
   AlertCircle,
   FileCheck2,
@@ -272,7 +272,7 @@ export const NotificationBell: React.FC<{ className?: string }> = ({ className =
       case 'opportunity':
         return <FileCheck2 size={16} className="text-sky-400" />;
       case 'pixel':
-        return <Sparkles size={16} className="text-amber-400" />;
+        return <Award size={16} className="text-amber-400" />;
       case 'announcement':
         return <AlertCircle size={16} className="text-sky-300" />;
       default:

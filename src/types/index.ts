@@ -192,5 +192,10 @@ export interface CommunityPost {
   createdAt: number;
   liked?: boolean;
   likerIds?: string[];
+  authorUsername?: string;
+  isRepost?: boolean;
+  originalAuthorUsername?: string;
+  originalAuthorName?: string;
+  originalPostId?: string;
 }
 

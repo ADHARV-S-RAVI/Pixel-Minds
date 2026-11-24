@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Sparkles, X, LogIn, UserPlus } from '@/components/Icons';
+import { Users, X, LogIn, UserPlus } from '@/components/Icons';
 import { Link, useLocation } from 'react-router-dom';
 
 interface AuthPromptModalProps {
@@ -57,7 +57,8 @@ export const AuthPromptModal: React.FC<AuthPromptModalProps> = ({
         {/* Modal Header */}
         <div className="flex flex-col items-center text-center">
           <div className="grid h-12 w-12 place-items-center rounded-2xl bg-gradient-to-tr from-blue-600 to-sky-400 text-white shadow-md shadow-blue-500/20 mb-3.5">
-            <Sparkles size={24} />
+            <Users size={24} />
+
           </div>
           <h3 className="text-lg sm:text-xl font-extrabold tracking-tight text-[#0e1b33] dark:text-white">
             {title}

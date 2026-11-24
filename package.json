@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "oxlint",
-    "test": "tsx --test src/tests/feedIdentityAndCursor.test.ts src/tests/feedSecurity.test.ts src/tests/securityVerification.test.ts",
+    "test": "tsx --test src/tests/feedIdentityAndCursor.test.ts src/tests/feedSecurity.test.ts src/tests/securityVerification.test.ts src/tests/postComposerAndAttachment.test.ts src/tests/phase4AdminEditAndReport.test.ts src/tests/phase5FeedHardening.test.ts",
     "test:integration": "tsx --test src/tests/databaseIntegration.test.ts",
     "preview": "vite preview"
   },

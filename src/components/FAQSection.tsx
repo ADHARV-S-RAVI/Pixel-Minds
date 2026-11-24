@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Mail, ChevronDown, HelpCircle, Check, Copy, Sparkles, MessageCircleQuestion } from '@/components/Icons';
+import { Mail, ChevronDown, HelpCircle, Check, Copy, MessageCircleQuestion } from '@/components/Icons';
 
 interface FAQItem {
   id: string;
@@ -93,10 +93,7 @@ export const FAQSection: React.FC = () => {
               <Mail size={22} className="text-white" />
             </div>
             <div className="min-w-0">
-              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-blue-100/90 dark:bg-blue-950/60 border border-blue-200/80 dark:border-blue-800/60 text-[11px] font-bold text-blue-700 dark:text-blue-300 mb-1">
-                <Sparkles size={11} className="text-blue-600 dark:text-blue-400" />
-                <span>24/7 Builder Support</span>
-              </div>
+              
               <h3 className="text-base sm:text-lg font-black text-[#0e1b33] dark:text-white tracking-tight">
                 Have questions or need assistance?
               </h3>

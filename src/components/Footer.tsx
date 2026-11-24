@@ -11,7 +11,7 @@ const EXCLUDED_PATHS = [
 
 export function Footer() {
   const location = useLocation();
-  const currentYear = new Date().getFullYear();
+  const currentYear = React.useMemo(() => new Date().getFullYear(), []);
 
   // Route exclusions: Auth and Admin consoles where a footer is inappropriate
   const isExcluded =

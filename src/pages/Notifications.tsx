@@ -5,7 +5,7 @@ import {
   Check,
   CheckCheck,
   ExternalLink,
-  Sparkles,
+  Award,
   Inbox,
   AlertCircle,
   FileCheck2,
@@ -156,7 +156,7 @@ export function Notifications() {
       case 'opportunity':
         return <FileCheck2 size={18} className="text-blue-500 dark:text-sky-400" />;
       case 'pixel':
-        return <Sparkles size={18} className="text-amber-500 dark:text-amber-400" />;
+        return <Award size={18} className="text-amber-500 dark:text-amber-400" />;
       case 'announcement':
         return <AlertCircle size={18} className="text-indigo-500 dark:text-indigo-400" />;
       default:

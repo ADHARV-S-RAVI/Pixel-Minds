@@ -5,13 +5,12 @@ import {
   Share2,
   Eye,
   UserPlus,
-  Zap,
+  Coins,
   ArrowRight,
   ArrowLeft,
   ArrowDown,
   Crown,
   RotateCcw,
-  Sparkles,
   Trophy,
   ShieldCheck,
   CheckCircle2,
@@ -87,7 +86,7 @@ const steps: [any, string, string][] = [
   [Share2, '1. Share Opportunity', 'Send your unique link to peers'],
   [Eye, '2. Friend Visits', 'They explore the opportunity details'],
   [UserPlus, '3. Friend Joins', 'They create a Pixel Minds account'],
-  [Zap, '4. +25 Pixels Earned', 'Instantly credited to your balance']
+  [Coins, '4. +25 Pixels Earned', 'Instantly credited to your balance']
 ];
 
 export function ReferralPanel() {
@@ -163,8 +162,7 @@ export function ReferralPanel() {
         <div className="rounded-3xl pm-glass-card bg-gradient-to-br from-blue-50/90 via-sky-50/70 to-white/90 backdrop-blur-xl border border-blue-200/80 p-5 sm:p-6 shadow-sm text-[#0e1b33]">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
-              <div className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-blue-600">
-                <Sparkles size={14} />
+              <div className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-blue-600">  
                 <span>Your Unique Referral Link</span>
               </div>
               <p className="text-xs text-slate-600 mt-0.5">
@@ -547,7 +545,6 @@ export function Leaderboard() {
               <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-700/50">
                 <div className="mb-2 flex items-center justify-between text-xs font-bold">
                   <span className="text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
-                    <Sparkles size={13} className="text-blue-500" />
                     <span>Progress to Next Rank</span>
                   </span>
                   <span className="text-blue-600 dark:text-sky-400 font-extrabold">
@@ -594,10 +591,10 @@ export function Leaderboard() {
               <div className="flex flex-wrap items-center gap-2 text-xs text-slate-600 dark:text-slate-400">
                 <span className="font-semibold text-slate-500">Earn Pixels:</span>
                 <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white/70 dark:bg-slate-800/60 border border-slate-200/70 dark:border-slate-700/60 text-[11px] font-bold text-[#0e1b33] dark:text-slate-200">
-                  <Zap size={11} className="text-blue-500" /> +25 Invite Peer
+                 +25 Invite Peer
                 </span>
                 <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white/70 dark:bg-slate-800/60 border border-slate-200/70 dark:border-slate-700/60 text-[11px] font-bold text-[#0e1b33] dark:text-slate-200">
-                  <Sparkles size={11} className="text-indigo-500" /> +50 Share Opportunity
+                  +50 Share Opportunity
                 </span>
               </div>
             )}
@@ -740,7 +737,7 @@ export function Leaderboard() {
         <div className="flex items-start justify-between flex-wrap gap-3">
           <div>
             <div className="inline-flex items-center gap-1.5 rounded-full bg-blue-100/90 border border-blue-200/80 px-3 py-1 text-xs font-bold text-blue-700 shadow-2xs mb-2">
-              <Sparkles size={13} className="text-blue-600" />
+              
               <span>Platform Rewards &amp; Reputation</span>
             </div>
             <h2 className="text-xl sm:text-2xl font-black text-[#0e1b33] tracking-tight">

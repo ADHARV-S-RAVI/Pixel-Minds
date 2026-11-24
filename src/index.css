@@ -432,13 +432,11 @@ textarea:not(:disabled) {
 
 /* Mobile-optimized scrollbar suppression: Completely remove visible horizontal scrollbars on touch / small screens */
 @media (max-width: 1024px) {
-  .pm-scrollbar,
   .overflow-x-auto,
   .overflow-x-scroll {
     scrollbar-width: none !important;
     -ms-overflow-style: none !important;
   }
-  .pm-scrollbar::-webkit-scrollbar,
   .overflow-x-auto::-webkit-scrollbar,
   .overflow-x-scroll::-webkit-scrollbar {
     display: none !important;

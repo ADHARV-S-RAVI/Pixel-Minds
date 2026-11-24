@@ -1,5 +1,5 @@
 import React from 'react';
-import { Sparkles, Trophy, ArrowRight, Rocket, Globe, Gem, Crown, CheckCircle2, X } from '@/components/Icons';
+import { Award, Trophy, ArrowRight, Rocket, Globe, Gem, Crown, CheckCircle2, X } from '@/components/Icons';
 import { CelebrationConfetti } from './CelebrationConfetti';
 
 export interface LevelMeta {
@@ -15,7 +15,7 @@ export const LEVEL_METAS: Record<number, LevelMeta> = {
   3: { level: 3, name: 'Pixel Contributor', objectName: 'Radiant Cyber Diamond', icon: Gem },
   4: { level: 4, name: 'Pixel Builder', objectName: 'Champions Digital Trophy', icon: Trophy },
   5: { level: 5, name: 'Pixel Master', objectName: 'Imperial Royal Crown', icon: Crown },
-  6: { level: 6, name: 'Pixel Legend', objectName: 'Astral Supernova Artifact', icon: Sparkles }
+  6: { level: 6, name: 'Pixel Legend', objectName: 'Astral Supernova Artifact', icon: Award }
 };
 
 interface LevelUpOverlayProps {
@@ -70,7 +70,7 @@ export const LevelUpOverlay: React.FC<LevelUpOverlayProps> = ({
 
         {/* Top Celebration Pill */}
         <div className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-gradient-to-r from-blue-500/15 via-cyan-400/20 to-purple-500/20 border border-blue-400/40 text-xs font-black text-blue-700 dark:text-sky-300 mb-3 shadow-xs animate-pulse">
-          <Sparkles size={13} className="text-blue-500 dark:text-cyan-400" />
+          <Award size={13} className="text-blue-500 dark:text-cyan-400" />
           <span>LEVEL UP CELEBRATION</span>
         </div>
 
